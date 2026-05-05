@@ -7,6 +7,7 @@ import { BarChart3, Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { listAssignableOperators } from "@/server/operators.functions";
 
 export const Route = createFileRoute("/relatorios")({
   beforeLoad: requireAuth,
@@ -28,12 +29,14 @@ type Row = {
 };
 
 type ClienteOpt = { id: string; nome: string };
+type OpOpt = { id: string; email: string; role: string };
 
 const SLA_HORAS: Record<string, number> = { urgente: 4, alta: 8, media: 24, baixa: 72 };
 
 function RelatoriosPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [clientes, setClientes] = useState<ClienteOpt[]>([]);
+  const [operators, setOperators] = useState<OpOpt[]>([]);
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().slice(0, 10);
   });
@@ -41,11 +44,13 @@ function RelatoriosPage() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [prioridadeFilter, setPrioridadeFilter] = useState("todos");
   const [clienteFilter, setClienteFilter] = useState("todos");
+  const [responsavelFilter, setResponsavelFilter] = useState("todos");
 
   useEffect(() => {
     supabase.from("clientes").select("id, nome").order("nome").then(({ data }) => {
       setClientes((data as ClienteOpt[]) ?? []);
     });
+    listAssignableOperators().then(setOperators).catch(() => setOperators([]));
   }, []);
 
   useEffect(() => {
@@ -60,11 +65,13 @@ function RelatoriosPage() {
     if (statusFilter !== "todos") q = q.eq("status", statusFilter as never);
     if (prioridadeFilter !== "todos") q = q.eq("prioridade", prioridadeFilter as never);
     if (clienteFilter !== "todos") q = q.eq("cliente_id", clienteFilter);
+    if (responsavelFilter === "nao_atribuidos") q = q.is("responsavel_id", null);
+    else if (responsavelFilter !== "todos") q = q.eq("responsavel_id", responsavelFilter);
     q.then(({ data, error }) => {
       if (error) toast.error(error.message);
       setRows((data as unknown as Row[]) ?? []);
     });
-  }, [dateFrom, dateTo, statusFilter, prioridadeFilter, clienteFilter]);
+  }, [dateFrom, dateTo, statusFilter, prioridadeFilter, clienteFilter, responsavelFilter]);
 
   const stats = useMemo(() => {
     const total = rows.length;
@@ -129,7 +136,7 @@ function RelatoriosPage() {
 
   return (
     <AppShell title="Relatórios">
-      <div className="border border-border bg-card p-4 mb-6 grid grid-cols-1 md:grid-cols-6 gap-3">
+      <div className="border border-border bg-card p-4 mb-6 grid grid-cols-1 md:grid-cols-7 gap-3">
         <div>
           <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">De</label>
           <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
@@ -146,6 +153,15 @@ function RelatoriosPage() {
             className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono">
             <option value="todos">Todos</option>
             {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Responsável</label>
+          <select value={responsavelFilter} onChange={(e) => setResponsavelFilter(e.target.value)}
+            className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono">
+            <option value="todos">Todos</option>
+            <option value="nao_atribuidos">Não atribuídos</option>
+            {operators.map((o) => <option key={o.id} value={o.id}>{o.email}</option>)}
           </select>
         </div>
         <div>
