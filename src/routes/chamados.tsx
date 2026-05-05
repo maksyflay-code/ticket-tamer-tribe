@@ -446,15 +446,26 @@ function DetailDrawer({ chamado, onClose, autor }: { chamado: Chamado; onClose: 
             </form>
             <div className="space-y-3">
               {historico.length === 0 && <div className="text-xs text-muted-foreground font-mono">Sem registros.</div>}
-              {historico.map((h) => (
-                <div key={h.id} className="border-l-2 border-primary/30 pl-3 pb-2">
-                  <div className="flex items-center gap-2 text-[10px] font-mono uppercase text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {new Date(h.created_at).toLocaleString("pt-BR")} · {h.tipo} · {h.autor ?? "sistema"}
+              {historico.map((h) => {
+                const tone =
+                  h.tipo === "criacao" ? "border-primary/60" :
+                  h.tipo === "mudanca_status" ? "border-amber-500/60" :
+                  h.tipo === "mudanca_prioridade" ? "border-orange-500/60" :
+                  h.tipo === "mudanca_responsavel" ? "border-violet-500/60" :
+                  h.tipo === "anexo" ? "border-cyan-500/60" :
+                  "border-border";
+                return (
+                  <div key={h.id} className={`border-l-2 pl-3 pb-2 ${tone}`}>
+                    <div className="flex items-center gap-2 text-[10px] font-mono uppercase text-muted-foreground flex-wrap">
+                      <Clock className="h-3 w-3" />
+                      <span>{new Date(h.created_at).toLocaleString("pt-BR")}</span>
+                      <span className="px-1.5 py-px border border-border bg-background">{h.tipo.replace("_", " ")}</span>
+                      <span>· {h.autor ?? "sistema"}</span>
+                    </div>
+                    <div className="text-sm mt-1">{h.descricao}</div>
                   </div>
-                  <div className="text-sm mt-1">{h.descricao}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         </div>

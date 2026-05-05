@@ -19,6 +19,7 @@ type Stats = {
   novosClientes30d: number;
   slaPct: number;
   tempoMedioH: number;
+  porPrioridade: Record<string, number>;
 };
 
 type Chamado = {
@@ -51,14 +52,14 @@ const prioridadeColor = (p: string) => {
 };
 
 function DashboardPage() {
-  const [stats, setStats] = useState<Stats>({ abertos: 0, emAndamento: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0 });
+  const [stats, setStats] = useState<Stats>({ abertos: 0, emAndamento: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0, porPrioridade: {} });
   const [recentes, setRecentes] = useState<Chamado[]>([]);
 
   const load = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const since30 = new Date(); since30.setDate(since30.getDate() - 30);
-    const [a, e, r, c, novos, resolvidos30, rec] = await Promise.all([
+    const [a, e, r, c, novos, resolvidos30, rec, abertosPri] = await Promise.all([
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aberto"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "em_andamento"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "resolvido").gte("resolvido_at", today.toISOString()),
@@ -70,6 +71,7 @@ function DashboardPage() {
         .select("id, numero, titulo, status, prioridade, created_at, clientes(nome)")
         .order("created_at", { ascending: false })
         .limit(8),
+      supabase.from("chamados").select("prioridade").in("status", ["aberto", "em_andamento"]),
     ]);
     const SLA: Record<string, number> = { urgente: 4, alta: 8, media: 24, baixa: 72 };
     const list = (resolvidos30.data ?? []) as { created_at: string; resolvido_at: string; prioridade: string }[];
@@ -87,6 +89,9 @@ function DashboardPage() {
       novosClientes30d: novos.count ?? 0,
       slaPct: list.length > 0 ? (okSla / list.length) * 100 : 0,
       tempoMedioH: list.length > 0 ? totalH / list.length : 0,
+      porPrioridade: ((abertosPri.data ?? []) as { prioridade: string }[]).reduce((acc, x) => {
+        acc[x.prioridade] = (acc[x.prioridade] ?? 0) + 1; return acc;
+      }, {} as Record<string, number>),
     });
     setRecentes((rec.data as unknown as Chamado[]) ?? []);
   };
@@ -125,6 +130,18 @@ function DashboardPage() {
             </div>
           );
         })}
+      </section>
+
+      <section className="mb-8">
+        <h2 className="font-display text-lg font-bold tracking-tight mb-4">Chamados Ativos por Prioridade</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {(["urgente","alta","media","baixa"] as const).map((p) => (
+            <div key={p} className="border border-border bg-card p-5">
+              <div className={`text-[10px] uppercase tracking-widest font-mono mb-2 ${prioridadeColor(p)}`}>● {p}</div>
+              <div className="font-display text-3xl font-bold">{stats.porPrioridade[p] ?? 0}</div>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section>
