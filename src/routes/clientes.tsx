@@ -44,9 +44,10 @@ function ClientesPage() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nome) return toast.error("Nome é obrigatório");
-    const payload = { ...form } as Partial<Cliente>;
+    const payload: Record<string, unknown> = { ...form };
+    delete payload.id;
     const { error } = form.id
-      ? await supabase.from("clientes").update(payload).eq("id", form.id)
+      ? await supabase.from("clientes").update(payload as never).eq("id", form.id)
       : await supabase.from("clientes").insert(payload as never);
     if (error) return toast.error(error.message);
     toast.success(form.id ? "Cliente atualizado" : "Cliente cadastrado");
