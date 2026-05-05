@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { listAssignableOperators } from "@/server/operators.functions";
+import { authHeaders } from "@/lib/server-call";
 
 export const Route = createFileRoute("/relatorios")({
   beforeLoad: requireAuth,
@@ -50,7 +51,14 @@ function RelatoriosPage() {
     supabase.from("clientes").select("id, nome").order("nome").then(({ data }) => {
       setClientes((data as ClienteOpt[]) ?? []);
     });
-    listAssignableOperators().then(setOperators).catch(() => setOperators([]));
+    (async () => {
+      try {
+        const ops = await listAssignableOperators({ headers: await authHeaders() });
+        setOperators(ops);
+      } catch {
+        setOperators([]);
+      }
+    })();
   }, []);
 
   useEffect(() => {
