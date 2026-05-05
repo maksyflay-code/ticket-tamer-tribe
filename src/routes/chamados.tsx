@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { useAuth } from "@/lib/auth";
-import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X, UserCheck } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X, UserCheck, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { listAssignableOperators } from "@/server/operators.functions";
 
@@ -53,12 +53,29 @@ const prioridadeColor = (p: Prioridade) => ({
   baixa: "text-muted-foreground",
 })[p];
 
+const SLA_HORAS: Record<Prioridade, number> = { urgente: 4, alta: 8, media: 24, baixa: 72 };
+
+function slaInfo(c: Pick<Chamado, "status" | "prioridade" | "created_at" | "resolvido_at">) {
+  const limite = SLA_HORAS[c.prioridade];
+  const fim = c.resolvido_at ? new Date(c.resolvido_at).getTime() : Date.now();
+  const horas = (fim - new Date(c.created_at).getTime()) / 3_600_000;
+  const ativo = c.status !== "resolvido" && c.status !== "fechado";
+  const estourado = ativo && horas > limite;
+  const restante = limite - horas;
+  return { estourado, ativo, restante, limite };
+}
+
+const PAGE_SIZE = 20;
+
 function ChamadosPage() {
   const { user, canWrite, isAdmin } = useAuth();
   const [items, setItems] = useState<Chamado[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [operators, setOperators] = useState<Operator[]>([]);
   const [search, setSearch] = useState("");
+  const [searchDebounced, setSearchDebounced] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [prioridadeFilter, setPrioridadeFilter] = useState<string>("todos");
   const [responsavelFilter, setResponsavelFilter] = useState<string>("todos");
@@ -66,13 +83,40 @@ function ChamadosPage() {
   const [form, setForm] = useState<Partial<Chamado>>(empty);
   const [detail, setDetail] = useState<Chamado | null>(null);
 
+  // debounce de busca
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // resetar paginação quando filtros mudam
+  useEffect(() => { setPage(0); }, [searchDebounced, statusFilter, prioridadeFilter, responsavelFilter]);
+
   const load = async () => {
-    const { data, error } = await supabase
+    let q = supabase
       .from("chamados")
-      .select("*, clientes(nome)")
+      .select("*, clientes(nome)", { count: "exact" })
       .order("created_at", { ascending: false });
+    if (statusFilter !== "todos") q = q.eq("status", statusFilter as never);
+    if (prioridadeFilter !== "todos") q = q.eq("prioridade", prioridadeFilter as never);
+    if (responsavelFilter === "meus" && user?.id) q = q.eq("responsavel_id", user.id);
+    else if (responsavelFilter === "nao_atribuidos") q = q.is("responsavel_id", null);
+    else if (responsavelFilter !== "todos" && responsavelFilter !== "meus") q = q.eq("responsavel_id", responsavelFilter);
+    if (searchDebounced.trim()) {
+      const s = searchDebounced.trim().replace(/[%,]/g, "");
+      const asNum = Number(s);
+      if (Number.isInteger(asNum) && asNum > 0) {
+        q = q.or(`titulo.ilike.%${s}%,numero.eq.${asNum}`);
+      } else {
+        q = q.ilike("titulo", `%${s}%`);
+      }
+    }
+    const from = page * PAGE_SIZE;
+    q = q.range(from, from + PAGE_SIZE - 1);
+    const { data, error, count } = await q;
     if (error) toast.error(error.message);
     setItems((data as unknown as Chamado[]) ?? []);
+    setTotal(count ?? 0);
     const { data: cl } = await supabase.from("clientes").select("id, nome").order("nome");
     setClientes((cl as Cliente[]) ?? []);
     try {
@@ -82,7 +126,7 @@ function ChamadosPage() {
       // visualizador sem operadores: ignora
     }
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [page, searchDebounced, statusFilter, prioridadeFilter, responsavelFilter, user?.id]);
 
   const opEmailById = useMemo(() => {
     const m = new Map<string, string>();
@@ -130,18 +174,14 @@ function ChamadosPage() {
   };
 
   const filtered = items.filter((c) => {
-    const s = search.toLowerCase();
-    const matchSearch = c.titulo.toLowerCase().includes(s) ||
+    // Refino client-side por nome do cliente (server-side já filtrou o resto)
+    if (!searchDebounced.trim()) return true;
+    const s = searchDebounced.toLowerCase();
+    return (
+      c.titulo.toLowerCase().includes(s) ||
       (c.clientes?.nome ?? "").toLowerCase().includes(s) ||
-      String(c.numero).includes(search);
-    const matchStatus = statusFilter === "todos" || c.status === statusFilter;
-    const matchPri = prioridadeFilter === "todos" || c.prioridade === prioridadeFilter;
-    const matchResp =
-      responsavelFilter === "todos" ? true :
-      responsavelFilter === "meus" ? c.responsavel_id === user?.id :
-      responsavelFilter === "nao_atribuidos" ? !c.responsavel_id :
-      c.responsavel_id === responsavelFilter;
-    return matchSearch && matchStatus && matchPri && matchResp;
+      String(c.numero).includes(searchDebounced)
+    );
   });
 
   return (
@@ -195,16 +235,19 @@ function ChamadosPage() {
               <th className="p-4 font-medium font-mono">TÍTULO</th>
               <th className="p-4 font-medium font-mono">RESPONSÁVEL</th>
               <th className="p-4 font-medium font-mono">PRIORIDADE</th>
+              <th className="p-4 font-medium font-mono">SLA</th>
               <th className="p-4 font-medium font-mono">STATUS</th>
               <th className="p-4 font-medium font-mono text-right">AÇÕES</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground font-mono">Nenhum chamado encontrado.</td></tr>
+              <tr><td colSpan={8} className="p-8 text-center text-muted-foreground font-mono">Nenhum chamado encontrado.</td></tr>
             )}
-            {filtered.map((c) => (
-              <tr key={c.id} className="hover:bg-secondary/30 cursor-pointer" onClick={() => setDetail(c)}>
+            {filtered.map((c) => {
+              const sla = slaInfo(c);
+              return (
+              <tr key={c.id} className={`hover:bg-secondary/30 cursor-pointer ${sla.estourado ? "bg-red-500/5" : ""}`} onClick={() => setDetail(c)}>
                 <td className="p-4 font-mono text-muted-foreground">#TK-{String(c.numero).padStart(4, "0")}</td>
                 <td className="p-4 font-medium">{c.clientes?.nome ?? "—"}</td>
                 <td className="p-4">{c.titulo}</td>
@@ -214,6 +257,18 @@ function ChamadosPage() {
                     : <span className="text-muted-foreground">não atribuído</span>}
                 </td>
                 <td className={`p-4 font-mono uppercase ${prioridadeColor(c.prioridade)}`}>{c.prioridade}</td>
+                <td className="p-4 font-mono text-[10px]">
+                  {!sla.ativo ? <span className="text-muted-foreground">—</span> :
+                    sla.estourado ? (
+                      <span className="inline-flex items-center gap-1 text-red-400">
+                        <AlertTriangle className="h-3 w-3" /> ESTOURADO ({Math.abs(sla.restante).toFixed(0)}h)
+                      </span>
+                    ) : (
+                      <span className={sla.restante < sla.limite * 0.25 ? "text-amber-400" : "text-emerald-400"}>
+                        {sla.restante.toFixed(0)}h restantes
+                      </span>
+                    )}
+                </td>
                 <td className="p-4">
                   <span className={`px-2 py-0.5 border font-mono uppercase ${statusBadge(c.status)}`}>
                     {c.status.replace("_", " ")}
@@ -232,9 +287,26 @@ function ChamadosPage() {
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
+      </div>
+
+      <div className="flex items-center justify-between mt-4 text-xs font-mono text-muted-foreground">
+        <div>
+          {total > 0 ? `${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, total)} de ${total}` : "0 resultados"}
+        </div>
+        <div className="flex gap-2">
+          <button disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}
+            className="px-3 py-1 border border-border bg-card disabled:opacity-30 hover:bg-secondary inline-flex items-center gap-1">
+            <ChevronLeft className="h-3 w-3" /> Anterior
+          </button>
+          <button disabled={(page + 1) * PAGE_SIZE >= total} onClick={() => setPage((p) => p + 1)}
+            className="px-3 py-1 border border-border bg-card disabled:opacity-30 hover:bg-secondary inline-flex items-center gap-1">
+            Próxima <ChevronRight className="h-3 w-3" />
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -310,7 +382,7 @@ function ChamadosPage() {
         </div>
       )}
 
-      {detail && <DetailDrawer chamado={detail} onClose={() => { setDetail(null); load(); }} autor={user?.email ?? "operador"} />}
+      {detail && <DetailDrawer chamado={detail} operators={operators} canWrite={canWrite} onClose={() => { setDetail(null); load(); }} autor={user?.email ?? "operador"} />}
     </AppShell>
   );
 }
