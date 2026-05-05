@@ -195,7 +195,20 @@ function ClientesPage() {
               <Field label="Telefone" value={form.telefone ?? ""} onChange={(v) => setForm({ ...form, telefone: v })} />
               <Field label="Endereço" value={form.endereco ?? ""} onChange={(v) => setForm({ ...form, endereco: v })} />
               <Field label="Cidade" value={form.cidade ?? ""} onChange={(v) => setForm({ ...form, cidade: v })} />
-              <Field label="Plano" value={form.plano ?? ""} onChange={(v) => setForm({ ...form, plano: v })} />
+              <div>
+                <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Plano</label>
+                <select
+                  value={form.plano_id ?? ""}
+                  onChange={(e) => setForm({ ...form, plano_id: e.target.value || null })}
+                  className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                >
+                  <option value="">— Sem plano —</option>
+                  {planos.map((p) => (
+                    <option key={p.id} value={p.id}>{p.nome} — R$ {Number(p.preco).toFixed(2)}</option>
+                  ))}
+                </select>
+              </div>
+              <Field label="Data do contrato" type="date" value={form.data_contrato ?? ""} onChange={(v) => setForm({ ...form, data_contrato: v || null })} />
               <div>
                 <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Status</label>
                 <select
