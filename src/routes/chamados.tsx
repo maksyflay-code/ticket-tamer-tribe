@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X, UserCheck, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { listAssignableOperators } from "@/server/operators.functions";
+import { authHeaders } from "@/lib/server-call";
 
 export const Route = createFileRoute("/chamados")({
   beforeLoad: requireAuth,
@@ -120,7 +121,7 @@ function ChamadosPage() {
     const { data: cl } = await supabase.from("clientes").select("id, nome").order("nome");
     setClientes((cl as Cliente[]) ?? []);
     try {
-      const ops = await listAssignableOperators();
+      const ops = await listAssignableOperators({ headers: await authHeaders() });
       setOperators(ops);
     } catch {
       // visualizador sem operadores: ignora
