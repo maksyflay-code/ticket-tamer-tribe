@@ -83,7 +83,7 @@ function ChamadosPage() {
       payload.resolvido_at = null;
     }
     const { error } = form.id
-      ? await supabase.from("chamados").update(payload).eq("id", form.id)
+      ? await supabase.from("chamados").update(payload as never).eq("id", form.id)
       : await supabase.from("chamados").insert(payload as never);
     if (error) return toast.error(error.message);
     toast.success(form.id ? "Chamado atualizado" : "Chamado aberto");
