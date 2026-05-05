@@ -20,22 +20,33 @@ type Cliente = {
   endereco: string | null;
   cidade: string | null;
   plano: string | null;
+  plano_id: string | null;
+  data_contrato: string | null;
+  planos?: { nome: string; preco: number } | null;
   status: "ativo" | "inativo" | "suspenso";
   observacoes: string | null;
 };
+
+type PlanoOpt = { id: string; nome: string; preco: number };
 
 const empty: Partial<Cliente> = { status: "ativo" };
 
 function ClientesPage() {
   const [items, setItems] = useState<Cliente[]>([]);
+  const [planos, setPlanos] = useState<PlanoOpt[]>([]);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Cliente>>(empty);
 
   const load = async () => {
-    const { data, error } = await supabase.from("clientes").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("*, planos(nome, preco)")
+      .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
-    setItems((data as Cliente[]) ?? []);
+    setItems((data as unknown as Cliente[]) ?? []);
+    const { data: pl } = await supabase.from("planos").select("id, nome, preco").eq("ativo", true).order("nome");
+    setPlanos((pl as PlanoOpt[]) ?? []);
   };
   useEffect(() => {
     load();
@@ -46,6 +57,7 @@ function ClientesPage() {
     if (!form.nome) return toast.error("Nome é obrigatório");
     const payload: Record<string, unknown> = { ...form };
     delete payload.id;
+    delete payload.planos;
     const { error } = form.id
       ? await supabase.from("clientes").update(payload as never).eq("id", form.id)
       : await supabase.from("clientes").insert(payload as never);
