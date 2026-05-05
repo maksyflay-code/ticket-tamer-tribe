@@ -391,11 +391,42 @@ function Lbl({ children }: { children: React.ReactNode }) {
   return <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">{children}</label>;
 }
 
-function DetailDrawer({ chamado, onClose, autor }: { chamado: Chamado; onClose: () => void; autor: string }) {
+function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamado: Chamado; onClose: () => void; autor: string; operators: Operator[]; canWrite: boolean }) {
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [anexos, setAnexos] = useState<Anexo[]>([]);
   const [comentario, setComentario] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [status, setStatus] = useState<Status>(chamado.status);
+  const [prioridade, setPrioridade] = useState<Prioridade>(chamado.prioridade);
+  const [responsavelId, setResponsavelId] = useState<string>(chamado.responsavel_id ?? "");
+  const [savingQuick, setSavingQuick] = useState(false);
+
+  useEffect(() => {
+    setStatus(chamado.status);
+    setPrioridade(chamado.prioridade);
+    setResponsavelId(chamado.responsavel_id ?? "");
+  }, [chamado.id, chamado.status, chamado.prioridade, chamado.responsavel_id]);
+
+  const dirty = status !== chamado.status || prioridade !== chamado.prioridade || (responsavelId || null) !== (chamado.responsavel_id || null);
+
+  const saveQuick = async () => {
+    if (!canWrite) return toast.error("Sem permissão.");
+    setSavingQuick(true);
+    const opEmail = operators.find((o) => o.id === responsavelId)?.email ?? null;
+    const payload: Record<string, unknown> = {
+      status, prioridade,
+      responsavel_id: responsavelId || null,
+      tecnico_responsavel: responsavelId ? opEmail : null,
+    };
+    if (status === "resolvido" && !chamado.resolvido_at) payload.resolvido_at = new Date().toISOString();
+    if (status !== "resolvido" && status !== "fechado") payload.resolvido_at = null;
+    const { error } = await supabase.from("chamados").update(payload as never).eq("id", chamado.id);
+    setSavingQuick(false);
+    if (error) return toast.error(error.message);
+    toast.success("Chamado atualizado");
+    Object.assign(chamado, payload);
+    load();
+  };
 
   const load = async () => {
     const [h, a] = await Promise.all([
@@ -467,6 +498,43 @@ function DetailDrawer({ chamado, onClose, autor }: { chamado: Chamado; onClose: 
         </div>
 
         <div className="p-6 space-y-6">
+          {canWrite && (
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-3 border border-border bg-background p-3">
+              <div>
+                <Lbl>Status</Lbl>
+                <select value={status} onChange={(e) => setStatus(e.target.value as Status)}
+                  className="mt-1 w-full bg-card border border-border px-2 py-1.5 text-xs font-mono">
+                  <option value="aberto">Aberto</option><option value="em_andamento">Em andamento</option>
+                  <option value="resolvido">Resolvido</option><option value="fechado">Fechado</option>
+                </select>
+              </div>
+              <div>
+                <Lbl>Prioridade</Lbl>
+                <select value={prioridade} onChange={(e) => setPrioridade(e.target.value as Prioridade)}
+                  className="mt-1 w-full bg-card border border-border px-2 py-1.5 text-xs font-mono">
+                  <option value="baixa">Baixa</option><option value="media">Média</option>
+                  <option value="alta">Alta</option><option value="urgente">Urgente</option>
+                </select>
+              </div>
+              <div>
+                <Lbl>Responsável</Lbl>
+                <select value={responsavelId} onChange={(e) => setResponsavelId(e.target.value)}
+                  className="mt-1 w-full bg-card border border-border px-2 py-1.5 text-xs font-mono">
+                  <option value="">— Não atribuído —</option>
+                  {operators.map((o) => <option key={o.id} value={o.id}>{o.email}</option>)}
+                </select>
+              </div>
+              {dirty && (
+                <div className="md:col-span-3 flex justify-end">
+                  <button disabled={savingQuick} onClick={saveQuick}
+                    className="bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold uppercase tracking-wider disabled:opacity-50">
+                    {savingQuick ? "Salvando…" : "Aplicar alterações"}
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+
           <section className="grid grid-cols-2 gap-4 text-xs font-mono">
             <Info label="Cliente" value={chamado.clientes?.nome ?? "—"} />
             <Info label="Categoria" value={chamado.categoria ?? "—"} />
