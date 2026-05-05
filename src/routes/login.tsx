@@ -51,7 +51,7 @@ function LoginPage() {
           <div className="inline-flex items-center gap-2 mb-3">
             <Activity className="h-5 w-5 text-primary" />
             <span className="font-display text-2xl font-extrabold tracking-tighter uppercase text-primary">
-              Vortex / ERP
+              IVI / TELECOM
             </span>
           </div>
           <p className="text-sm text-muted-foreground font-mono uppercase tracking-widest">
