@@ -35,10 +35,14 @@ export const Route = createRootRoute({
       { name: "description", content: "ERP da IVI Telecom: chamados, clientes e relatórios em um só lugar." },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "IVI Telecom — ERP de Gestão" },
-      { property: "og:description", content: "Chamados, clientes e relatórios para provedores de internet." },
+      { property: "og:description", content: "ERP da IVI Telecom: chamados, clientes e relatórios em um só lugar." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "IVI Telecom — ERP de Gestão" },
+      { name: "twitter:description", content: "ERP da IVI Telecom: chamados, clientes e relatórios em um só lugar." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/8FGOkBh7vxWysK2zBtcw6NHwmUI3/social-images/social-1777982430185-WhatsApp_Image_2026-03-27_at_23.40.40.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/8FGOkBh7vxWysK2zBtcw6NHwmUI3/social-images/social-1777982430185-WhatsApp_Image_2026-03-27_at_23.40.40.webp" },
     ],
     links: [
       {
