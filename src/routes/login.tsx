@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Activity } from "lucide-react";
+import logo from "@/assets/ivi-logo.jpeg";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: async () => {
@@ -36,15 +36,12 @@ function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center gap-2 mb-3">
-            <Activity className="h-5 w-5 text-primary" />
+          <div className="inline-flex flex-col items-center gap-3 mb-3">
+            <img src={logo} alt="IVI Telecom" className="h-20 w-20 rounded-xl object-cover" />
             <span className="font-display text-2xl font-extrabold tracking-tighter uppercase text-primary">
-              IVI / TELECOM
+              IVI TELECOM
             </span>
           </div>
-          <p className="text-sm text-muted-foreground font-mono uppercase tracking-widest">
-            ISP Operations Console
-          </p>
         </div>
 
         <div className="border border-border bg-card p-8">
