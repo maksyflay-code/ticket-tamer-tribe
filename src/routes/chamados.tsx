@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { useAuth } from "@/lib/auth";
-import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X, UserCheck } from "lucide-react";
 import { toast } from "sonner";
+import { listAssignableOperators } from "@/server/operators.functions";
 
 export const Route = createFileRoute("/chamados")({
   beforeLoad: requireAuth,
@@ -25,12 +26,14 @@ type Chamado = {
   status: Status;
   prioridade: Prioridade;
   tecnico_responsavel: string | null;
+  responsavel_id: string | null;
   resolvido_at: string | null;
   created_at: string;
   clientes: { nome: string } | null;
 };
 
 type Cliente = { id: string; nome: string };
+type Operator = { id: string; email: string; role: string };
 type Historico = { id: string; tipo: string; descricao: string; autor: string | null; created_at: string; status_anterior: string | null; status_novo: string | null };
 type Anexo = { id: string; nome_arquivo: string; storage_path: string; mime_type: string | null; tamanho: number | null; created_at: string };
 
@@ -51,12 +54,14 @@ const prioridadeColor = (p: Prioridade) => ({
 })[p];
 
 function ChamadosPage() {
-  const { user } = useAuth();
+  const { user, canWrite, isAdmin } = useAuth();
   const [items, setItems] = useState<Chamado[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [operators, setOperators] = useState<Operator[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [prioridadeFilter, setPrioridadeFilter] = useState<string>("todos");
+  const [responsavelFilter, setResponsavelFilter] = useState<string>("todos");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Chamado>>(empty);
   const [detail, setDetail] = useState<Chamado | null>(null);
@@ -70,16 +75,35 @@ function ChamadosPage() {
     setItems((data as unknown as Chamado[]) ?? []);
     const { data: cl } = await supabase.from("clientes").select("id, nome").order("nome");
     setClientes((cl as Cliente[]) ?? []);
+    try {
+      const ops = await listAssignableOperators();
+      setOperators(ops);
+    } catch {
+      // visualizador sem operadores: ignora
+    }
   };
   useEffect(() => { load(); }, []);
 
+  const opEmailById = useMemo(() => {
+    const m = new Map<string, string>();
+    operators.forEach((o) => m.set(o.id, o.email));
+    return m;
+  }, [operators]);
+
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canWrite) return toast.error("Você não tem permissão para alterar chamados.");
     if (!form.titulo) return toast.error("Título obrigatório");
     const payload: Record<string, unknown> = { ...form };
     delete payload.clientes;
     delete payload.id;
     delete payload.numero;
+    if (payload.responsavel_id === "") payload.responsavel_id = null;
+    // mantém tecnico_responsavel sincronizado com o e-mail do responsável escolhido
+    if (payload.responsavel_id) {
+      const email = opEmailById.get(payload.responsavel_id as string);
+      if (email) payload.tecnico_responsavel = email;
+    }
     if (payload.status === "resolvido" && !payload.resolvido_at) {
       payload.resolvido_at = new Date().toISOString();
     }
@@ -97,6 +121,7 @@ function ChamadosPage() {
   };
 
   const remove = async (id: string) => {
+    if (!isAdmin) return toast.error("Apenas administradores podem excluir.");
     if (!confirm("Excluir este chamado?")) return;
     const { error } = await supabase.from("chamados").delete().eq("id", id);
     if (error) return toast.error(error.message);
@@ -111,7 +136,12 @@ function ChamadosPage() {
       String(c.numero).includes(search);
     const matchStatus = statusFilter === "todos" || c.status === statusFilter;
     const matchPri = prioridadeFilter === "todos" || c.prioridade === prioridadeFilter;
-    return matchSearch && matchStatus && matchPri;
+    const matchResp =
+      responsavelFilter === "todos" ? true :
+      responsavelFilter === "meus" ? c.responsavel_id === user?.id :
+      responsavelFilter === "nao_atribuidos" ? !c.responsavel_id :
+      c.responsavel_id === responsavelFilter;
+    return matchSearch && matchStatus && matchPri && matchResp;
   });
 
   return (
@@ -140,11 +170,20 @@ function ChamadosPage() {
             <option value="alta">Alta</option>
             <option value="urgente">Urgente</option>
           </select>
+          <select value={responsavelFilter} onChange={(e) => setResponsavelFilter(e.target.value)}
+            className="bg-card border border-border px-3 py-2 text-sm font-mono">
+            <option value="todos">Todos responsáveis</option>
+            <option value="meus">Meus chamados</option>
+            <option value="nao_atribuidos">Não atribuídos</option>
+            {operators.map((o) => <option key={o.id} value={o.id}>{o.email}</option>)}
+          </select>
         </div>
-        <button onClick={() => { setForm(empty); setOpen(true); }}
-          className="bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 hover:opacity-90">
-          <Plus className="h-4 w-4" /> Novo Chamado
-        </button>
+        {canWrite && (
+          <button onClick={() => { setForm(empty); setOpen(true); }}
+            className="bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 hover:opacity-90">
+            <Plus className="h-4 w-4" /> Novo Chamado
+          </button>
+        )}
       </div>
 
       <div className="border border-border bg-card overflow-x-auto">
@@ -154,7 +193,7 @@ function ChamadosPage() {
               <th className="p-4 font-medium font-mono">ID</th>
               <th className="p-4 font-medium font-mono">CLIENTE</th>
               <th className="p-4 font-medium font-mono">TÍTULO</th>
-              <th className="p-4 font-medium font-mono">CATEGORIA</th>
+              <th className="p-4 font-medium font-mono">RESPONSÁVEL</th>
               <th className="p-4 font-medium font-mono">PRIORIDADE</th>
               <th className="p-4 font-medium font-mono">STATUS</th>
               <th className="p-4 font-medium font-mono text-right">AÇÕES</th>
@@ -169,7 +208,11 @@ function ChamadosPage() {
                 <td className="p-4 font-mono text-muted-foreground">#TK-{String(c.numero).padStart(4, "0")}</td>
                 <td className="p-4 font-medium">{c.clientes?.nome ?? "—"}</td>
                 <td className="p-4">{c.titulo}</td>
-                <td className="p-4 font-mono text-muted-foreground">{c.categoria ?? "—"}</td>
+                <td className="p-4 font-mono text-xs">
+                  {c.responsavel_id
+                    ? <span className="inline-flex items-center gap-1"><UserCheck className="h-3 w-3 text-primary" />{opEmailById.get(c.responsavel_id) ?? c.tecnico_responsavel ?? "—"}</span>
+                    : <span className="text-muted-foreground">não atribuído</span>}
+                </td>
                 <td className={`p-4 font-mono uppercase ${prioridadeColor(c.prioridade)}`}>{c.prioridade}</td>
                 <td className="p-4">
                   <span className={`px-2 py-0.5 border font-mono uppercase ${statusBadge(c.status)}`}>
@@ -178,10 +221,14 @@ function ChamadosPage() {
                 </td>
                 <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                   <div className="inline-flex gap-1">
-                    <button onClick={() => { setForm(c); setOpen(true); }}
-                      className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => remove(c.id)}
-                      className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                    {canWrite && (
+                      <button onClick={() => { setForm(c); setOpen(true); }}
+                        className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
+                    )}
+                    {isAdmin && (
+                      <button onClick={() => remove(c.id)}
+                        className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -234,9 +281,20 @@ function ChamadosPage() {
                 </select>
               </div>
               <div className="md:col-span-2">
-                <Lbl>Técnico responsável</Lbl>
-                <input value={form.tecnico_responsavel ?? ""} onChange={(e) => setForm({ ...form, tecnico_responsavel: e.target.value })}
-                  className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary font-mono" />
+                <Lbl>Responsável (operador)</Lbl>
+                <select
+                  value={form.responsavel_id ?? ""}
+                  onChange={(e) => setForm({ ...form, responsavel_id: e.target.value || null })}
+                  className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                >
+                  <option value="">— Não atribuído —</option>
+                  {operators.map((o) => (
+                    <option key={o.id} value={o.id}>{o.email} ({o.role})</option>
+                  ))}
+                </select>
+                <p className="text-[10px] font-mono text-muted-foreground mt-1">
+                  Apenas administradores e operadores aparecem na lista.
+                </p>
               </div>
               <div className="md:col-span-2">
                 <Lbl>Descrição</Lbl>
@@ -340,7 +398,7 @@ function DetailDrawer({ chamado, onClose, autor }: { chamado: Chamado; onClose: 
           <section className="grid grid-cols-2 gap-4 text-xs font-mono">
             <Info label="Cliente" value={chamado.clientes?.nome ?? "—"} />
             <Info label="Categoria" value={chamado.categoria ?? "—"} />
-            <Info label="Técnico" value={chamado.tecnico_responsavel ?? "—"} />
+            <Info label="Responsável" value={chamado.tecnico_responsavel ?? (chamado.responsavel_id ? "atribuído" : "não atribuído")} />
             <Info label="Aberto em" value={new Date(chamado.created_at).toLocaleString("pt-BR")} />
           </section>
 

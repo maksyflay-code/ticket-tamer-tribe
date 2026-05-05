@@ -21,38 +21,50 @@ type Row = {
   prioridade: string;
   categoria: string | null;
   tecnico_responsavel: string | null;
+  cliente_id: string | null;
   created_at: string;
   resolvido_at: string | null;
   clientes: { nome: string } | null;
 };
 
+type ClienteOpt = { id: string; nome: string };
+
 const SLA_HORAS: Record<string, number> = { urgente: 4, alta: 8, media: 24, baixa: 72 };
 
 function RelatoriosPage() {
   const [rows, setRows] = useState<Row[]>([]);
+  const [clientes, setClientes] = useState<ClienteOpt[]>([]);
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().slice(0, 10);
   });
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [statusFilter, setStatusFilter] = useState("todos");
   const [prioridadeFilter, setPrioridadeFilter] = useState("todos");
+  const [clienteFilter, setClienteFilter] = useState("todos");
+
+  useEffect(() => {
+    supabase.from("clientes").select("id, nome").order("nome").then(({ data }) => {
+      setClientes((data as ClienteOpt[]) ?? []);
+    });
+  }, []);
 
   useEffect(() => {
     const fromIso = new Date(dateFrom + "T00:00:00").toISOString();
     const toIso = new Date(dateTo + "T23:59:59").toISOString();
     let q = supabase
       .from("chamados")
-      .select("id,numero,titulo,status,prioridade,categoria,tecnico_responsavel,created_at,resolvido_at,clientes(nome)")
+      .select("id,numero,titulo,status,prioridade,categoria,tecnico_responsavel,cliente_id,created_at,resolvido_at,clientes(nome)")
       .gte("created_at", fromIso)
       .lte("created_at", toIso)
       .order("created_at", { ascending: false });
     if (statusFilter !== "todos") q = q.eq("status", statusFilter as never);
     if (prioridadeFilter !== "todos") q = q.eq("prioridade", prioridadeFilter as never);
+    if (clienteFilter !== "todos") q = q.eq("cliente_id", clienteFilter);
     q.then(({ data, error }) => {
       if (error) toast.error(error.message);
       setRows((data as unknown as Row[]) ?? []);
     });
-  }, [dateFrom, dateTo, statusFilter, prioridadeFilter]);
+  }, [dateFrom, dateTo, statusFilter, prioridadeFilter, clienteFilter]);
 
   const stats = useMemo(() => {
     const total = rows.length;
@@ -117,7 +129,7 @@ function RelatoriosPage() {
 
   return (
     <AppShell title="Relatórios">
-      <div className="border border-border bg-card p-4 mb-6 grid grid-cols-1 md:grid-cols-5 gap-3">
+      <div className="border border-border bg-card p-4 mb-6 grid grid-cols-1 md:grid-cols-6 gap-3">
         <div>
           <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">De</label>
           <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
@@ -127,6 +139,14 @@ function RelatoriosPage() {
           <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Até</label>
           <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
             className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary" />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Cliente</label>
+          <select value={clienteFilter} onChange={(e) => setClienteFilter(e.target.value)}
+            className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono">
+            <option value="todos">Todos</option>
+            {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          </select>
         </div>
         <div>
           <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Status</label>

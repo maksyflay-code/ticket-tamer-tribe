@@ -103,6 +103,7 @@ export type Database = {
           numero: number
           prioridade: Database["public"]["Enums"]["chamado_prioridade"]
           resolvido_at: string | null
+          responsavel_id: string | null
           status: Database["public"]["Enums"]["chamado_status"]
           tecnico_responsavel: string | null
           titulo: string
@@ -117,6 +118,7 @@ export type Database = {
           numero?: number
           prioridade?: Database["public"]["Enums"]["chamado_prioridade"]
           resolvido_at?: string | null
+          responsavel_id?: string | null
           status?: Database["public"]["Enums"]["chamado_status"]
           tecnico_responsavel?: string | null
           titulo: string
@@ -131,6 +133,7 @@ export type Database = {
           numero?: number
           prioridade?: Database["public"]["Enums"]["chamado_prioridade"]
           resolvido_at?: string | null
+          responsavel_id?: string | null
           status?: Database["public"]["Enums"]["chamado_status"]
           tecnico_responsavel?: string | null
           titulo?: string
