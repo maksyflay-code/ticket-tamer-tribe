@@ -11,6 +11,7 @@ import {
   adminSetUserRole,
   adminDeleteUser,
 } from "@/server/admin-users.functions";
+import { authHeaders } from "@/lib/server-call";
 
 export const Route = createFileRoute("/usuarios")({
   beforeLoad: requireAdmin,
@@ -42,7 +43,7 @@ function UsuariosPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await adminListUsers();
+      const data = await adminListUsers({ headers: await authHeaders() });
       setRows(data);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao carregar");
@@ -57,7 +58,7 @@ function UsuariosPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await adminCreateUser({ data: form });
+      await adminCreateUser({ data: form, headers: await authHeaders() });
       toast.success("Usuário criado");
       setOpen(false);
       setForm({ email: "", password: "", role: "operador" });
@@ -71,7 +72,7 @@ function UsuariosPage() {
 
   const changeRole = async (userId: string, role: Role) => {
     try {
-      await adminSetUserRole({ data: { userId, role } });
+      await adminSetUserRole({ data: { userId, role }, headers: await authHeaders() });
       toast.success("Permissão atualizada");
       load();
     } catch (e) {
@@ -82,7 +83,7 @@ function UsuariosPage() {
   const remove = async (userId: string) => {
     if (!confirm("Excluir este usuário?")) return;
     try {
-      await adminDeleteUser({ data: { userId } });
+      await adminDeleteUser({ data: { userId }, headers: await authHeaders() });
       toast.success("Usuário excluído");
       load();
     } catch (e) {
