@@ -398,7 +398,7 @@ function DetailDrawer({ chamado, onClose, autor }: { chamado: Chamado; onClose: 
           <section className="grid grid-cols-2 gap-4 text-xs font-mono">
             <Info label="Cliente" value={chamado.clientes?.nome ?? "—"} />
             <Info label="Categoria" value={chamado.categoria ?? "—"} />
-            <Info label="Técnico" value={chamado.tecnico_responsavel ?? "—"} />
+            <Info label="Responsável" value={chamado.tecnico_responsavel ?? (chamado.responsavel_id ? "atribuído" : "não atribuído")} />
             <Info label="Aberto em" value={new Date(chamado.created_at).toLocaleString("pt-BR")} />
           </section>
 
