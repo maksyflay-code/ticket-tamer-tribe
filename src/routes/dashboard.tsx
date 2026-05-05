@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
-import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/dashboard")({
@@ -16,6 +16,9 @@ type Stats = {
   emAndamento: number;
   resolvidosHoje: number;
   totalClientes: number;
+  novosClientes30d: number;
+  slaPct: number;
+  tempoMedioH: number;
 };
 
 type Chamado = {
@@ -48,28 +51,42 @@ const prioridadeColor = (p: string) => {
 };
 
 function DashboardPage() {
-  const [stats, setStats] = useState<Stats>({ abertos: 0, emAndamento: 0, resolvidosHoje: 0, totalClientes: 0 });
+  const [stats, setStats] = useState<Stats>({ abertos: 0, emAndamento: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0 });
   const [recentes, setRecentes] = useState<Chamado[]>([]);
 
   const load = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const [a, e, r, c, rec] = await Promise.all([
+    const since30 = new Date(); since30.setDate(since30.getDate() - 30);
+    const [a, e, r, c, novos, resolvidos30, rec] = await Promise.all([
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aberto"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "em_andamento"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "resolvido").gte("resolvido_at", today.toISOString()),
       supabase.from("clientes").select("id", { count: "exact", head: true }),
+      supabase.from("clientes").select("id", { count: "exact", head: true }).gte("created_at", since30.toISOString()),
+      supabase.from("chamados").select("created_at,resolvido_at,prioridade").not("resolvido_at", "is", null).gte("resolvido_at", since30.toISOString()),
       supabase
         .from("chamados")
         .select("id, numero, titulo, status, prioridade, created_at, clientes(nome)")
         .order("created_at", { ascending: false })
         .limit(8),
     ]);
+    const SLA: Record<string, number> = { urgente: 4, alta: 8, media: 24, baixa: 72 };
+    const list = (resolvidos30.data ?? []) as { created_at: string; resolvido_at: string; prioridade: string }[];
+    let okSla = 0, totalH = 0;
+    list.forEach((x) => {
+      const h = (new Date(x.resolvido_at).getTime() - new Date(x.created_at).getTime()) / 3_600_000;
+      totalH += h;
+      if (h <= (SLA[x.prioridade] ?? 24)) okSla++;
+    });
     setStats({
       abertos: a.count ?? 0,
       emAndamento: e.count ?? 0,
       resolvidosHoje: r.count ?? 0,
       totalClientes: c.count ?? 0,
+      novosClientes30d: novos.count ?? 0,
+      slaPct: list.length > 0 ? (okSla / list.length) * 100 : 0,
+      tempoMedioH: list.length > 0 ? totalH / list.length : 0,
     });
     setRecentes((rec.data as unknown as Chamado[]) ?? []);
   };
@@ -83,6 +100,9 @@ function DashboardPage() {
     { label: "Em Andamento", value: stats.emAndamento, icon: Clock, color: "bg-primary", w: "45%" },
     { label: "Resolvidos Hoje", value: stats.resolvidosHoje, icon: CheckCircle2, color: "bg-emerald-500", w: "80%" },
     { label: "Total de Clientes", value: stats.totalClientes, icon: Users, color: "bg-blue-500", w: "72%" },
+    { label: "SLA (30d)", value: `${stats.slaPct.toFixed(0)}%`, icon: Target, color: "bg-violet-500", w: `${stats.slaPct.toFixed(0)}%` },
+    { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, color: "bg-cyan-500", w: "55%" },
+    { label: "Novos Clientes (30d)", value: stats.novosClientes30d, icon: UserPlus, color: "bg-pink-500", w: "60%" },
   ];
 
   return (

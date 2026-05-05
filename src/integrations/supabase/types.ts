@@ -14,6 +14,85 @@ export type Database = {
   }
   public: {
     Tables: {
+      chamado_anexos: {
+        Row: {
+          chamado_id: string
+          created_at: string
+          id: string
+          mime_type: string | null
+          nome_arquivo: string
+          storage_path: string
+          tamanho: number | null
+        }
+        Insert: {
+          chamado_id: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nome_arquivo: string
+          storage_path: string
+          tamanho?: number | null
+        }
+        Update: {
+          chamado_id?: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nome_arquivo?: string
+          storage_path?: string
+          tamanho?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chamado_anexos_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chamado_historico: {
+        Row: {
+          autor: string | null
+          chamado_id: string
+          created_at: string
+          descricao: string
+          id: string
+          status_anterior: string | null
+          status_novo: string | null
+          tipo: string
+        }
+        Insert: {
+          autor?: string | null
+          chamado_id: string
+          created_at?: string
+          descricao: string
+          id?: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          tipo?: string
+        }
+        Update: {
+          autor?: string | null
+          chamado_id?: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chamado_historico_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chamados: {
         Row: {
           categoria: string | null
@@ -71,6 +150,7 @@ export type Database = {
         Row: {
           cidade: string | null
           created_at: string
+          data_contrato: string | null
           documento: string | null
           email: string | null
           endereco: string | null
@@ -78,6 +158,7 @@ export type Database = {
           nome: string
           observacoes: string | null
           plano: string | null
+          plano_id: string | null
           status: Database["public"]["Enums"]["cliente_status"]
           telefone: string | null
           updated_at: string
@@ -85,6 +166,7 @@ export type Database = {
         Insert: {
           cidade?: string | null
           created_at?: string
+          data_contrato?: string | null
           documento?: string | null
           email?: string | null
           endereco?: string | null
@@ -92,6 +174,7 @@ export type Database = {
           nome: string
           observacoes?: string | null
           plano?: string | null
+          plano_id?: string | null
           status?: Database["public"]["Enums"]["cliente_status"]
           telefone?: string | null
           updated_at?: string
@@ -99,6 +182,7 @@ export type Database = {
         Update: {
           cidade?: string | null
           created_at?: string
+          data_contrato?: string | null
           documento?: string | null
           email?: string | null
           endereco?: string | null
@@ -106,9 +190,57 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           plano?: string | null
+          plano_id?: string | null
           status?: Database["public"]["Enums"]["cliente_status"]
           telefone?: string | null
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          preco: number
+          tipo: string
+          updated_at: string
+          velocidade_download: number | null
+          velocidade_upload: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          preco?: number
+          tipo?: string
+          updated_at?: string
+          velocidade_download?: number | null
+          velocidade_upload?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          preco?: number
+          tipo?: string
+          updated_at?: string
+          velocidade_download?: number | null
+          velocidade_upload?: number | null
         }
         Relationships: []
       }

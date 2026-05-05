@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package } from "lucide-react";
 import type { ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -8,7 +8,8 @@ const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, n: "01" },
   { to: "/clientes", label: "Clientes", icon: Users, n: "02" },
   { to: "/chamados", label: "Chamados", icon: Ticket, n: "03" },
-  { to: "/relatorios", label: "Relatórios", icon: BarChart3, n: "04" },
+  { to: "/planos", label: "Planos", icon: Package, n: "04" },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3, n: "05" },
 ] as const;
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {

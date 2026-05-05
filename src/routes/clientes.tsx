@@ -20,22 +20,33 @@ type Cliente = {
   endereco: string | null;
   cidade: string | null;
   plano: string | null;
+  plano_id: string | null;
+  data_contrato: string | null;
+  planos?: { nome: string; preco: number } | null;
   status: "ativo" | "inativo" | "suspenso";
   observacoes: string | null;
 };
+
+type PlanoOpt = { id: string; nome: string; preco: number };
 
 const empty: Partial<Cliente> = { status: "ativo" };
 
 function ClientesPage() {
   const [items, setItems] = useState<Cliente[]>([]);
+  const [planos, setPlanos] = useState<PlanoOpt[]>([]);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Cliente>>(empty);
 
   const load = async () => {
-    const { data, error } = await supabase.from("clientes").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("*, planos(nome, preco)")
+      .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
-    setItems((data as Cliente[]) ?? []);
+    setItems((data as unknown as Cliente[]) ?? []);
+    const { data: pl } = await supabase.from("planos").select("id, nome, preco").eq("ativo", true).order("nome");
+    setPlanos((pl as PlanoOpt[]) ?? []);
   };
   useEffect(() => {
     load();
@@ -46,6 +57,7 @@ function ClientesPage() {
     if (!form.nome) return toast.error("Nome é obrigatório");
     const payload: Record<string, unknown> = { ...form };
     delete payload.id;
+    delete payload.planos;
     const { error } = form.id
       ? await supabase.from("clientes").update(payload as never).eq("id", form.id)
       : await supabase.from("clientes").insert(payload as never);
@@ -108,6 +120,7 @@ function ClientesPage() {
               <th className="p-4 font-medium font-mono">DOCUMENTO</th>
               <th className="p-4 font-medium font-mono">CONTATO</th>
               <th className="p-4 font-medium font-mono">PLANO</th>
+              <th className="p-4 font-medium font-mono">CONTRATO</th>
               <th className="p-4 font-medium font-mono">STATUS</th>
               <th className="p-4 font-medium font-mono text-right">AÇÕES</th>
             </tr>
@@ -115,7 +128,7 @@ function ClientesPage() {
           <tbody className="divide-y divide-border">
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-muted-foreground font-mono">
+                <td colSpan={7} className="p-8 text-center text-muted-foreground font-mono">
                   Nenhum cliente encontrado.
                 </td>
               </tr>
@@ -128,7 +141,11 @@ function ClientesPage() {
                   <div>{c.email ?? "—"}</div>
                   <div className="text-muted-foreground font-mono">{c.telefone ?? ""}</div>
                 </td>
-                <td className="p-4 font-mono">{c.plano ?? "—"}</td>
+                <td className="p-4 font-mono">
+                  {c.planos?.nome ?? c.plano ?? "—"}
+                  {c.planos && <div className="text-[10px] text-muted-foreground">R$ {Number(c.planos.preco).toFixed(2)}</div>}
+                </td>
+                <td className="p-4 font-mono text-muted-foreground">{c.data_contrato ?? "—"}</td>
                 <td className="p-4">
                   <span className={`px-2 py-0.5 border font-mono uppercase ${statusBadge(c.status)}`}>{c.status}</span>
                 </td>
@@ -178,7 +195,20 @@ function ClientesPage() {
               <Field label="Telefone" value={form.telefone ?? ""} onChange={(v) => setForm({ ...form, telefone: v })} />
               <Field label="Endereço" value={form.endereco ?? ""} onChange={(v) => setForm({ ...form, endereco: v })} />
               <Field label="Cidade" value={form.cidade ?? ""} onChange={(v) => setForm({ ...form, cidade: v })} />
-              <Field label="Plano" value={form.plano ?? ""} onChange={(v) => setForm({ ...form, plano: v })} />
+              <div>
+                <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Plano</label>
+                <select
+                  value={form.plano_id ?? ""}
+                  onChange={(e) => setForm({ ...form, plano_id: e.target.value || null })}
+                  className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                >
+                  <option value="">— Sem plano —</option>
+                  {planos.map((p) => (
+                    <option key={p.id} value={p.id}>{p.nome} — R$ {Number(p.preco).toFixed(2)}</option>
+                  ))}
+                </select>
+              </div>
+              <Field label="Data do contrato" type="date" value={form.data_contrato ?? ""} onChange={(v) => setForm({ ...form, data_contrato: v || null })} />
               <div>
                 <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Status</label>
                 <select

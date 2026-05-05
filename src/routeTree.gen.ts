@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClientesRouteImport } from './routes/clientes'
@@ -19,6 +20,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const RelatoriosRoute = RelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanosRoute = PlanosRouteImport.update({
+  id: '/planos',
+  path: '/planos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
 }
 export interface FileRoutesById {
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
 }
 export interface FileRouteTypes {
@@ -80,9 +89,17 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/dashboard'
     | '/login'
+    | '/planos'
     | '/relatorios'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/chamados' | '/clientes' | '/dashboard' | '/login' | '/relatorios'
+  to:
+    | '/'
+    | '/chamados'
+    | '/clientes'
+    | '/dashboard'
+    | '/login'
+    | '/planos'
+    | '/relatorios'
   id:
     | '__root__'
     | '/'
@@ -90,6 +107,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/dashboard'
     | '/login'
+    | '/planos'
     | '/relatorios'
   fileRoutesById: FileRoutesById
 }
@@ -99,6 +117,7 @@ export interface RootRouteChildren {
   ClientesRoute: typeof ClientesRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  PlanosRoute: typeof PlanosRoute
   RelatoriosRoute: typeof RelatoriosRoute
 }
 
@@ -109,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/relatorios'
       preLoaderRoute: typeof RelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/planos': {
+      id: '/planos'
+      path: '/planos'
+      fullPath: '/planos'
+      preLoaderRoute: typeof PlanosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -155,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientesRoute: ClientesRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  PlanosRoute: PlanosRoute,
   RelatoriosRoute: RelatoriosRoute,
 }
 export const routeTree = rootRouteImport

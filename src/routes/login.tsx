@@ -14,7 +14,6 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,20 +22,9 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: window.location.origin },
-        });
-        if (error) throw error;
-        toast.success("Conta criada. Você já pode entrar.");
-        setMode("signin");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        navigate({ to: "/dashboard" });
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      navigate({ to: "/dashboard" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro de autenticação");
     } finally {
@@ -60,12 +48,8 @@ function LoginPage() {
         </div>
 
         <div className="border border-border bg-card p-8">
-          <h1 className="font-display text-xl font-bold mb-1">
-            {mode === "signin" ? "Acessar painel" : "Criar conta"}
-          </h1>
-          <p className="text-xs text-muted-foreground font-mono mb-6">
-            {mode === "signin" ? "Entre com suas credenciais" : "Cadastre um novo operador"}
-          </p>
+          <h1 className="font-display text-xl font-bold mb-1">Acessar painel</h1>
+          <p className="text-xs text-muted-foreground font-mono mb-6">Entre com suas credenciais</p>
 
           <form onSubmit={submit} className="space-y-4">
             <div>
@@ -96,16 +80,9 @@ function LoginPage() {
               disabled={loading}
               className="w-full bg-primary text-primary-foreground py-2.5 text-sm font-semibold uppercase tracking-wider hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
-              {loading ? "Processando…" : mode === "signin" ? "Entrar" : "Cadastrar"}
+              {loading ? "Processando…" : "Entrar"}
             </button>
           </form>
-
-          <button
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="mt-6 text-xs text-muted-foreground hover:text-primary w-full text-center font-mono"
-          >
-            {mode === "signin" ? "Não tem conta? Cadastre-se" : "Já tem conta? Entrar"}
-          </button>
         </div>
       </div>
     </div>
