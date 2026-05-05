@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
-import { Plus, Search, Trash2, Pencil } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/clientes")({
@@ -30,27 +30,43 @@ type Cliente = {
 type PlanoOpt = { id: string; nome: string; preco: number };
 
 const empty: Partial<Cliente> = { status: "ativo" };
+const PAGE_SIZE = 20;
 
 function ClientesPage() {
   const [items, setItems] = useState<Cliente[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [planos, setPlanos] = useState<PlanoOpt[]>([]);
   const [search, setSearch] = useState("");
+  const [searchDebounced, setSearchDebounced] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Cliente>>(empty);
 
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+  useEffect(() => { setPage(0); }, [searchDebounced]);
+
   const load = async () => {
-    const { data, error } = await supabase
+    let q = supabase
       .from("clientes")
-      .select("*, planos(nome, preco)")
+      .select("*, planos(nome, preco)", { count: "exact" })
       .order("created_at", { ascending: false });
+    const s = searchDebounced.trim().replace(/[%,]/g, "");
+    if (s) {
+      q = q.or(`nome.ilike.%${s}%,documento.ilike.%${s}%,email.ilike.%${s}%`);
+    }
+    const from = page * PAGE_SIZE;
+    q = q.range(from, from + PAGE_SIZE - 1);
+    const { data, error, count } = await q;
     if (error) toast.error(error.message);
     setItems((data as unknown as Cliente[]) ?? []);
+    setTotal(count ?? 0);
     const { data: pl } = await supabase.from("planos").select("id, nome, preco").eq("ativo", true).order("nome");
     setPlanos((pl as PlanoOpt[]) ?? []);
   };
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [page, searchDebounced]);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,12 +92,7 @@ function ClientesPage() {
     load();
   };
 
-  const filtered = items.filter(
-    (c) =>
-      c.nome.toLowerCase().includes(search.toLowerCase()) ||
-      (c.documento ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (c.email ?? "").toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = items;
 
   const statusBadge = (s: string) => ({
     ativo: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
@@ -172,6 +183,22 @@ function ClientesPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="flex items-center justify-between mt-4 text-xs font-mono text-muted-foreground">
+        <div>
+          {total > 0 ? `${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, total)} de ${total}` : "0 resultados"}
+        </div>
+        <div className="flex gap-2">
+          <button disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}
+            className="px-3 py-1 border border-border bg-card disabled:opacity-30 hover:bg-secondary inline-flex items-center gap-1">
+            <ChevronLeft className="h-3 w-3" /> Anterior
+          </button>
+          <button disabled={(page + 1) * PAGE_SIZE >= total} onClick={() => setPage((p) => p + 1)}
+            className="px-3 py-1 border border-border bg-card disabled:opacity-30 hover:bg-secondary inline-flex items-center gap-1">
+            Próxima <ChevronRight className="h-3 w-3" />
+          </button>
+        </div>
       </div>
 
       {open && (
