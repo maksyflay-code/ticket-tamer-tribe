@@ -26,7 +26,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
       <aside className="w-64 border-r border-border bg-sidebar shrink-0 flex flex-col sticky top-0 h-screen">
         <div className="p-6 border-b border-sidebar-border">
           <Link to="/dashboard" className="font-display text-xl font-extrabold tracking-tighter uppercase text-primary">
-            Vortex / ERP
+            IVI / TELECOM
           </Link>
           <div className="text-[10px] text-muted-foreground mt-1 font-mono uppercase tracking-widest">
             ISP Operations
