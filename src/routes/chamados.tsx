@@ -72,15 +72,16 @@ function ChamadosPage() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.titulo) return toast.error("Título obrigatório");
-    const payload: Partial<Chamado> = { ...form };
+    const payload: Record<string, unknown> = { ...form };
+    delete payload.clientes;
+    delete payload.id;
+    delete payload.numero;
     if (payload.status === "resolvido" && !payload.resolvido_at) {
       payload.resolvido_at = new Date().toISOString();
     }
     if (payload.status !== "resolvido" && payload.status !== "fechado") {
       payload.resolvido_at = null;
     }
-    // remove relation field
-    delete (payload as { clientes?: unknown }).clientes;
     const { error } = form.id
       ? await supabase.from("chamados").update(payload).eq("id", form.id)
       : await supabase.from("chamados").insert(payload as never);
