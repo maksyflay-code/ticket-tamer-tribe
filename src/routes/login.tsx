@@ -45,8 +45,8 @@ function LoginPage() {
         </div>
 
         <div className="border border-border bg-card p-8">
-          <h1 className="font-display text-xl font-bold mb-1">Acessar painel</h1>
-          <p className="text-xs text-muted-foreground font-mono mb-6">Entre com suas credenciais</p>
+          <h1 className="font-display text-xl font-bold mb-1 text-center">Acessar painel</h1>
+          <p className="text-xs text-muted-foreground font-mono mb-6 text-center">Entre com suas credenciais</p>
 
           <form onSubmit={submit} className="space-y-4">
             <div>
