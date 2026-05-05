@@ -31,10 +31,10 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Vortex ERP — Gestão para Provedores" },
-      { name: "description", content: "ERP para provedores de internet: chamados, clientes e relatórios em um só lugar." },
+      { title: "IVI Telecom — ERP de Gestão" },
+      { name: "description", content: "ERP da IVI Telecom: chamados, clientes e relatórios em um só lugar." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Vortex ERP — Gestão para Provedores" },
+      { property: "og:title", content: "IVI Telecom — ERP de Gestão" },
       { property: "og:description", content: "Chamados, clientes e relatórios para provedores de internet." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
