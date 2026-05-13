@@ -30,6 +30,8 @@ type Chamado = {
   responsavel_id: string | null;
   resolvido_at: string | null;
   created_at: string;
+  iniciado_at: string | null;
+  finalizado_at: string | null;
   clientes: { nome: string } | null;
 };
 
