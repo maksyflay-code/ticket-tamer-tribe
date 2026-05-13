@@ -10,12 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ChamadosRouteImport } from './routes/chamados'
@@ -25,11 +23,6 @@ import { Route as ApiPublicDiagRouteImport } from './routes/api/public/_diag'
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RelatoriosRoute = RelatoriosRouteImport.update({
@@ -50,11 +43,6 @@ const PerfilRoute = PerfilRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -88,12 +76,10 @@ export interface FileRoutesByFullPath {
   '/chamados': typeof ChamadosRoute
   '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
-  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/usuarios': typeof UsuariosRoute
   '/api/public': typeof ApiPublicDiagRoute
 }
@@ -102,12 +88,10 @@ export interface FileRoutesByTo {
   '/chamados': typeof ChamadosRoute
   '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
-  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/usuarios': typeof UsuariosRoute
   '/api/public': typeof ApiPublicDiagRoute
 }
@@ -117,12 +101,10 @@ export interface FileRoutesById {
   '/chamados': typeof ChamadosRoute
   '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
-  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/usuarios': typeof UsuariosRoute
   '/api/public/_diag': typeof ApiPublicDiagRoute
 }
@@ -133,12 +115,10 @@ export interface FileRouteTypes {
     | '/chamados'
     | '/clientes'
     | '/dashboard'
-    | '/forgot-password'
     | '/login'
     | '/perfil'
     | '/planos'
     | '/relatorios'
-    | '/reset-password'
     | '/usuarios'
     | '/api/public'
   fileRoutesByTo: FileRoutesByTo
@@ -147,12 +127,10 @@ export interface FileRouteTypes {
     | '/chamados'
     | '/clientes'
     | '/dashboard'
-    | '/forgot-password'
     | '/login'
     | '/perfil'
     | '/planos'
     | '/relatorios'
-    | '/reset-password'
     | '/usuarios'
     | '/api/public'
   id:
@@ -161,12 +139,10 @@ export interface FileRouteTypes {
     | '/chamados'
     | '/clientes'
     | '/dashboard'
-    | '/forgot-password'
     | '/login'
     | '/perfil'
     | '/planos'
     | '/relatorios'
-    | '/reset-password'
     | '/usuarios'
     | '/api/public/_diag'
   fileRoutesById: FileRoutesById
@@ -176,12 +152,10 @@ export interface RootRouteChildren {
   ChamadosRoute: typeof ChamadosRoute
   ClientesRoute: typeof ClientesRoute
   DashboardRoute: typeof DashboardRoute
-  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   PerfilRoute: typeof PerfilRoute
   PlanosRoute: typeof PlanosRoute
   RelatoriosRoute: typeof RelatoriosRoute
-  ResetPasswordRoute: typeof ResetPasswordRoute
   UsuariosRoute: typeof UsuariosRoute
   ApiPublicDiagRoute: typeof ApiPublicDiagRoute
 }
@@ -193,13 +167,6 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof UsuariosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/relatorios': {
@@ -228,13 +195,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -280,12 +240,10 @@ const rootRouteChildren: RootRouteChildren = {
   ChamadosRoute: ChamadosRoute,
   ClientesRoute: ClientesRoute,
   DashboardRoute: DashboardRoute,
-  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   PerfilRoute: PerfilRoute,
   PlanosRoute: PlanosRoute,
   RelatoriosRoute: RelatoriosRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
   UsuariosRoute: UsuariosRoute,
   ApiPublicDiagRoute: ApiPublicDiagRoute,
 }

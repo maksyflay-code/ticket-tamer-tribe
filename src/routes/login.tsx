@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -79,10 +79,7 @@ function LoginPage() {
               />
             </div>
             <div>
-              <div className="flex items-center justify-between">
-                <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Senha</label>
-                <Link to="/forgot-password" className="text-[10px] uppercase tracking-widest text-primary hover:underline">Esqueci</Link>
-              </div>
+              <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Senha</label>
               <input
                 type="password"
                 required
