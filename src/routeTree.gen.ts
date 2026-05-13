@@ -14,6 +14,7 @@ import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as EquipamentosRouteImport } from './routes/equipamentos'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ChamadosRouteImport } from './routes/chamados'
@@ -43,6 +44,11 @@ const PerfilRoute = PerfilRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EquipamentosRoute = EquipamentosRouteImport.update({
+  id: '/equipamentos',
+  path: '/equipamentos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/chamados': typeof ChamadosRoute
   '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
+  '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/planos': typeof PlanosRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/chamados': typeof ChamadosRoute
   '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
+  '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/planos': typeof PlanosRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/chamados': typeof ChamadosRoute
   '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
+  '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/planos': typeof PlanosRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/chamados'
     | '/clientes'
     | '/dashboard'
+    | '/equipamentos'
     | '/login'
     | '/perfil'
     | '/planos'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/chamados'
     | '/clientes'
     | '/dashboard'
+    | '/equipamentos'
     | '/login'
     | '/perfil'
     | '/planos'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/chamados'
     | '/clientes'
     | '/dashboard'
+    | '/equipamentos'
     | '/login'
     | '/perfil'
     | '/planos'
@@ -152,6 +164,7 @@ export interface RootRouteChildren {
   ChamadosRoute: typeof ChamadosRoute
   ClientesRoute: typeof ClientesRoute
   DashboardRoute: typeof DashboardRoute
+  EquipamentosRoute: typeof EquipamentosRoute
   LoginRoute: typeof LoginRoute
   PerfilRoute: typeof PerfilRoute
   PlanosRoute: typeof PlanosRoute
@@ -197,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/equipamentos': {
+      id: '/equipamentos'
+      path: '/equipamentos'
+      fullPath: '/equipamentos'
+      preLoaderRoute: typeof EquipamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -240,6 +260,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChamadosRoute: ChamadosRoute,
   ClientesRoute: ClientesRoute,
   DashboardRoute: DashboardRoute,
+  EquipamentosRoute: EquipamentosRoute,
   LoginRoute: LoginRoute,
   PerfilRoute: PerfilRoute,
   PlanosRoute: PlanosRoute,
@@ -250,3 +271,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
