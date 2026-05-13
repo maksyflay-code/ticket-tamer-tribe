@@ -208,6 +208,45 @@ export type Database = {
           },
         ]
       }
+      equipamentos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          fabricante: string
+          hostname: string
+          id: string
+          ipv4: string
+          observacoes: string | null
+          pop: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          fabricante?: string
+          hostname: string
+          id?: string
+          ipv4: string
+          observacoes?: string | null
+          pop?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          fabricante?: string
+          hostname?: string
+          id?: string
+          ipv4?: string
+          observacoes?: string | null
+          pop?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       planos: {
         Row: {
           ativo: boolean
