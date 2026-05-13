@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server } from "lucide-react";
 import logo from "@/assets/ivi-logo.jpeg";
 import type { ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -10,7 +10,8 @@ const nav = [
   { to: "/clientes", label: "Clientes", icon: Users, n: "02" },
   { to: "/chamados", label: "Chamados", icon: Ticket, n: "03" },
   { to: "/planos", label: "Planos", icon: Package, n: "04" },
-  { to: "/relatorios", label: "Relatórios", icon: BarChart3, n: "05" },
+  { to: "/equipamentos", label: "Equipamentos", icon: Server, n: "05" },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3, n: "06" },
 ] as const;
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
