@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
-import { Search, Activity, Terminal, Plus, Pencil, Trash2 } from "lucide-react";
+import { Search, Activity, Terminal, Plus, Pencil, Trash2, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
+import { pingHost } from "@/lib/ping.functions";
 
 export const Route = createFileRoute("/equipamentos")({
   beforeLoad: requireAuth,
@@ -29,6 +31,11 @@ function EquipamentosPage() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Equipamento>>(empty);
+  const [pingOpen, setPingOpen] = useState(false);
+  const [pingHostName, setPingHostName] = useState("");
+  const [pingLoading, setPingLoading] = useState(false);
+  const [pingOutput, setPingOutput] = useState("");
+  const runPing = useServerFn(pingHost);
 
   const load = async () => {
     const { data, error } = await supabase
@@ -59,10 +66,22 @@ function EquipamentosPage() {
     }
   };
 
-  const onPing = (ip: string) => {
-    // Gera um .bat que abre o CMD já executando `ping -t <ip>`.
-    // O navegador não consegue abrir cmd.exe direto por segurança,
-    // então baixamos o script e o usuário clica para executar.
+  const onPing = async (ip: string) => {
+    setPingHostName(ip);
+    setPingOpen(true);
+    setPingOutput("");
+    setPingLoading(true);
+    try {
+      const res = await runPing({ data: { host: ip, count: 4 } });
+      setPingOutput(res.output);
+    } catch (err) {
+      setPingOutput(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPingLoading(false);
+    }
+  };
+
+  const downloadBat = (ip: string) => {
     const bat = `@echo off\r\ntitle Ping ${ip}\r\nping -t ${ip}\r\npause\r\n`;
     const blob = new Blob([bat], { type: "application/bat" });
     const url = URL.createObjectURL(blob);
@@ -73,9 +92,6 @@ function EquipamentosPage() {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast.success(`Arquivo ping-${ip}.bat baixado`, {
-      description: "Abra o arquivo para iniciar o ping no CMD.",
-    });
   };
 
   const onSsh = (ip: string) => {
@@ -198,9 +214,54 @@ function EquipamentosPage() {
       </div>
 
       <p className="mt-4 text-[11px] font-mono text-muted-foreground">
-        O botão <strong>Ping</strong> baixa um arquivo <code>.bat</code> que abre o CMD já executando o ping. O botão <strong>SSH</strong> copia o comando e tenta abrir o cliente SSH padrão.
-        O botão SSH também tenta abrir o cliente SSH padrão do sistema (via <code>ssh://</code>).
+        O botão <strong>Ping</strong> executa o teste no servidor e mostra o resultado aqui (igual ao painel dos roteadores).
+        O botão <strong>SSH</strong> copia o comando e tenta abrir o cliente SSH padrão (via <code>ssh://</code>).
       </p>
+
+      {pingOpen && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-border flex justify-between items-center">
+              <h2 className="font-display text-base font-bold flex items-center gap-2">
+                <Activity className="h-4 w-4" /> Ping {pingHostName}
+              </h2>
+              <button onClick={() => setPingOpen(false)} className="text-muted-foreground hover:text-foreground">✕</button>
+            </div>
+            <div className="p-4 flex-1 overflow-auto">
+              {pingLoading ? (
+                <div className="flex items-center gap-2 text-sm font-mono text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Executando ping…
+                </div>
+              ) : (
+                <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed">{pingOutput}</pre>
+              )}
+            </div>
+            <div className="p-4 border-t border-border flex justify-between gap-2">
+              <button
+                onClick={() => downloadBat(pingHostName)}
+                className="px-3 py-2 text-xs font-mono border border-border hover:border-primary hover:text-primary inline-flex items-center gap-2"
+              >
+                <Download className="h-3.5 w-3.5" /> Baixar .bat (ping -t local)
+              </button>
+              <div className="flex gap-2">
+                <button
+                  disabled={pingLoading}
+                  onClick={() => onPing(pingHostName)}
+                  className="px-3 py-2 text-xs font-mono border border-border hover:border-primary hover:text-primary disabled:opacity-50"
+                >
+                  Repetir
+                </button>
+                <button
+                  onClick={() => setPingOpen(false)}
+                  className="bg-primary text-primary-foreground px-4 py-2 text-xs font-semibold uppercase tracking-wider"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {open && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
