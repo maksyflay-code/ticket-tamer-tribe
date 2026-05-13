@@ -450,6 +450,8 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
     };
     if (status === "resolvido" && !chamado.resolvido_at) payload.resolvido_at = new Date().toISOString();
     if (status !== "resolvido" && status !== "fechado") payload.resolvido_at = null;
+    if (status === "em_andamento" && !chamado.iniciado_at) payload.iniciado_at = new Date().toISOString();
+    if (status === "resolvido" && !chamado.finalizado_at) payload.finalizado_at = new Date().toISOString();
     const { error } = await supabase.from("chamados").update(payload as never).eq("id", chamado.id);
     setSavingQuick(false);
     if (error) return toast.error(error.message);
