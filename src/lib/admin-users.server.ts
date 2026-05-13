@@ -77,12 +77,14 @@ export async function listAdminUsers() {
 }
 
 export async function createAdminUser(data: { email: string; password: string; role: AdminRole }) {
+  ensureAdminConfig();
+
   const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
     email: data.email,
     password: data.password,
     email_confirm: true,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
   if (!created.user) throw new Error("Falha ao criar usuário");
 
   const { error: roleError } = await supabaseAdmin
@@ -94,34 +96,42 @@ export async function createAdminUser(data: { email: string; password: string; r
 }
 
 export async function setAdminUserRole(data: { userId: string; role: AdminRole }) {
+  ensureAdminConfig();
+
   await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
   const { error } = await supabaseAdmin
     .from("user_roles")
     .insert({ user_id: data.userId, role: data.role });
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
   return { ok: true };
 }
 
 export async function deleteAdminUser(userId: string) {
+  ensureAdminConfig();
+
   const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
   return { ok: true };
 }
 
 export async function resetAdminUserPassword(data: { userId: string; password: string }) {
+  ensureAdminConfig();
+
   const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
     password: data.password,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
   return { ok: true };
 }
 
 export async function listAssignableOperatorUsers() {
+  ensureAdminConfig();
+
   const { data: roles, error } = await supabaseAdmin
     .from("user_roles")
     .select("user_id, role")
     .in("role", ["admin", "operador"]);
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
 
   const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
   if (ids.length === 0) return [] as { id: string; email: string; role: string }[];
@@ -130,7 +140,7 @@ export async function listAssignableOperatorUsers() {
     page: 1,
     perPage: 200,
   });
-  if (usersError) throw new Error(usersError.message);
+  if (usersError) throw adminError(usersError);
 
   const roleByUser = new Map<string, string>();
   (roles ?? []).forEach((r) => roleByUser.set(r.user_id, r.role));
