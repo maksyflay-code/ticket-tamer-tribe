@@ -6,7 +6,7 @@ import { requireAuth } from "@/lib/guard";
 import { useAuth } from "@/lib/auth";
 import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X, UserCheck, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { listAssignableOperators } from "@/server/operators.functions";
+import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
 
 export const Route = createFileRoute("/chamados")({
