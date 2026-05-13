@@ -59,7 +59,24 @@ function EquipamentosPage() {
     }
   };
 
-  const onPing = (ip: string) => copyCmd(`ping ${ip}`);
+  const onPing = (ip: string) => {
+    // Gera um .bat que abre o CMD já executando `ping -t <ip>`.
+    // O navegador não consegue abrir cmd.exe direto por segurança,
+    // então baixamos o script e o usuário clica para executar.
+    const bat = `@echo off\r\ntitle Ping ${ip}\r\nping -t ${ip}\r\npause\r\n`;
+    const blob = new Blob([bat], { type: "application/bat" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ping-${ip}.bat`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success(`Arquivo ping-${ip}.bat baixado`, {
+      description: "Abra o arquivo para iniciar o ping no CMD.",
+    });
+  };
 
   const onSsh = (ip: string) => {
     copyCmd(`ssh ${ip}`);
@@ -181,7 +198,7 @@ function EquipamentosPage() {
       </div>
 
       <p className="mt-4 text-[11px] font-mono text-muted-foreground">
-        Os botões <strong>Ping</strong> e <strong>SSH</strong> copiam o comando para a área de transferência.
+        O botão <strong>Ping</strong> baixa um arquivo <code>.bat</code> que abre o CMD já executando o ping. O botão <strong>SSH</strong> copia o comando e tenta abrir o cliente SSH padrão.
         O botão SSH também tenta abrir o cliente SSH padrão do sistema (via <code>ssh://</code>).
       </p>
 
