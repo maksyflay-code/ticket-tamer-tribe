@@ -22,6 +22,33 @@ function probeOnce(host: string, port: number, timeoutMs: number): Promise<numbe
   });
 }
 
+async function icmpPingViaBun(host: string, count: number): Promise<{ ok: boolean; output: string } | null> {
+  // Só funciona no runtime Bun (VPS). Worker não tem Bun.spawn.
+  const B = (globalThis as { Bun?: { spawn: (opts: unknown) => unknown } }).Bun;
+  if (!B || typeof B.spawn !== "function") return null;
+  try {
+    const proc = B.spawn({
+      cmd: ["ping", "-c", String(count), "-W", "2", "-n", host],
+      stdout: "pipe",
+      stderr: "pipe",
+    }) as {
+      stdout: ReadableStream<Uint8Array>;
+      stderr: ReadableStream<Uint8Array>;
+      exited: Promise<number>;
+    };
+    const [stdout, stderr, exitCode] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ]);
+    const output = (stdout || "") + (stderr ? `\n${stderr}` : "");
+    return { ok: exitCode === 0, output: output.trim() || "(sem saída)" };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, output: `Falha ao executar ping: ${msg}` };
+  }
+}
+
 export const pingHost = createServerFn({ method: "POST" })
   .inputValidator((input: { host: string; count?: number; port?: number }) => {
     if (!input?.host || !isValidHost(input.host)) throw new Error("Host inválido");
@@ -32,6 +59,13 @@ export const pingHost = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { host, count, port } = data;
     try {
+      // 1) Tenta ICMP real via Bun (caso do VPS)
+      if (!port) {
+        const icmp = await icmpPingViaBun(host, count);
+        if (icmp) return icmp;
+      }
+
+      // 2) Fallback: probe TCP em portas comuns
       const ports = port ? [port] : DEFAULT_PORTS;
       const lines: string[] = [];
       let openPort: number | null = null;
