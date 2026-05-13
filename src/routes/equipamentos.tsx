@@ -73,7 +73,7 @@ function EquipamentosPage() {
     setPingLoading(true);
     try {
       const res = await runPing({ data: { host: ip, count: 4 } });
-      setPingOutput(res.output);
+      setPingOutput(res?.output ?? "Sem resposta do servidor.");
     } catch (err) {
       setPingOutput(err instanceof Error ? err.message : String(err));
     } finally {
