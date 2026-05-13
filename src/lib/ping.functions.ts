@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { connect } from "node:net";
 
 function isValidHost(h: string) {
   return /^[a-zA-Z0-9._-]{1,253}$/.test(h);
@@ -7,10 +6,11 @@ function isValidHost(h: string) {
 
 const DEFAULT_PORTS = [80, 443, 22, 8080, 23];
 
-function probeOnce(host: string, port: number, timeoutMs: number): Promise<number> {
+async function probeOnce(host: string, port: number, timeoutMs: number): Promise<number> {
+  const net = await import("node:net");
   return new Promise((resolve, reject) => {
     const start = performance.now();
-    const sock = connect({ host, port });
+    const sock = net.connect({ host, port });
     const done = (err: Error | null, ms?: number) => {
       sock.removeAllListeners();
       try { sock.destroy(); } catch { /* noop */ }
@@ -65,10 +65,17 @@ export const pingHost = createServerFn({ method: "POST" })
       `  typeof Bun         = ${typeof g.Bun}`,
       `  typeof process     = ${typeof g.process}`,
       `  process.versions   = ${(g.process as { versions?: unknown })?.versions ? JSON.stringify((g.process as { versions: unknown }).versions) : "n/a"}`,
-      `  typeof connect(net)= ${typeof connect}`,
       `  navigator.userAgent= ${(g.navigator as { userAgent?: string } | undefined)?.userAgent ?? "n/a"}`,
       ``,
     ];
+    // tenta importar node:net dinamicamente só pra reportar
+    try {
+      const net = await import("node:net");
+      debug.push(`  node:net.connect   = ${typeof net.connect}`);
+    } catch (e) {
+      debug.push(`  node:net import error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
     try {
       // 0) Tenta require dinâmico do child_process pra contornar bundle
       try {
