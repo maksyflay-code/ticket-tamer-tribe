@@ -2,7 +2,42 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 type AdminRole = "admin" | "operador" | "visualizador";
 
+const ADMIN_CONFIG_MESSAGE =
+  "Configuração inválida na hospedagem: defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY com a Service Role Key correta, reinicie o servidor e publique novamente.";
+
+function decodeJwtPayload(token: string): { role?: string } | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(Buffer.from(normalized, "base64").toString("utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+function ensureAdminConfig() {
+  const url = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) throw new Error(ADMIN_CONFIG_MESSAGE);
+
+  const payload = decodeJwtPayload(serviceRoleKey);
+  if (payload?.role && payload.role !== "service_role") {
+    throw new Error(`${ADMIN_CONFIG_MESSAGE} A chave atual não é uma Service Role Key.`);
+  }
+}
+
+function adminError(error: { message?: string }) {
+  if (/invalid api key/i.test(error.message ?? "")) {
+    return new Error(ADMIN_CONFIG_MESSAGE);
+  }
+  return new Error(error.message ?? "Erro administrativo inesperado.");
+}
+
 export async function assertAdmin(userId: string) {
+  ensureAdminConfig();
+
   const { data, error } = await supabaseAdmin
     .from("user_roles")
     .select("role")
@@ -10,16 +45,18 @@ export async function assertAdmin(userId: string) {
     .eq("role", "admin")
     .maybeSingle();
 
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
   if (!data) throw new Error("Acesso negado: apenas administradores.");
 }
 
 export async function listAdminUsers() {
+  ensureAdminConfig();
+
   const { data: users, error } = await supabaseAdmin.auth.admin.listUsers({
     page: 1,
     perPage: 200,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
 
   const ids = users.users.map((u) => u.id);
   const { data: roles } = await supabaseAdmin
