@@ -73,9 +73,14 @@ function EquipamentosPage() {
     setPingLoading(true);
     try {
       const res = await runPing({ data: { host: ip, count: 4 } });
-      setPingOutput(res?.output ?? "Sem resposta do servidor.");
+      if (res && typeof res === "object" && "output" in res) {
+        setPingOutput((res as { output: string }).output);
+      } else {
+        setPingOutput(`Resposta inesperada do servidor:\n${JSON.stringify(res, null, 2)}`);
+      }
     } catch (err) {
-      setPingOutput(err instanceof Error ? err.message : String(err));
+      const msg = err instanceof Error ? `${err.name}: ${err.message}\n${err.stack ?? ""}` : String(err);
+      setPingOutput(`Erro ao chamar o servidor:\n${msg}`);
     } finally {
       setPingLoading(false);
     }
