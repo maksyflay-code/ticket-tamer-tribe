@@ -4,12 +4,13 @@ import { AppShell } from "@/components/AppShell";
 import { requireAdmin } from "@/lib/guard";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
-import { Plus, Trash2, Shield, ShieldCheck, Eye } from "lucide-react";
+import { Plus, Trash2, Shield, ShieldCheck, Eye, KeyRound } from "lucide-react";
 import {
   adminListUsers,
   adminCreateUser,
   adminSetUserRole,
   adminDeleteUser,
+  adminResetPassword,
 } from "@/server/admin-users.functions";
 import { authHeaders } from "@/lib/server-call";
 
@@ -91,6 +92,21 @@ function UsuariosPage() {
     }
   };
 
+  const resetPwd = async (userId: string, email: string) => {
+    const pwd = prompt(`Nova senha para ${email} (mín. 8 caracteres):`);
+    if (!pwd) return;
+    if (pwd.length < 8) {
+      toast.error("Senha precisa ter ao menos 8 caracteres");
+      return;
+    }
+    try {
+      await adminResetPassword({ data: { userId, password: pwd }, headers: await authHeaders() });
+      toast.success("Senha redefinida");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro");
+    }
+  };
+
   return (
     <AppShell title="Usuários & Permissões">
       <div className="flex items-center justify-between mb-6">
@@ -144,6 +160,13 @@ function UsuariosPage() {
                   {r.last_sign_in_at ? new Date(r.last_sign_in_at).toLocaleString("pt-BR") : "—"}
                 </td>
                 <td className="px-4 py-3 text-right">
+                  <button
+                    onClick={() => resetPwd(r.id, r.email)}
+                    className="p-2 text-muted-foreground hover:text-primary"
+                    title="Redefinir senha"
+                  >
+                    <KeyRound className="h-4 w-4" />
+                  </button>
                   <button
                     onClick={() => remove(r.id)}
                     disabled={r.id === user?.id}
