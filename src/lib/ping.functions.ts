@@ -58,26 +58,8 @@ export const pingHost = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     const { host, count, port } = data;
-    // ---- DEBUG runtime ----
-    const g = globalThis as Record<string, unknown>;
-    const debug: string[] = [
-      `runtime check:`,
-      `  typeof Bun         = ${typeof g.Bun}`,
-      `  typeof process     = ${typeof g.process}`,
-      `  process.versions   = ${(g.process as { versions?: unknown })?.versions ? JSON.stringify((g.process as { versions: unknown }).versions) : "n/a"}`,
-      `  navigator.userAgent= ${(g.navigator as { userAgent?: string } | undefined)?.userAgent ?? "n/a"}`,
-      ``,
-    ];
-    // tenta importar node:net dinamicamente só pra reportar
     try {
-      const net = await import("node:net");
-      debug.push(`  node:net.connect   = ${typeof net.connect}`);
-    } catch (e) {
-      debug.push(`  node:net import error: ${e instanceof Error ? e.message : String(e)}`);
-    }
-
-    try {
-      // 0) Tenta require dinâmico do child_process pra contornar bundle
+      // 0) Tenta child_process.exec (Node tradicional)
       try {
         const cp = await import("node:child_process");
         if (typeof cp.exec === "function") {
@@ -93,16 +75,16 @@ export const pingHost = createServerFn({ method: "POST" })
               },
             );
           });
-          return { ok: out.ok, output: debug.join("\n") + out.output };
+          return out;
         }
-      } catch (e) {
-        debug.push(`  child_process import error: ${e instanceof Error ? e.message : String(e)}`);
+      } catch {
+        // segue pro Bun.spawn
       }
 
       // 1) Tenta ICMP real via Bun (caso do VPS)
       if (!port) {
         const icmp = await icmpPingViaBun(host, count);
-        if (icmp) return { ok: icmp.ok, output: debug.join("\n") + icmp.output };
+        if (icmp) return icmp;
       }
 
       // 2) Fallback: probe TCP em portas comuns
@@ -155,13 +137,12 @@ export const pingHost = createServerFn({ method: "POST" })
         : `PING TCP ${host} — sem resposta\n`;
       const footer = `\n--- estatísticas ---\n${total} pacotes enviados, ${okCount} recebidos, ${loss}% perda\nrtt min/avg/max = ${min}/${avg}/${max} ms`;
 
-      return { ok: okCount > 0, output: debug.join("\n") + header + lines.join("\n") + footer };
+      return { ok: okCount > 0, output: header + lines.join("\n") + footer };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return {
         ok: false,
         output:
-          debug.join("\n") +
           `Falha ao executar o probe TCP em ${host}.\n` +
           `Motivo: ${msg}\n\n` +
           `Observação: o preview do Lovable roda em runtime serverless e não tem acesso a IPs privados/LAN. ` +
