@@ -58,6 +58,26 @@ const prioridadeColor = (p: Prioridade) => ({
 
 const SLA_HORAS: Record<Prioridade, number> = { urgente: 4, alta: 8, media: 24, baixa: 72 };
 
+// Converte ISO -> valor para <input type="datetime-local"> (timezone local)
+function isoToLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 16);
+}
+function localInputToIso(v: string): string | null {
+  if (!v) return null;
+  return new Date(v).toISOString();
+}
+function formatDuracao(ini: string | null, fim: string | null): string {
+  if (!ini || !fim) return "—";
+  const ms = new Date(fim).getTime() - new Date(ini).getTime();
+  if (ms < 0) return "—";
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  return `${h}h ${m}m`;
+}
+
 function slaInfo(c: Pick<Chamado, "status" | "prioridade" | "created_at" | "resolvido_at">) {
   const limite = SLA_HORAS[c.prioridade];
   const fim = c.resolvido_at ? new Date(c.resolvido_at).getTime() : Date.now();
