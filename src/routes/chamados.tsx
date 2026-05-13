@@ -448,9 +448,39 @@ function ChamadosPage() {
                   className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
                 />
               </div>
+              <div className="md:col-span-2">
+                <Lbl>Anexos</Lbl>
+                <label className="mt-1 block border border-dashed border-border bg-background hover:bg-secondary/30 cursor-pointer p-4 text-center text-xs text-muted-foreground font-mono">
+                  <Paperclip className="h-4 w-4 inline mr-2" />
+                  Clique para selecionar arquivos
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files ?? []);
+                      if (files.length) setPendingFiles((prev) => [...prev, ...files]);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                {pendingFiles.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {pendingFiles.map((f, i) => (
+                      <li key={i} className="flex items-center justify-between text-xs font-mono bg-background border border-border px-2 py-1">
+                        <span className="truncate">{f.name} <span className="text-muted-foreground">({Math.round(f.size / 1024)} KB)</span></span>
+                        <button type="button" onClick={() => setPendingFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                          className="text-muted-foreground hover:text-destructive ml-2">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
             <div className="p-6 border-t border-border flex justify-end gap-2">
-              <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground">Cancelar</button>
+              <button type="button" onClick={() => { setOpen(false); setPendingFiles([]); }} className="px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground">Cancelar</button>
               <button type="submit" className="bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold uppercase tracking-wider hover:opacity-90">Salvar</button>
             </div>
           </form>
