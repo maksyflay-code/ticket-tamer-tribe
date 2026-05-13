@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server } from "lucide-react";
 import logo from "@/assets/ivi-logo.jpeg";
 import type { ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -10,7 +10,8 @@ const nav = [
   { to: "/clientes", label: "Clientes", icon: Users, n: "02" },
   { to: "/chamados", label: "Chamados", icon: Ticket, n: "03" },
   { to: "/planos", label: "Planos", icon: Package, n: "04" },
-  { to: "/relatorios", label: "Relatórios", icon: BarChart3, n: "05" },
+  { to: "/equipamentos", label: "Equipamentos", icon: Server, n: "05" },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3, n: "06" },
 ] as const;
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
@@ -72,7 +73,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                   : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
               )}
             >
-              <span className="text-[10px] opacity-60">06</span>
+              <span className="text-[10px] opacity-60">07</span>
               <UserCircle className="h-4 w-4" />
               <span>Meu perfil</span>
             </Link>
@@ -86,7 +87,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                     : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
                 )}
               >
-                <span className="text-[10px] opacity-60">07</span>
+                <span className="text-[10px] opacity-60">08</span>
                 <UserCog className="h-4 w-4" />
                 <span>Usuários</span>
               </Link>
