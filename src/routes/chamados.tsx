@@ -104,6 +104,7 @@ function ChamadosPage() {
   const [responsavelFilter, setResponsavelFilter] = useState<string>("todos");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Chamado>>(empty);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [detail, setDetail] = useState<Chamado | null>(null);
 
   // debounce de busca
@@ -184,13 +185,39 @@ function ChamadosPage() {
     if (payload.status === "resolvido" && !payload.finalizado_at) {
       payload.finalizado_at = new Date().toISOString();
     }
-    const { error } = form.id
-      ? await supabase.from("chamados").update(payload as never).eq("id", form.id)
-      : await supabase.from("chamados").insert(payload as never);
-    if (error) return toast.error(error.message);
+    let chamadoId = form.id as string | undefined;
+    if (chamadoId) {
+      const { error } = await supabase.from("chamados").update(payload as never).eq("id", chamadoId);
+      if (error) return toast.error(error.message);
+    } else {
+      const { data, error } = await supabase.from("chamados").insert(payload as never).select("id").single();
+      if (error) return toast.error(error.message);
+      chamadoId = (data as { id: string }).id;
+    }
+    // Upload de anexos pendentes
+    if (chamadoId && pendingFiles.length > 0) {
+      const autorEmail = user?.email ?? "operador";
+      for (const file of pendingFiles) {
+        try {
+          const path = `${chamadoId}/${Date.now()}-${file.name}`;
+          const { error: upErr } = await supabase.storage.from("chamado-anexos").upload(path, file);
+          if (upErr) throw upErr;
+          await supabase.from("chamado_anexos").insert({
+            chamado_id: chamadoId, nome_arquivo: file.name, storage_path: path,
+            mime_type: file.type, tamanho: file.size,
+          } as never);
+          await supabase.from("chamado_historico").insert({
+            chamado_id: chamadoId, tipo: "anexo", descricao: `Anexo enviado: ${file.name}`, autor: autorEmail,
+          } as never);
+        } catch (err) {
+          toast.error(`Falha ao enviar ${file.name}: ${err instanceof Error ? err.message : "erro"}`);
+        }
+      }
+    }
     toast.success(form.id ? "Chamado atualizado" : "Chamado aberto");
     setOpen(false);
     setForm(empty);
+    setPendingFiles([]);
     load();
   };
 
