@@ -177,6 +177,13 @@ function ChamadosPage() {
     if (payload.status !== "resolvido" && payload.status !== "fechado") {
       payload.resolvido_at = null;
     }
+    // Auto: ao iniciar atendimento, registra iniciado_at; ao resolver, finalizado_at
+    if (payload.status === "em_andamento" && !payload.iniciado_at) {
+      payload.iniciado_at = new Date().toISOString();
+    }
+    if (payload.status === "resolvido" && !payload.finalizado_at) {
+      payload.finalizado_at = new Date().toISOString();
+    }
     const { error } = form.id
       ? await supabase.from("chamados").update(payload as never).eq("id", form.id)
       : await supabase.from("chamados").insert(payload as never);
