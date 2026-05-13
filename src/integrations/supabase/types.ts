@@ -99,7 +99,9 @@ export type Database = {
           cliente_id: string | null
           created_at: string
           descricao: string | null
+          finalizado_at: string | null
           id: string
+          iniciado_at: string | null
           numero: number
           prioridade: Database["public"]["Enums"]["chamado_prioridade"]
           resolvido_at: string | null
@@ -114,7 +116,9 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           descricao?: string | null
+          finalizado_at?: string | null
           id?: string
+          iniciado_at?: string | null
           numero?: number
           prioridade?: Database["public"]["Enums"]["chamado_prioridade"]
           resolvido_at?: string | null
@@ -129,7 +133,9 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           descricao?: string | null
+          finalizado_at?: string | null
           id?: string
+          iniciado_at?: string | null
           numero?: number
           prioridade?: Database["public"]["Enums"]["chamado_prioridade"]
           resolvido_at?: string | null

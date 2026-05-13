@@ -30,6 +30,8 @@ type Chamado = {
   responsavel_id: string | null;
   resolvido_at: string | null;
   created_at: string;
+  iniciado_at: string | null;
+  finalizado_at: string | null;
   clientes: { nome: string } | null;
 };
 
@@ -55,6 +57,26 @@ const prioridadeColor = (p: Prioridade) => ({
 })[p];
 
 const SLA_HORAS: Record<Prioridade, number> = { urgente: 4, alta: 8, media: 24, baixa: 72 };
+
+// Converte ISO -> valor para <input type="datetime-local"> (timezone local)
+function isoToLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 16);
+}
+function localInputToIso(v: string): string | null {
+  if (!v) return null;
+  return new Date(v).toISOString();
+}
+function formatDuracao(ini: string | null, fim: string | null): string {
+  if (!ini || !fim) return "—";
+  const ms = new Date(fim).getTime() - new Date(ini).getTime();
+  if (ms < 0) return "—";
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  return `${h}h ${m}m`;
+}
 
 function slaInfo(c: Pick<Chamado, "status" | "prioridade" | "created_at" | "resolvido_at">) {
   const limite = SLA_HORAS[c.prioridade];
@@ -154,6 +176,13 @@ function ChamadosPage() {
     }
     if (payload.status !== "resolvido" && payload.status !== "fechado") {
       payload.resolvido_at = null;
+    }
+    // Auto: ao iniciar atendimento, registra iniciado_at; ao resolver, finalizado_at
+    if (payload.status === "em_andamento" && !payload.iniciado_at) {
+      payload.iniciado_at = new Date().toISOString();
+    }
+    if (payload.status === "resolvido" && !payload.finalizado_at) {
+      payload.finalizado_at = new Date().toISOString();
     }
     const { error } = form.id
       ? await supabase.from("chamados").update(payload as never).eq("id", form.id)
@@ -374,6 +403,24 @@ function ChamadosPage() {
                 <textarea value={form.descricao ?? ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={4}
                   className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary" />
               </div>
+              <div>
+                <Lbl>Horário inicial</Lbl>
+                <input
+                  type="datetime-local"
+                  value={isoToLocalInput(form.iniciado_at as string | null | undefined)}
+                  onChange={(e) => setForm({ ...form, iniciado_at: localInputToIso(e.target.value) })}
+                  className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <Lbl>Horário final</Lbl>
+                <input
+                  type="datetime-local"
+                  value={isoToLocalInput(form.finalizado_at as string | null | undefined)}
+                  onChange={(e) => setForm({ ...form, finalizado_at: localInputToIso(e.target.value) })}
+                  className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                />
+              </div>
             </div>
             <div className="p-6 border-t border-border flex justify-end gap-2">
               <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground">Cancelar</button>
@@ -421,6 +468,8 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
     };
     if (status === "resolvido" && !chamado.resolvido_at) payload.resolvido_at = new Date().toISOString();
     if (status !== "resolvido" && status !== "fechado") payload.resolvido_at = null;
+    if (status === "em_andamento" && !chamado.iniciado_at) payload.iniciado_at = new Date().toISOString();
+    if (status === "resolvido" && !chamado.finalizado_at) payload.finalizado_at = new Date().toISOString();
     const { error } = await supabase.from("chamados").update(payload as never).eq("id", chamado.id);
     setSavingQuick(false);
     if (error) return toast.error(error.message);
@@ -541,6 +590,9 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
             <Info label="Categoria" value={chamado.categoria ?? "—"} />
             <Info label="Responsável" value={chamado.tecnico_responsavel ?? (chamado.responsavel_id ? "atribuído" : "não atribuído")} />
             <Info label="Aberto em" value={new Date(chamado.created_at).toLocaleString("pt-BR")} />
+            <Info label="Horário inicial" value={chamado.iniciado_at ? new Date(chamado.iniciado_at).toLocaleString("pt-BR") : "—"} />
+            <Info label="Horário final" value={chamado.finalizado_at ? new Date(chamado.finalizado_at).toLocaleString("pt-BR") : "—"} />
+            <Info label="Duração do atendimento" value={formatDuracao(chamado.iniciado_at, chamado.finalizado_at)} />
           </section>
 
           {chamado.descricao && (
