@@ -20,6 +20,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ChamadosRouteImport } from './routes/chamados'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiDiagRouteImport } from './routes/api/_diag'
 
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
@@ -76,6 +77,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDiagRoute = ApiDiagRouteImport.update({
+  id: '/api/_diag',
+  path: '/api',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/relatorios': typeof RelatoriosRoute
   '/reset-password': typeof ResetPasswordRoute
   '/usuarios': typeof UsuariosRoute
+  '/api': typeof ApiDiagRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/relatorios': typeof RelatoriosRoute
   '/reset-password': typeof ResetPasswordRoute
   '/usuarios': typeof UsuariosRoute
+  '/api': typeof ApiDiagRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/relatorios': typeof RelatoriosRoute
   '/reset-password': typeof ResetPasswordRoute
   '/usuarios': typeof UsuariosRoute
+  '/api/_diag': typeof ApiDiagRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/reset-password'
     | '/usuarios'
+    | '/api'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/reset-password'
     | '/usuarios'
+    | '/api'
   id:
     | '__root__'
     | '/'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/reset-password'
     | '/usuarios'
+    | '/api/_diag'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -171,6 +183,7 @@ export interface RootRouteChildren {
   RelatoriosRoute: typeof RelatoriosRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   UsuariosRoute: typeof UsuariosRoute
+  ApiDiagRoute: typeof ApiDiagRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/_diag': {
+      id: '/api/_diag'
+      path: '/api'
+      fullPath: '/api'
+      preLoaderRoute: typeof ApiDiagRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -267,6 +287,7 @@ const rootRouteChildren: RootRouteChildren = {
   RelatoriosRoute: RelatoriosRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   UsuariosRoute: UsuariosRoute,
+  ApiDiagRoute: ApiDiagRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
