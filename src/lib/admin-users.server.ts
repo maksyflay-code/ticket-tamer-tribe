@@ -2,7 +2,42 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 type AdminRole = "admin" | "operador" | "visualizador";
 
+const ADMIN_CONFIG_MESSAGE =
+  "Configuração inválida na hospedagem: defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY com a Service Role Key correta, reinicie o servidor e publique novamente.";
+
+function decodeJwtPayload(token: string): { role?: string } | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(Buffer.from(normalized, "base64").toString("utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+function ensureAdminConfig() {
+  const url = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) throw new Error(ADMIN_CONFIG_MESSAGE);
+
+  const payload = decodeJwtPayload(serviceRoleKey);
+  if (payload?.role && payload.role !== "service_role") {
+    throw new Error(`${ADMIN_CONFIG_MESSAGE} A chave atual não é uma Service Role Key.`);
+  }
+}
+
+function adminError(error: { message?: string }) {
+  if (/invalid api key/i.test(error.message ?? "")) {
+    return new Error(ADMIN_CONFIG_MESSAGE);
+  }
+  return new Error(error.message ?? "Erro administrativo inesperado.");
+}
+
 export async function assertAdmin(userId: string) {
+  ensureAdminConfig();
+
   const { data, error } = await supabaseAdmin
     .from("user_roles")
     .select("role")
@@ -10,16 +45,18 @@ export async function assertAdmin(userId: string) {
     .eq("role", "admin")
     .maybeSingle();
 
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
   if (!data) throw new Error("Acesso negado: apenas administradores.");
 }
 
 export async function listAdminUsers() {
+  ensureAdminConfig();
+
   const { data: users, error } = await supabaseAdmin.auth.admin.listUsers({
     page: 1,
     perPage: 200,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
 
   const ids = users.users.map((u) => u.id);
   const { data: roles } = await supabaseAdmin
@@ -40,12 +77,14 @@ export async function listAdminUsers() {
 }
 
 export async function createAdminUser(data: { email: string; password: string; role: AdminRole }) {
+  ensureAdminConfig();
+
   const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
     email: data.email,
     password: data.password,
     email_confirm: true,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
   if (!created.user) throw new Error("Falha ao criar usuário");
 
   const { error: roleError } = await supabaseAdmin
@@ -57,34 +96,42 @@ export async function createAdminUser(data: { email: string; password: string; r
 }
 
 export async function setAdminUserRole(data: { userId: string; role: AdminRole }) {
+  ensureAdminConfig();
+
   await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
   const { error } = await supabaseAdmin
     .from("user_roles")
     .insert({ user_id: data.userId, role: data.role });
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
   return { ok: true };
 }
 
 export async function deleteAdminUser(userId: string) {
+  ensureAdminConfig();
+
   const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
   return { ok: true };
 }
 
 export async function resetAdminUserPassword(data: { userId: string; password: string }) {
+  ensureAdminConfig();
+
   const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
     password: data.password,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
   return { ok: true };
 }
 
 export async function listAssignableOperatorUsers() {
+  ensureAdminConfig();
+
   const { data: roles, error } = await supabaseAdmin
     .from("user_roles")
     .select("user_id, role")
     .in("role", ["admin", "operador"]);
-  if (error) throw new Error(error.message);
+  if (error) throw adminError(error);
 
   const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
   if (ids.length === 0) return [] as { id: string; email: string; role: string }[];
@@ -93,7 +140,7 @@ export async function listAssignableOperatorUsers() {
     page: 1,
     perPage: 200,
   });
-  if (usersError) throw new Error(usersError.message);
+  if (usersError) throw adminError(usersError);
 
   const roleByUser = new Map<string, string>();
   (roles ?? []).forEach((r) => roleByUser.set(r.user_id, r.role));
