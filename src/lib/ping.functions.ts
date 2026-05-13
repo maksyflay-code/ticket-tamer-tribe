@@ -31,55 +31,66 @@ export const pingHost = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     const { host, count, port } = data;
-    const ports = port ? [port] : DEFAULT_PORTS;
-    const lines: string[] = [];
-    let openPort: number | null = null;
-    let okCount = 0;
-    const times: number[] = [];
+    try {
+      const ports = port ? [port] : DEFAULT_PORTS;
+      const lines: string[] = [];
+      let openPort: number | null = null;
+      let okCount = 0;
+      const times: number[] = [];
 
-    // Descobre uma porta aberta (1ª tentativa) — testa as comuns em paralelo
-    if (!port) {
-      const probes = ports.map(async (p) => {
-        try { const ms = await probeOnce(host, p, 2000); return { p, ms }; }
-        catch { return null; }
-      });
-      const results = await Promise.all(probes);
-      const winner = results.find((r) => r) ?? null;
-      if (winner) {
-        openPort = winner.p;
-        okCount = 1;
-        times.push(winner.ms);
-        lines.push(`Resposta de ${host}:${winner.p} — tempo=${winner.ms.toFixed(1)} ms`);
+      if (!port) {
+        const probes = ports.map(async (p) => {
+          try { const ms = await probeOnce(host, p, 2000); return { p, ms }; }
+          catch { return null; }
+        });
+        const results = await Promise.all(probes);
+        const winner = results.find((r) => r) ?? null;
+        if (winner) {
+          openPort = winner.p;
+          okCount = 1;
+          times.push(winner.ms);
+          lines.push(`Resposta de ${host}:${winner.p} — tempo=${winner.ms.toFixed(1)} ms`);
+        } else {
+          lines.push(`Nenhuma porta comum (${ports.join(", ")}) respondeu em ${host}`);
+        }
       } else {
-        lines.push(`Nenhuma porta comum (${ports.join(", ")}) respondeu em ${host}`);
+        openPort = port;
       }
-    } else {
-      openPort = port;
-    }
 
-    const remaining = openPort ? count - (port ? 0 : 1) : 0;
-    for (let i = 0; i < remaining; i++) {
-      try {
-        const ms = await probeOnce(host, openPort!, 2000);
-        okCount++;
-        times.push(ms);
-        lines.push(`Resposta de ${host}:${openPort} — tempo=${ms.toFixed(1)} ms`);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        lines.push(`Falha de ${host}:${openPort} — ${msg}`);
+      const remaining = openPort ? count - (port ? 0 : 1) : 0;
+      for (let i = 0; i < remaining; i++) {
+        try {
+          const ms = await probeOnce(host, openPort!, 2000);
+          okCount++;
+          times.push(ms);
+          lines.push(`Resposta de ${host}:${openPort} — tempo=${ms.toFixed(1)} ms`);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          lines.push(`Falha de ${host}:${openPort} — ${msg}`);
+        }
       }
+
+      const total = openPort ? count : 1;
+      const loss = total > 0 ? Math.round(((total - okCount) / total) * 100) : 100;
+      const min = times.length ? Math.min(...times).toFixed(1) : "—";
+      const max = times.length ? Math.max(...times).toFixed(1) : "—";
+      const avg = times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—";
+
+      const header = openPort
+        ? `PING TCP ${host}:${openPort} (${count} tentativas)\n`
+        : `PING TCP ${host} — sem resposta\n`;
+      const footer = `\n--- estatísticas ---\n${total} pacotes enviados, ${okCount} recebidos, ${loss}% perda\nrtt min/avg/max = ${min}/${avg}/${max} ms`;
+
+      return { ok: okCount > 0, output: header + lines.join("\n") + footer };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return {
+        ok: false,
+        output:
+          `Falha ao executar o probe TCP em ${host}.\n` +
+          `Motivo: ${msg}\n\n` +
+          `Observação: o preview do Lovable roda em runtime serverless e não tem acesso a IPs privados/LAN. ` +
+          `Acesse o app pelo seu servidor (VPS na mesma rede do equipamento) para o ping funcionar.`,
+      };
     }
-
-    const total = openPort ? count : 1;
-    const loss = total > 0 ? Math.round(((total - okCount) / total) * 100) : 100;
-    const min = times.length ? Math.min(...times).toFixed(1) : "—";
-    const max = times.length ? Math.max(...times).toFixed(1) : "—";
-    const avg = times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—";
-
-    const header = openPort
-      ? `PING TCP ${host}:${openPort} (${count} tentativas)\n`
-      : `PING TCP ${host} — sem resposta\n`;
-    const footer = `\n--- estatísticas ---\n${total} pacotes enviados, ${okCount} recebidos, ${loss}% perda\nrtt min/avg/max = ${min}/${avg}/${max} ms`;
-
-    return { ok: okCount > 0, output: header + lines.join("\n") + footer };
   });
