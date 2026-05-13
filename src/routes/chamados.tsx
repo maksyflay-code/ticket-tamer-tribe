@@ -590,6 +590,9 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
             <Info label="Categoria" value={chamado.categoria ?? "—"} />
             <Info label="Responsável" value={chamado.tecnico_responsavel ?? (chamado.responsavel_id ? "atribuído" : "não atribuído")} />
             <Info label="Aberto em" value={new Date(chamado.created_at).toLocaleString("pt-BR")} />
+            <Info label="Horário inicial" value={chamado.iniciado_at ? new Date(chamado.iniciado_at).toLocaleString("pt-BR") : "—"} />
+            <Info label="Horário final" value={chamado.finalizado_at ? new Date(chamado.finalizado_at).toLocaleString("pt-BR") : "—"} />
+            <Info label="Duração do atendimento" value={formatDuracao(chamado.iniciado_at, chamado.finalizado_at)} />
           </section>
 
           {chamado.descricao && (
