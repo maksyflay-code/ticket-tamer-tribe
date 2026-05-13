@@ -403,6 +403,24 @@ function ChamadosPage() {
                 <textarea value={form.descricao ?? ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={4}
                   className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary" />
               </div>
+              <div>
+                <Lbl>Horário inicial</Lbl>
+                <input
+                  type="datetime-local"
+                  value={isoToLocalInput(form.iniciado_at as string | null | undefined)}
+                  onChange={(e) => setForm({ ...form, iniciado_at: localInputToIso(e.target.value) })}
+                  className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <Lbl>Horário final</Lbl>
+                <input
+                  type="datetime-local"
+                  value={isoToLocalInput(form.finalizado_at as string | null | undefined)}
+                  onChange={(e) => setForm({ ...form, finalizado_at: localInputToIso(e.target.value) })}
+                  className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                />
+              </div>
             </div>
             <div className="p-6 border-t border-border flex justify-end gap-2">
               <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground">Cancelar</button>
