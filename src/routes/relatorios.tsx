@@ -7,7 +7,7 @@ import { BarChart3, Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { listAssignableOperators } from "@/server/operators.functions";
+import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
 
 export const Route = createFileRoute("/relatorios")({

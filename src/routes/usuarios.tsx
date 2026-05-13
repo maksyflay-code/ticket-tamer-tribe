@@ -11,7 +11,7 @@ import {
   adminSetUserRole,
   adminDeleteUser,
   adminResetPassword,
-} from "@/server/admin-users.functions";
+} from "@/lib/admin-users.functions";
 import { authHeaders } from "@/lib/server-call";
 
 export const Route = createFileRoute("/usuarios")({
