@@ -112,18 +112,18 @@ function DashboardPage() {
 
   return (
     <AppShell title="Painel de Controle">
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+      <section className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-8">
         {cards.map((c) => {
           const Icon = c.icon;
           return (
-            <div key={c.label} className="border border-border bg-card p-5">
+            <div key={c.label} className="border border-border bg-card p-3 md:p-5">
               <div className="flex items-start justify-between mb-3">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
                   {c.label}
                 </span>
                 <Icon className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="font-display text-3xl font-bold tracking-tight">{c.value}</div>
+              <div className="font-display text-2xl md:text-3xl font-bold tracking-tight">{c.value}</div>
               <div className="mt-4 h-1 bg-border w-full">
                 <div className={`${c.color} h-full`} style={{ width: c.w }} />
               </div>
@@ -134,11 +134,11 @@ function DashboardPage() {
 
       <section className="mb-8">
         <h2 className="font-display text-lg font-bold tracking-tight mb-4">Chamados Ativos por Prioridade</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {(["urgente","alta","media","baixa"] as const).map((p) => (
-            <div key={p} className="border border-border bg-card p-5">
+            <div key={p} className="border border-border bg-card p-3 md:p-5">
               <div className={`text-[10px] uppercase tracking-widest font-mono mb-2 ${prioridadeColor(p)}`}>● {p}</div>
-              <div className="font-display text-3xl font-bold">{stats.porPrioridade[p] ?? 0}</div>
+              <div className="font-display text-2xl md:text-3xl font-bold">{stats.porPrioridade[p] ?? 0}</div>
             </div>
           ))}
         </div>
