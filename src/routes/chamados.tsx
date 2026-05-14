@@ -661,6 +661,15 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
   const [prioridade, setPrioridade] = useState<Prioridade>(chamado.prioridade);
   const [responsavelId, setResponsavelId] = useState<string>(chamado.responsavel_id ?? "");
   const [savingQuick, setSavingQuick] = useState(false);
+  const [slaMap, setSlaMap] = useState<SlaMap | null>(null);
+  const [nowTick, setNowTick] = useState(0);
+
+  useEffect(() => { getSlaMap().then(setSlaMap); }, []);
+  // Atualiza contador de SLA a cada 30s
+  useEffect(() => {
+    const t = setInterval(() => setNowTick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     setStatus(chamado.status);
@@ -714,6 +723,9 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
     setAnexos((a.data as Anexo[]) ?? []);
   };
   useEffect(() => { load(); }, [chamado.id]);
+
+  const sla = slaMap ? calcSla({ ...chamado, prioridade }, slaMap) : null;
+  void nowTick; // força re-render no tick
 
   const addComentario = async (e: React.FormEvent) => {
     e.preventDefault();
