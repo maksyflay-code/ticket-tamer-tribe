@@ -16,14 +16,17 @@ export const Route = createFileRoute("/chamados")({
 
 type Status = "aberto" | "em_andamento" | "resolvido" | "fechado";
 type Prioridade = "baixa" | "media" | "alta" | "urgente";
+type TipoProblema = "ROMPIMENTO" | "ATENUACAO" | "OUTROS";
 
 type Chamado = {
   id: string;
   numero: number;
+  codigo: string | null;
   cliente_id: string | null;
   titulo: string;
   descricao: string | null;
   categoria: string | null;
+  tipo_problema: string | null;
   status: Status;
   prioridade: Prioridade;
   tecnico_responsavel: string | null;
@@ -41,6 +44,15 @@ type Historico = { id: string; tipo: string; descricao: string; autor: string | 
 type Anexo = { id: string; nome_arquivo: string; storage_path: string; mime_type: string | null; tamanho: number | null; created_at: string };
 
 const empty: Partial<Chamado> = { status: "aberto", prioridade: "media" };
+
+const TIPOS_PROBLEMA: { value: TipoProblema; label: string }[] = [
+  { value: "ROMPIMENTO", label: "Rompimento" },
+  { value: "ATENUACAO", label: "Atenuação" },
+  { value: "OUTROS", label: "Outros" },
+];
+
+const ticketLabel = (c: Pick<Chamado, "codigo" | "numero">) =>
+  c.codigo ?? `#TK-${String(c.numero).padStart(4, "0")}`;
 
 const statusBadge = (s: Status) => ({
   aberto: "border-amber-500/30 bg-amber-500/10 text-amber-400",
@@ -251,7 +263,7 @@ function ChamadosPage() {
   };
   const reabrir = async (c: Chamado) => {
     if (!isAdmin) return toast.error("Apenas administradores podem reabrir.");
-    if (!confirm(`Reabrir o chamado #TK-${String(c.numero).padStart(4, "0")}?`)) return;
+    if (!confirm(`Reabrir o chamado ${ticketLabel(c)}?`)) return;
     const { error } = await supabase.from("chamados")
       .update({ status: "em_andamento", resolvido_at: null, finalizado_at: null } as never)
       .eq("id", c.id);
@@ -337,7 +349,7 @@ function ChamadosPage() {
               const meu = !!c.responsavel_id && c.responsavel_id === user?.id;
               return (
               <tr key={c.id} className={`hover:bg-secondary/30 cursor-pointer ${sla.estourado ? "bg-red-500/5" : ""}`} onClick={() => setDetail(c)}>
-                <td className="p-4 font-mono text-muted-foreground">#TK-{String(c.numero).padStart(4, "0")}</td>
+                <td className="p-4 font-mono text-muted-foreground">{ticketLabel(c)}</td>
                 <td className="p-4 font-medium">{c.clientes?.nome ?? "—"}</td>
                 <td className="p-4">{c.titulo}</td>
                 <td className="p-4 font-mono text-xs">
@@ -409,7 +421,7 @@ function ChamadosPage() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
-                    <span>#TK-{String(c.numero).padStart(4, "0")}</span>
+                    <span>{ticketLabel(c)}</span>
                     <span className={`px-1.5 py-px border uppercase ${statusBadge(c.status)}`}>{c.status.replace("_", " ")}</span>
                     <span className={`uppercase ${prioridadeColor(c.prioridade)}`}>● {c.prioridade}</span>
                   </div>
@@ -489,6 +501,17 @@ function ChamadosPage() {
                 <input value={form.categoria ?? ""} onChange={(e) => setForm({ ...form, categoria: e.target.value })}
                   placeholder="Ex: Conexão, Financeiro, Instalação"
                   className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary font-mono" />
+              </div>
+              <div>
+                <Lbl>Tipo de problema</Lbl>
+                <select
+                  value={form.tipo_problema ?? ""}
+                  onChange={(e) => setForm({ ...form, tipo_problema: e.target.value || null })}
+                  className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                >
+                  <option value="">— Selecionar —</option>
+                  {TIPOS_PROBLEMA.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
               </div>
               <div>
                 <Lbl>Prioridade</Lbl>
@@ -646,7 +669,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
     e.preventDefault();
     if (!comentario.trim()) return;
     const { error } = await supabase.from("chamado_historico").insert({
-      chamado_id: chamado.id, tipo: "comentario", descricao: comentario.trim(), autor,
+      chamado_id: chamado.id, tipo: "relato", descricao: comentario.trim(), autor,
     } as never);
     if (error) return toast.error(error.message);
     setComentario(""); load();
@@ -691,7 +714,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
       <div className="bg-card border-l border-border w-full max-w-2xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-border flex justify-between items-start sticky top-0 bg-card z-10">
           <div>
-            <div className="text-[10px] font-mono text-muted-foreground uppercase">#TK-{String(chamado.numero).padStart(4, "0")}</div>
+            <div className="text-[10px] font-mono text-muted-foreground uppercase">{ticketLabel(chamado)}</div>
             <h2 className="font-display text-xl font-bold mt-1">{chamado.titulo}</h2>
             <div className="flex gap-2 mt-2">
               <span className={`px-2 py-0.5 border text-[10px] font-mono uppercase ${statusBadge(chamado.status)}`}>{chamado.status.replace("_", " ")}</span>
@@ -742,6 +765,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
           <section className="grid grid-cols-2 gap-4 text-xs font-mono">
             <Info label="Cliente" value={chamado.clientes?.nome ?? "—"} />
             <Info label="Categoria" value={chamado.categoria ?? "—"} />
+            <Info label="Tipo de problema" value={chamado.tipo_problema ?? "—"} />
             <Info label="Responsável" value={chamado.tecnico_responsavel ?? (chamado.responsavel_id ? "atribuído" : "não atribuído")} />
             <Info label="Aberto em" value={new Date(chamado.created_at).toLocaleString("pt-BR")} />
             <Info label="Horário inicial" value={chamado.iniciado_at ? new Date(chamado.iniciado_at).toLocaleString("pt-BR") : "—"} />
@@ -784,12 +808,15 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
 
           <section>
             <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
-              <MessageSquare className="h-3 w-3" /> Histórico & Comentários
+              <MessageSquare className="h-3 w-3" /> Relatos / Andamento & Histórico
             </h3>
-            <form onSubmit={addComentario} className="mb-4 flex gap-2">
-              <input value={comentario} onChange={(e) => setComentario(e.target.value)} placeholder="Adicionar comentário…"
-                className="flex-1 bg-background border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-              <button type="submit" className="bg-primary text-primary-foreground px-3 py-2 text-xs font-semibold uppercase">Enviar</button>
+            <form onSubmit={addComentario} className="mb-4 space-y-2">
+              <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} rows={3}
+                placeholder="Adicionar relato sobre o andamento do chamado…"
+                className="w-full bg-background border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+              <div className="flex justify-end">
+                <button type="submit" className="bg-primary text-primary-foreground px-3 py-2 text-xs font-semibold uppercase">Adicionar relato</button>
+              </div>
             </form>
             <div className="space-y-3">
               {historico.length === 0 && <div className="text-xs text-muted-foreground font-mono">Sem registros.</div>}
@@ -800,6 +827,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                   h.tipo === "mudanca_prioridade" ? "border-orange-500/60" :
                   h.tipo === "mudanca_responsavel" ? "border-violet-500/60" :
                   h.tipo === "anexo" ? "border-cyan-500/60" :
+                  h.tipo === "relato" ? "border-emerald-500/60" :
                   "border-border";
                 return (
                   <div key={h.id} className={`border-l-2 pl-3 pb-2 ${tone}`}>
