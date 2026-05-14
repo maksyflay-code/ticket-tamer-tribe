@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
-import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, LineChart, Line,
 } from "recharts";
 
 export const Route = createFileRoute("/dashboard")({
@@ -246,16 +246,17 @@ function DashboardPage() {
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="Ranking de técnicos (mês)" className="lg:col-span-2">
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={ranking} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
-              <CartesianGrid stroke="#27272a" strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: "#a1a1aa" }} allowDecimals={false} />
-              <YAxis type="category" dataKey="tecnico" tick={{ fontSize: 10, fill: "#a1a1aa" }} width={110} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="resolvidos" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <ChartCard title="Ranking de técnicos (mês)">
+          <RankingList ranking={ranking} />
+        </ChartCard>
+        <ChartCard title="Destaques do mês">
+          <HighlightsPanel
+            totalResolvidos={ranking.reduce((s, r) => s + r.resolvidos, 0)}
+            topTecnico={ranking[0]}
+            slaPct={stats.slaPct}
+            tempoMedioH={stats.tempoMedioH}
+            tecnicosAtivos={ranking.length}
+          />
         </ChartCard>
       </section>
 
@@ -319,6 +320,116 @@ function ChartCard({ title, children, className = "" }: { title: string; childre
     <div className={`border border-border bg-card p-3 md:p-5 ${className}`}>
       <h3 className="font-display text-sm font-bold tracking-tight mb-3">{title}</h3>
       <div className="w-full">{children}</div>
+    </div>
+  );
+}
+
+function RankingList({ ranking }: { ranking: { tecnico: string; resolvidos: number }[] }) {
+  if (ranking.length === 0) {
+    return (
+      <div className="h-[260px] flex items-center justify-center text-muted-foreground font-mono text-xs">
+        Nenhum chamado resolvido no mês.
+      </div>
+    );
+  }
+  const max = Math.max(...ranking.map((r) => r.resolvidos));
+  const medal = (i: number) => {
+    if (i === 0) return { Icon: Trophy, cls: "text-yellow-400", bg: "from-yellow-500/30 to-yellow-500/0", bar: "bg-gradient-to-r from-yellow-500 to-amber-400" };
+    if (i === 1) return { Icon: Medal, cls: "text-zinc-300", bg: "from-zinc-400/25 to-zinc-400/0", bar: "bg-gradient-to-r from-zinc-300 to-zinc-400" };
+    if (i === 2) return { Icon: Award, cls: "text-orange-400", bg: "from-orange-500/25 to-orange-500/0", bar: "bg-gradient-to-r from-orange-500 to-amber-600" };
+    return { Icon: null, cls: "text-muted-foreground", bg: "from-primary/15 to-primary/0", bar: "bg-gradient-to-r from-primary to-primary/60" };
+  };
+  return (
+    <div className="space-y-2.5">
+      {ranking.map((r, i) => {
+        const m = medal(i);
+        const pct = max > 0 ? (r.resolvidos / max) * 100 : 0;
+        return (
+          <div key={r.tecnico} className={`relative border border-border bg-gradient-to-r ${m.bg} p-2.5 overflow-hidden`}>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-7 h-7 border border-border bg-background font-mono text-xs font-bold shrink-0">
+                {m.Icon ? <m.Icon className={`h-3.5 w-3.5 ${m.cls}`} /> : <span className="text-muted-foreground">{i + 1}</span>}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm truncate">{r.tecnico}</div>
+                <div className="mt-1.5 h-1 bg-border w-full overflow-hidden">
+                  <div className={`h-full ${m.bar} transition-all`} style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="font-display text-xl font-bold tracking-tight">{r.resolvidos}</div>
+                <div className="text-[9px] text-muted-foreground font-mono uppercase tracking-widest">resolvidos</div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function HighlightsPanel({
+  totalResolvidos, topTecnico, slaPct, tempoMedioH, tecnicosAtivos,
+}: {
+  totalResolvidos: number;
+  topTecnico?: { tecnico: string; resolvidos: number };
+  slaPct: number;
+  tempoMedioH: number;
+  tecnicosAtivos: number;
+}) {
+  const slaColor = slaPct >= 90 ? "text-emerald-400" : slaPct >= 70 ? "text-amber-400" : "text-red-400";
+  const items = [
+    {
+      Icon: TrendingUp,
+      label: "Resolvidos no mês",
+      value: totalResolvidos,
+      hint: `${tecnicosAtivos} técnico${tecnicosAtivos === 1 ? "" : "s"} ativo${tecnicosAtivos === 1 ? "" : "s"}`,
+      color: "text-emerald-400",
+      bg: "from-emerald-500/15",
+    },
+    {
+      Icon: Trophy,
+      label: "Destaque do mês",
+      value: topTecnico?.tecnico ?? "—",
+      hint: topTecnico ? `${topTecnico.resolvidos} resolvidos` : "sem dados",
+      color: "text-yellow-400",
+      bg: "from-yellow-500/15",
+      small: true,
+    },
+    {
+      Icon: Target,
+      label: "SLA cumprido (30d)",
+      value: `${slaPct.toFixed(0)}%`,
+      hint: slaPct >= 90 ? "excelente" : slaPct >= 70 ? "atenção" : "crítico",
+      color: slaColor,
+      bg: "from-violet-500/15",
+    },
+    {
+      Icon: Zap,
+      label: "Tempo médio (30d)",
+      value: `${tempoMedioH.toFixed(1)}h`,
+      hint: "do registro à resolução",
+      color: "text-cyan-400",
+      bg: "from-cyan-500/15",
+    },
+  ];
+  return (
+    <div className="grid grid-cols-1 gap-2.5">
+      {items.map((it) => {
+        const Icon = it.Icon;
+        return (
+          <div key={it.label} className={`relative border border-border bg-gradient-to-r ${it.bg} to-transparent p-3 flex items-center gap-3`}>
+            <div className="w-9 h-9 border border-border bg-background flex items-center justify-center shrink-0">
+              <Icon className={`h-4 w-4 ${it.color}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[9px] uppercase tracking-widest font-mono text-muted-foreground">{it.label}</div>
+              <div className={`font-display font-bold tracking-tight truncate ${it.small ? "text-base" : "text-2xl"}`}>{it.value}</div>
+              <div className="text-[10px] font-mono text-muted-foreground mt-0.5">{it.hint}</div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
