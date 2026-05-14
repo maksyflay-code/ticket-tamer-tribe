@@ -182,7 +182,7 @@ function RfoPage() {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.setTextColor(20);
-        doc.text("FOTOS DO EVENTO", margin, y);
+        doc.text("FOTOS DO EVENTO:", margin, y);
         y += 14;
         const cols = fotos.length >= 3 ? 3 : 2;
         const gap = 8;
