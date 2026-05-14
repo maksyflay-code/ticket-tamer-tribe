@@ -5,6 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import {
+  ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line,
+} from "recharts";
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: requireAuth,
@@ -54,12 +58,20 @@ const prioridadeColor = (p: string) => {
 function DashboardPage() {
   const [stats, setStats] = useState<Stats>({ abertos: 0, emAndamento: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0, porPrioridade: {} });
   const [recentes, setRecentes] = useState<Chamado[]>([]);
+  const [statusDist, setStatusDist] = useState<{ name: string; value: number; color: string }[]>([]);
+  const [prioridadeDist, setPrioridadeDist] = useState<{ name: string; value: number; color: string }[]>([]);
+  const [categoriaDist, setCategoriaDist] = useState<{ name: string; value: number }[]>([]);
+  const [dailySerie, setDailySerie] = useState<{ dia: string; abertos: number; resolvidos: number }[]>([]);
+  const [ranking, setRanking] = useState<{ tecnico: string; resolvidos: number }[]>([]);
 
   const load = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const since30 = new Date(); since30.setDate(since30.getDate() - 30);
-    const [a, e, r, c, novos, resolvidos30, rec, abertosPri] = await Promise.all([
+    // início do mês corrente para gráficos
+    const startMonth = new Date();
+    startMonth.setDate(1); startMonth.setHours(0, 0, 0, 0);
+    const [a, e, r, c, novos, resolvidos30, rec, abertosPri, todosStatus, todosPri, todasCat, mensal, resolvidosMes] = await Promise.all([
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aberto"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "em_andamento"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "resolvido").gte("resolvido_at", today.toISOString()),
@@ -72,6 +84,11 @@ function DashboardPage() {
         .order("created_at", { ascending: false })
         .limit(8),
       supabase.from("chamados").select("prioridade").in("status", ["aberto", "em_andamento"]),
+      supabase.from("chamados").select("status"),
+      supabase.from("chamados").select("prioridade"),
+      supabase.from("chamados").select("categoria"),
+      supabase.from("chamados").select("created_at,resolvido_at").gte("created_at", startMonth.toISOString()),
+      supabase.from("chamados").select("tecnico_responsavel,resolvido_at").not("resolvido_at", "is", null).gte("resolvido_at", startMonth.toISOString()),
     ]);
     const SLA: Record<string, number> = { urgente: 4, alta: 8, media: 24, baixa: 72 };
     const list = (resolvidos30.data ?? []) as { created_at: string; resolvido_at: string; prioridade: string }[];
@@ -94,6 +111,54 @@ function DashboardPage() {
       }, {} as Record<string, number>),
     });
     setRecentes((rec.data as unknown as Chamado[]) ?? []);
+
+    // distribuições
+    const statusColors: Record<string, string> = {
+      aberto: "#f59e0b", em_andamento: "#3b82f6", resolvido: "#10b981", fechado: "#6b7280",
+    };
+    const prioridadeColors: Record<string, string> = {
+      urgente: "#ef4444", alta: "#f97316", media: "#eab308", baixa: "#9ca3af",
+    };
+    const sCount = ((todosStatus.data ?? []) as { status: string }[]).reduce<Record<string, number>>((acc, x) => {
+      acc[x.status] = (acc[x.status] ?? 0) + 1; return acc;
+    }, {});
+    setStatusDist(Object.entries(sCount).map(([k, v]) => ({ name: k.replace("_", " "), value: v, color: statusColors[k] ?? "#888" })));
+    const pCount = ((todosPri.data ?? []) as { prioridade: string }[]).reduce<Record<string, number>>((acc, x) => {
+      acc[x.prioridade] = (acc[x.prioridade] ?? 0) + 1; return acc;
+    }, {});
+    setPrioridadeDist(Object.entries(pCount).map(([k, v]) => ({ name: k, value: v, color: prioridadeColors[k] ?? "#888" })));
+    const cCount = ((todasCat.data ?? []) as { categoria: string | null }[]).reduce<Record<string, number>>((acc, x) => {
+      const k = x.categoria?.trim() || "Sem categoria";
+      acc[k] = (acc[k] ?? 0) + 1; return acc;
+    }, {});
+    setCategoriaDist(Object.entries(cCount).sort((a,b)=>b[1]-a[1]).slice(0, 8).map(([name, value]) => ({ name, value })));
+
+    // série diária do mês
+    const dias = new Date(startMonth.getFullYear(), startMonth.getMonth() + 1, 0).getDate();
+    const serie: { dia: string; abertos: number; resolvidos: number }[] = [];
+    for (let d = 1; d <= dias; d++) serie.push({ dia: String(d).padStart(2, "0"), abertos: 0, resolvidos: 0 });
+    ((mensal.data ?? []) as { created_at: string; resolvido_at: string | null }[]).forEach((x) => {
+      const d = new Date(x.created_at).getDate();
+      if (serie[d - 1]) serie[d - 1].abertos++;
+      if (x.resolvido_at) {
+        const dr = new Date(x.resolvido_at);
+        if (dr >= startMonth) {
+          const di = dr.getDate();
+          if (serie[di - 1]) serie[di - 1].resolvidos++;
+        }
+      }
+    });
+    setDailySerie(serie);
+
+    // ranking de técnicos no mês
+    const rk = ((resolvidosMes.data ?? []) as { tecnico_responsavel: string | null }[]).reduce<Record<string, number>>((acc, x) => {
+      const k = x.tecnico_responsavel || "Sem responsável";
+      acc[k] = (acc[k] ?? 0) + 1; return acc;
+    }, {});
+    setRanking(Object.entries(rk).sort((a,b)=>b[1]-a[1]).slice(0, 6).map(([tecnico, resolvidos]) => ({
+      tecnico: tecnico.includes("@") ? tecnico.split("@")[0] : tecnico,
+      resolvidos,
+    })));
   };
 
   useEffect(() => {
@@ -142,6 +207,66 @@ function DashboardPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        <ChartCard title="Distribuição por status">
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie data={statusDist} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius="80%" label={(e: { value?: number }) => e.value ?? ""}>
+                {statusDist.map((d, i) => <Cell key={i} fill={d.color} />)}
+              </Pie>
+              <Tooltip contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={legendStyle} />
+            </PieChart>
+          </ResponsiveContainer>
+        </ChartCard>
+        <ChartCard title="Distribuição por prioridade">
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie data={prioridadeDist} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius="80%" label={(e: { value?: number }) => e.value ?? ""}>
+                {prioridadeDist.map((d, i) => <Cell key={i} fill={d.color} />)}
+              </Pie>
+              <Tooltip contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={legendStyle} />
+            </PieChart>
+          </ResponsiveContainer>
+        </ChartCard>
+        <ChartCard title="Volume diário no mês">
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={dailySerie} margin={{ top: 8, right: 16, left: -10, bottom: 0 }}>
+              <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
+              <XAxis dataKey="dia" tick={{ fontSize: 10, fill: "#a1a1aa" }} />
+              <YAxis tick={{ fontSize: 10, fill: "#a1a1aa" }} allowDecimals={false} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={legendStyle} />
+              <Line type="monotone" dataKey="abertos" stroke="#f59e0b" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="resolvidos" stroke="#10b981" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartCard>
+        <ChartCard title="Ranking de técnicos (mês)">
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={ranking} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+              <CartesianGrid stroke="#27272a" strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 10, fill: "#a1a1aa" }} allowDecimals={false} />
+              <YAxis type="category" dataKey="tecnico" tick={{ fontSize: 10, fill: "#a1a1aa" }} width={110} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Bar dataKey="resolvidos" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+        <ChartCard title="Chamados por categoria" className="lg:col-span-2">
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={categoriaDist} margin={{ top: 8, right: 16, left: -10, bottom: 0 }}>
+              <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#a1a1aa" }} interval={0} angle={-15} textAnchor="end" height={60} />
+              <YAxis tick={{ fontSize: 10, fill: "#a1a1aa" }} allowDecimals={false} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Bar dataKey="value" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
       </section>
 
       <section>
