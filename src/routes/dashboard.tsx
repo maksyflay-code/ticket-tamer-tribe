@@ -261,7 +261,7 @@ function DashboardPage() {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="Chamados por categoria" className="lg:col-span-2">
+        <ChartCard title="Chamados por tipo de problema" className="lg:col-span-2">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={categoriaDist} margin={{ top: 8, right: 16, left: -10, bottom: 0 }}>
               <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
