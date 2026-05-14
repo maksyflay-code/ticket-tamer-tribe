@@ -172,18 +172,10 @@ function RfoPage() {
       section("SOLUÇÃO:", form.solucao);
       section("LOCALIZAÇÃO:", form.localizacao);
 
-      // Responsável
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(20);
-      doc.text("Responsável pelo acompanhamento:", margin, y); y += 11;
-      doc.setFont("helvetica", "bold");
-      doc.text(form.responsavel || "—", margin, y); y += 11;
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(80);
-      if (form.responsavelArea) { doc.text(form.responsavelArea, margin, y); y += 11; }
-      if (form.responsavelEmail) { doc.text(form.responsavelEmail, margin, y); y += 11; }
-      y += 6;
+      // Reserva espaço do bloco "Responsável" para ancorar acima do rodapé
+      const respLines = 1 + 1 + (form.responsavelArea ? 1 : 0) + (form.responsavelEmail ? 1 : 0);
+      const respBlockH = respLines * 11 + 6;
+      const respTop = pageH - 50 - respBlockH; // 50pt acima da barra azul/rodapé
 
       // Fotos (compactas, na mesma página quando possível)
       if (fotos.length > 0) {
@@ -195,11 +187,11 @@ function RfoPage() {
         const cols = fotos.length >= 3 ? 3 : 2;
         const gap = 8;
         const colW = (pageW - margin * 2 - gap * (cols - 1)) / cols;
-        const available = pageH - 60 - y;
+        const available = respTop - y - 8;
         const imgH = Math.max(70, Math.min(120, available / Math.ceil(fotos.length / cols) - 14));
         let col = 0;
         for (const foto of fotos) {
-          if (y + imgH > pageH - 50) break;
+          if (y + imgH > respTop - 4) break;
           const x = margin + col * (colW + gap);
           try {
             const ext = foto.dataUrl.startsWith("data:image/png") ? "PNG" : "JPEG";
@@ -214,6 +206,21 @@ function RfoPage() {
         }
       }
 
+      // Responsável (ancorado no fim da página, acima da barra azul)
+      {
+        let ry = respTop;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(20);
+        doc.text("Responsável pelo acompanhamento:", margin, ry); ry += 11;
+        doc.setFont("helvetica", "bold");
+        doc.text(form.responsavel || "—", margin, ry); ry += 11;
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(80);
+        if (form.responsavelArea) { doc.text(form.responsavelArea, margin, ry); ry += 11; }
+        if (form.responsavelEmail) { doc.text(form.responsavelEmail, margin, ry); ry += 11; }
+      }
+
       // Rodapé IVI + numeração de páginas
       const pages = doc.getNumberOfPages();
       for (let i = 1; i <= pages; i++) {
@@ -225,7 +232,7 @@ function RfoPage() {
         // texto institucional centralizado
         doc.setFontSize(9);
         doc.setTextColor(255, 255, 255);
-        doc.text("IVI Tecnologia e Comunicação LTDA  |  www.ivitlm.com.br", pageW / 2, pageH - 22, { align: "center" });
+        doc.text("IVI Tecnologia e Comunicação LTDA  |  www.ivitelecom.com.br", pageW / 2, pageH - 22, { align: "center" });
         // numeração à direita
         doc.setFontSize(8);
         doc.setTextColor(255, 255, 255);
