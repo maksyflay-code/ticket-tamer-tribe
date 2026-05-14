@@ -20,6 +20,8 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ChamadosRouteImport } from './routes/chamados'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConfiguracoesSlaRouteImport } from './routes/configuracoes.sla'
+import { Route as ClientesIdRouteImport } from './routes/clientes.$id'
 import { Route as ApiPublicDiagRouteImport } from './routes/api/public/_diag'
 
 const UsuariosRoute = UsuariosRouteImport.update({
@@ -77,6 +79,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConfiguracoesSlaRoute = ConfiguracoesSlaRouteImport.update({
+  id: '/configuracoes/sla',
+  path: '/configuracoes/sla',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientesIdRoute = ClientesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ClientesRoute,
+} as any)
 const ApiPublicDiagRoute = ApiPublicDiagRouteImport.update({
   id: '/api/public/_diag',
   path: '/api/public',
@@ -86,7 +98,7 @@ const ApiPublicDiagRoute = ApiPublicDiagRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/chamados': typeof ChamadosRoute
-  '/clientes': typeof ClientesRoute
+  '/clientes': typeof ClientesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
@@ -95,12 +107,14 @@ export interface FileRoutesByFullPath {
   '/relatorios': typeof RelatoriosRoute
   '/rfo': typeof RfoRoute
   '/usuarios': typeof UsuariosRoute
+  '/clientes/$id': typeof ClientesIdRoute
+  '/configuracoes/sla': typeof ConfiguracoesSlaRoute
   '/api/public': typeof ApiPublicDiagRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/chamados': typeof ChamadosRoute
-  '/clientes': typeof ClientesRoute
+  '/clientes': typeof ClientesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
@@ -109,13 +123,15 @@ export interface FileRoutesByTo {
   '/relatorios': typeof RelatoriosRoute
   '/rfo': typeof RfoRoute
   '/usuarios': typeof UsuariosRoute
+  '/clientes/$id': typeof ClientesIdRoute
+  '/configuracoes/sla': typeof ConfiguracoesSlaRoute
   '/api/public': typeof ApiPublicDiagRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/chamados': typeof ChamadosRoute
-  '/clientes': typeof ClientesRoute
+  '/clientes': typeof ClientesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
@@ -124,6 +140,8 @@ export interface FileRoutesById {
   '/relatorios': typeof RelatoriosRoute
   '/rfo': typeof RfoRoute
   '/usuarios': typeof UsuariosRoute
+  '/clientes/$id': typeof ClientesIdRoute
+  '/configuracoes/sla': typeof ConfiguracoesSlaRoute
   '/api/public/_diag': typeof ApiPublicDiagRoute
 }
 export interface FileRouteTypes {
@@ -140,6 +158,8 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/rfo'
     | '/usuarios'
+    | '/clientes/$id'
+    | '/configuracoes/sla'
     | '/api/public'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,6 +174,8 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/rfo'
     | '/usuarios'
+    | '/clientes/$id'
+    | '/configuracoes/sla'
     | '/api/public'
   id:
     | '__root__'
@@ -168,13 +190,15 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/rfo'
     | '/usuarios'
+    | '/clientes/$id'
+    | '/configuracoes/sla'
     | '/api/public/_diag'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ChamadosRoute: typeof ChamadosRoute
-  ClientesRoute: typeof ClientesRoute
+  ClientesRoute: typeof ClientesRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   EquipamentosRoute: typeof EquipamentosRoute
   LoginRoute: typeof LoginRoute
@@ -183,6 +207,7 @@ export interface RootRouteChildren {
   RelatoriosRoute: typeof RelatoriosRoute
   RfoRoute: typeof RfoRoute
   UsuariosRoute: typeof UsuariosRoute
+  ConfiguracoesSlaRoute: typeof ConfiguracoesSlaRoute
   ApiPublicDiagRoute: typeof ApiPublicDiagRoute
 }
 
@@ -265,6 +290,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/configuracoes/sla': {
+      id: '/configuracoes/sla'
+      path: '/configuracoes/sla'
+      fullPath: '/configuracoes/sla'
+      preLoaderRoute: typeof ConfiguracoesSlaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clientes/$id': {
+      id: '/clientes/$id'
+      path: '/$id'
+      fullPath: '/clientes/$id'
+      preLoaderRoute: typeof ClientesIdRouteImport
+      parentRoute: typeof ClientesRoute
+    }
     '/api/public/_diag': {
       id: '/api/public/_diag'
       path: '/api/public'
@@ -275,10 +314,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ClientesRouteChildren {
+  ClientesIdRoute: typeof ClientesIdRoute
+}
+
+const ClientesRouteChildren: ClientesRouteChildren = {
+  ClientesIdRoute: ClientesIdRoute,
+}
+
+const ClientesRouteWithChildren = ClientesRoute._addFileChildren(
+  ClientesRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChamadosRoute: ChamadosRoute,
-  ClientesRoute: ClientesRoute,
+  ClientesRoute: ClientesRouteWithChildren,
   DashboardRoute: DashboardRoute,
   EquipamentosRoute: EquipamentosRoute,
   LoginRoute: LoginRoute,
@@ -287,8 +338,18 @@ const rootRouteChildren: RootRouteChildren = {
   RelatoriosRoute: RelatoriosRoute,
   RfoRoute: RfoRoute,
   UsuariosRoute: UsuariosRoute,
+  ConfiguracoesSlaRoute: ConfiguracoesSlaRoute,
   ApiPublicDiagRoute: ApiPublicDiagRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
