@@ -97,6 +97,7 @@ export type Database = {
         Row: {
           categoria: string | null
           cliente_id: string | null
+          codigo: string | null
           created_at: string
           descricao: string | null
           finalizado_at: string | null
@@ -108,12 +109,14 @@ export type Database = {
           responsavel_id: string | null
           status: Database["public"]["Enums"]["chamado_status"]
           tecnico_responsavel: string | null
+          tipo_problema: string | null
           titulo: string
           updated_at: string
         }
         Insert: {
           categoria?: string | null
           cliente_id?: string | null
+          codigo?: string | null
           created_at?: string
           descricao?: string | null
           finalizado_at?: string | null
@@ -125,12 +128,14 @@ export type Database = {
           responsavel_id?: string | null
           status?: Database["public"]["Enums"]["chamado_status"]
           tecnico_responsavel?: string | null
+          tipo_problema?: string | null
           titulo: string
           updated_at?: string
         }
         Update: {
           categoria?: string | null
           cliente_id?: string | null
+          codigo?: string | null
           created_at?: string
           descricao?: string | null
           finalizado_at?: string | null
@@ -142,6 +147,7 @@ export type Database = {
           responsavel_id?: string | null
           status?: Database["public"]["Enums"]["chamado_status"]
           tecnico_responsavel?: string | null
+          tipo_problema?: string | null
           titulo?: string
           updated_at?: string
         }
