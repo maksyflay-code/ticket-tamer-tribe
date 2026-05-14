@@ -39,7 +39,7 @@ type Chamado = {
 };
 
 type Cliente = { id: string; nome: string };
-type Operator = { id: string; email: string; role: string };
+type Operator = { id: string; email: string; name: string | null; role: string };
 type Historico = { id: string; tipo: string; descricao: string; autor: string | null; created_at: string; status_anterior: string | null; status_novo: string | null };
 type Anexo = { id: string; nome_arquivo: string; storage_path: string; mime_type: string | null; tamanho: number | null; created_at: string };
 
