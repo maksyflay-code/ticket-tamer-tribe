@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -146,7 +146,11 @@ function ClientesPage() {
             )}
             {filtered.map((c) => (
               <tr key={c.id} className="hover:bg-secondary/30">
-                <td className="p-4 font-medium">{c.nome}</td>
+                <td className="p-4 font-medium">
+                  <Link to="/clientes/$id" params={{ id: c.id }} className="hover:text-primary hover:underline">
+                    {c.nome}
+                  </Link>
+                </td>
                 <td className="p-4 font-mono text-muted-foreground">{c.documento ?? "—"}</td>
                 <td className="p-4">
                   <div>{c.email ?? "—"}</div>
