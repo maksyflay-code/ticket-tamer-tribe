@@ -157,7 +157,7 @@ function ChamadosPage() {
     setClientes((cl as Cliente[]) ?? []);
     try {
       const ops = await listAssignableOperators({ headers: await authHeaders() });
-      setOperators(ops);
+      setOperators(ops as Operator[]);
     } catch {
       // visualizador sem operadores: ignora
     }
