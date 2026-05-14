@@ -51,6 +51,15 @@ function formatDataBr(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+function formatDateTimeBr(value: string): string {
+  if (!value) return "—";
+  // value: yyyy-mm-ddTHH:MM
+  const [date, time] = value.split("T");
+  if (!date) return "—";
+  const [y, m, d] = date.split("-");
+  return `${d}/${m}/${y}${time ? ` ${time}` : ""}`;
+}
+
 function RfoPage() {
   const { user } = useAuth();
   const today = new Date().toISOString().slice(0, 10);
@@ -58,8 +67,8 @@ function RfoPage() {
     cliente: "",
     protocolo: "",
     data: today,
-    inicio: "",
-    fim: "",
+    inicio: `${today}T00:00`,
+    fim: `${today}T00:00`,
     trecho: "",
     descricao: "",
     solucao: "",
@@ -120,7 +129,8 @@ function RfoPage() {
         ["CLIENTE", form.cliente],
         ["PROTOCOLO INTERNO", form.protocolo || "—"],
         ["DATA", formatDataBr(form.data)],
-        ["TEMPO DE EVENTO", `Início: ${form.inicio || "—"}    Fim: ${form.fim || "—"}`],
+        ["INÍCIO DO EVENTO", formatDateTimeBr(form.inicio)],
+        ["FIM DO EVENTO", formatDateTimeBr(form.fim)],
         ["TRECHO DO EVENTO", form.trecho || "—"],
       ];
       const labelW = 160;
@@ -248,14 +258,14 @@ function RfoPage() {
             <Field label="Protocolo interno">
               <input value={form.protocolo} onChange={(e) => setF("protocolo", e.target.value)} placeholder="Ex: #1234 / CHM-000123" className={inputCls} />
             </Field>
-            <Field label="Data">
+            <Field label="Data do RFO">
               <input type="date" value={form.data} onChange={(e) => setF("data", e.target.value)} className={inputCls} />
             </Field>
-            <Field label="Início">
-              <input type="time" value={form.inicio} onChange={(e) => setF("inicio", e.target.value)} className={inputCls} />
+            <Field label="Início do evento (data e hora)">
+              <input type="datetime-local" value={form.inicio} onChange={(e) => setF("inicio", e.target.value)} className={inputCls} />
             </Field>
-            <Field label="Fim">
-              <input type="time" value={form.fim} onChange={(e) => setF("fim", e.target.value)} className={inputCls} />
+            <Field label="Fim do evento (data e hora)" className="md:col-span-2">
+              <input type="datetime-local" value={form.fim} onChange={(e) => setF("fim", e.target.value)} className={inputCls} />
             </Field>
             <Field label="Trecho do evento" className="md:col-span-2">
               <input value={form.trecho} onChange={(e) => setF("trecho", e.target.value)} placeholder="Ex: TELXIUS X THOME" className={inputCls} />
