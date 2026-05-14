@@ -670,7 +670,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
 
   const load = async () => {
     const [h, a] = await Promise.all([
-      supabase.from("chamado_historico").select("*").eq("chamado_id", chamado.id).order("created_at", { ascending: false }),
+      supabase.from("chamado_historico").select("*").eq("chamado_id", chamado.id).order("created_at", { ascending: true }),
       supabase.from("chamado_anexos").select("*").eq("chamado_id", chamado.id).order("created_at", { ascending: false }),
     ]);
     setHistorico((h.data as Historico[]) ?? []);
@@ -843,7 +843,8 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
             <div className="space-y-3">
               {historico.length === 0 && <div className="text-xs text-muted-foreground font-mono">Sem registros.</div>}
               {historico.map((h) => {
-                const tone =
+                const isFinal = h.tipo === "mudanca_status" && (h.status_novo === "resolvido" || h.status_novo === "fechado");
+                const tone = isFinal ? "border-emerald-400" :
                   h.tipo === "criacao" ? "border-primary/60" :
                   h.tipo === "mudanca_status" ? "border-amber-500/60" :
                   h.tipo === "mudanca_prioridade" ? "border-orange-500/60" :
@@ -851,15 +852,22 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                   h.tipo === "anexo" ? "border-cyan-500/60" :
                   h.tipo === "relato" ? "border-emerald-500/60" :
                   "border-border";
+                const autorOp = h.autor ? operators.find((o) => o.email === h.autor) : undefined;
+                const autorLabel = autorOp?.name || h.autor || "sistema";
                 return (
-                  <div key={h.id} className={`border-l-2 pl-3 pb-2 ${tone}`}>
+                  <div
+                    key={h.id}
+                    className={`border-l-2 pl-3 pb-2 ${tone} ${isFinal ? "bg-emerald-500/5 rounded-r" : ""}`}
+                  >
                     <div className="flex items-center gap-2 text-[10px] font-mono uppercase text-muted-foreground flex-wrap">
                       <Clock className="h-3 w-3" />
                       <span>{new Date(h.created_at).toLocaleString("pt-BR")}</span>
-                      <span className="px-1.5 py-px border border-border bg-background">{h.tipo.replace("_", " ")}</span>
-                      <span>· {h.autor ?? "sistema"}</span>
+                      <span className={`px-1.5 py-px border ${isFinal ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-300" : "border-border bg-background"}`}>
+                        {isFinal ? `Finalizado (${h.status_novo})` : h.tipo.replace("_", " ")}
+                      </span>
+                      <span>· {autorLabel}</span>
                     </div>
-                    <div className="text-sm mt-1">{h.descricao}</div>
+                    <div className={`text-sm mt-1 ${isFinal ? "text-emerald-200 font-medium" : ""}`}>{h.descricao}</div>
                   </div>
                 );
               })}
