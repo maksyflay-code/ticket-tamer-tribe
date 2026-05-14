@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Download, ImagePlus, X, FileText } from "lucide-react";
 import jsPDF from "jspdf";
-import logoUrl from "@/assets/ivi-rfo-logo.jpg";
+import bgUrl from "@/assets/rfo-background.jpg";
 
 export const Route = createFileRoute("/rfo")({
   beforeLoad: requireAuth,
@@ -15,6 +15,7 @@ export const Route = createFileRoute("/rfo")({
 
 type RfoForm = {
   cliente: string;
+  protocolo: string;
   data: string; // yyyy-mm-dd
   inicio: string; // HH:MM
   fim: string; // HH:MM
@@ -55,6 +56,7 @@ function RfoPage() {
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState<RfoForm>({
     cliente: "",
+    protocolo: "",
     data: today,
     inicio: "",
     fim: "",
@@ -94,34 +96,29 @@ function RfoPage() {
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
       const margin = 40;
-      let y = margin;
+      let bgData: string | null = null;
+      try { bgData = await urlToDataUrl(bgUrl); } catch { /* ignore */ }
 
-      // Logo
-      try {
-        const logoData = await urlToDataUrl(logoUrl);
-        doc.addImage(logoData, "JPEG", margin, y, 90, 50, undefined, "FAST");
-      } catch {
-        // continua sem logo
-      }
+      const drawBackground = () => {
+        if (bgData) {
+          try { doc.addImage(bgData, "JPEG", 0, 0, pageW, pageH, undefined, "FAST"); } catch { /* ignore */ }
+        }
+      };
 
-      // Cabeçalho
+      drawBackground();
+      let y = 150; // espaço para o cabeçalho da arte
+
+      // Título
       doc.setFont("helvetica", "bold");
       doc.setFontSize(18);
       doc.setTextColor(20, 20, 20);
-      doc.text("Reason For Outage – RFO", pageW - margin, y + 25, { align: "right" });
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(120);
-      doc.text("IVI Tecnologia e Comunicação LTDA", pageW - margin, y + 42, { align: "right" });
-      y += 70;
-
-      doc.setDrawColor(220);
-      doc.line(margin, y, pageW - margin, y);
-      y += 16;
+      doc.text("Reason For Outage - RFO", pageW / 2, y, { align: "center" });
+      y += 24;
 
       // Tabela de dados
       const rows: [string, string][] = [
         ["CLIENTE", form.cliente],
+        ["PROTOCOLO INTERNO", form.protocolo || "—"],
         ["DATA", formatDataBr(form.data)],
         ["TEMPO DE EVENTO", `Início: ${form.inicio || "—"}    Fim: ${form.fim || "—"}`],
         ["TRECHO DO EVENTO", form.trecho || "—"],
@@ -130,8 +127,10 @@ function RfoPage() {
       const rowH = 28;
       doc.setFontSize(10);
       rows.forEach(([k, v]) => {
-        doc.setFillColor(245, 245, 248);
+        doc.setFillColor(255, 255, 255);
         doc.rect(margin, y, labelW, rowH, "F");
+        doc.setFillColor(255, 255, 255);
+        doc.rect(margin + labelW, y, pageW - margin * 2 - labelW, rowH, "F");
         doc.setDrawColor(225);
         doc.rect(margin, y, pageW - margin * 2, rowH);
         doc.setFont("helvetica", "bold");
@@ -148,7 +147,7 @@ function RfoPage() {
       const section = (title: string, body: string) => {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
-        doc.setTextColor(180, 0, 0);
+        doc.setTextColor(20, 20, 20);
         doc.text(title, margin, y);
         y += 14;
         doc.setFont("helvetica", "normal");
@@ -157,7 +156,7 @@ function RfoPage() {
         const lines = doc.splitTextToSize(body || "—", pageW - margin * 2);
         doc.text(lines, margin, y);
         y += lines.length * 13 + 14;
-        if (y > pageH - 120) { doc.addPage(); y = margin; }
+        if (y > pageH - 160) { doc.addPage(); drawBackground(); y = 150; }
       };
 
       section("DESCRIÇÃO DO EVENTO:", form.descricao);
@@ -165,7 +164,7 @@ function RfoPage() {
       section("LOCALIZAÇÃO:", form.localizacao);
 
       // Responsável
-      if (y > pageH - 120) { doc.addPage(); y = margin; }
+      if (y > pageH - 160) { doc.addPage(); drawBackground(); y = 150; }
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       doc.setTextColor(20);
@@ -181,7 +180,8 @@ function RfoPage() {
       // Fotos
       if (fotos.length > 0) {
         doc.addPage();
-        y = margin;
+        drawBackground();
+        y = 150;
         doc.setFont("helvetica", "bold");
         doc.setFontSize(13);
         doc.setTextColor(20);
@@ -191,7 +191,7 @@ function RfoPage() {
         const imgH = 180;
         let col = 0;
         for (const foto of fotos) {
-          if (y + imgH > pageH - margin) { doc.addPage(); y = margin; col = 0; }
+          if (y + imgH > pageH - 80) { doc.addPage(); drawBackground(); y = 150; col = 0; }
           const x = margin + col * (colW + 12);
           try {
             const ext = foto.dataUrl.startsWith("data:image/png") ? "PNG" : "JPEG";
@@ -209,14 +209,13 @@ function RfoPage() {
         }
       }
 
-      // Rodapé em todas as páginas
+      // Numeração de páginas (rodapé já vem na arte)
       const pages = doc.getNumberOfPages();
       for (let i = 1; i <= pages; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
-        doc.setTextColor(140);
-        doc.text("IVI Tecnologia e Comunicação LTDA  |  www.ivitlm.com.br", pageW / 2, pageH - 18, { align: "center" });
-        doc.text(`${i}/${pages}`, pageW - margin, pageH - 18, { align: "right" });
+        doc.setTextColor(255, 255, 255);
+        doc.text(`${i}/${pages}`, pageW - margin, pageH - 14, { align: "right" });
       }
 
       const filename = `RFO_${(form.cliente || "cliente").replace(/\s+/g, "_")}_${form.data.replaceAll("-", "")}.pdf`;
@@ -245,6 +244,9 @@ function RfoPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Cliente *">
               <input value={form.cliente} onChange={(e) => setF("cliente", e.target.value)} className={inputCls} />
+            </Field>
+            <Field label="Protocolo interno">
+              <input value={form.protocolo} onChange={(e) => setF("protocolo", e.target.value)} placeholder="Ex: #1234 / CHM-000123" className={inputCls} />
             </Field>
             <Field label="Data">
               <input type="date" value={form.data} onChange={(e) => setF("data", e.target.value)} className={inputCls} />
