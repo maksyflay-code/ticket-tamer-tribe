@@ -315,3 +315,20 @@ function DashboardPage() {
     </AppShell>
   );
 }
+
+const tooltipStyle = {
+  background: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
+  fontSize: 11,
+  fontFamily: "monospace",
+} as const;
+const legendStyle = { fontSize: 11, fontFamily: "monospace" } as const;
+
+function ChartCard({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`border border-border bg-card p-3 md:p-5 ${className}`}>
+      <h3 className="font-display text-sm font-bold tracking-tight mb-3">{title}</h3>
+      <div className="w-full">{children}</div>
+    </div>
+  );
+}
