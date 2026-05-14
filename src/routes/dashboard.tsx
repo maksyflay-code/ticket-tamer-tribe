@@ -86,7 +86,7 @@ function DashboardPage() {
       supabase.from("chamados").select("prioridade").in("status", ["aberto", "em_andamento"]),
       supabase.from("chamados").select("status"),
       supabase.from("chamados").select("prioridade"),
-      supabase.from("chamados").select("categoria"),
+      supabase.from("chamados").select("tipo_problema"),
       supabase.from("chamados").select("created_at,resolvido_at").gte("created_at", startMonth.toISOString()),
       supabase.from("chamados").select("tecnico_responsavel,resolvido_at").not("resolvido_at", "is", null).gte("resolvido_at", startMonth.toISOString()),
     ]);
@@ -127,11 +127,16 @@ function DashboardPage() {
       acc[x.prioridade] = (acc[x.prioridade] ?? 0) + 1; return acc;
     }, {});
     setPrioridadeDist(Object.entries(pCount).map(([k, v]) => ({ name: k, value: v, color: prioridadeColors[k] ?? "#888" })));
-    const cCount = ((todasCat.data ?? []) as { categoria: string | null }[]).reduce<Record<string, number>>((acc, x) => {
-      const k = x.categoria?.trim() || "Sem categoria";
+    const tipoLabels: Record<string, string> = {
+      ROMPIMENTO: "Rompimento",
+      ATENUACAO: "Atenuação",
+      OUTROS: "Outros",
+    };
+    const cCount = ((todasCat.data ?? []) as { tipo_problema: string | null }[]).reduce<Record<string, number>>((acc, x) => {
+      const k = tipoLabels[x.tipo_problema ?? ""] ?? "Não informado";
       acc[k] = (acc[k] ?? 0) + 1; return acc;
     }, {});
-    setCategoriaDist(Object.entries(cCount).sort((a,b)=>b[1]-a[1]).slice(0, 8).map(([name, value]) => ({ name, value })));
+    setCategoriaDist(Object.entries(cCount).sort((a,b)=>b[1]-a[1]).map(([name, value]) => ({ name, value })));
 
     // série diária do mês
     const dias = new Date(startMonth.getFullYear(), startMonth.getMonth() + 1, 0).getDate();
