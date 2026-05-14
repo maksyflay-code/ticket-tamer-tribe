@@ -115,14 +115,14 @@ function RfoPage() {
       };
 
       drawBackground();
-      let y = 150; // espaço para o cabeçalho da arte
+      let y = 130; // espaço para o cabeçalho da arte
 
       // Título
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
+      doc.setFontSize(15);
       doc.setTextColor(20, 20, 20);
       doc.text("Reason For Outage - RFO", pageW / 2, y, { align: "center" });
-      y += 24;
+      y += 16;
 
       // Tabela de dados
       const rows: [string, string][] = [
@@ -133,9 +133,9 @@ function RfoPage() {
         ["FIM DO EVENTO", formatDateTimeBr(form.fim)],
         ["TRECHO DO EVENTO", form.trecho || "—"],
       ];
-      const labelW = 160;
-      const rowH = 28;
-      doc.setFontSize(10);
+      const labelW = 150;
+      const rowH = 20;
+      doc.setFontSize(9);
       rows.forEach(([k, v]) => {
         doc.setFillColor(255, 255, 255);
         doc.rect(margin, y, labelW, rowH, "F");
@@ -145,28 +145,27 @@ function RfoPage() {
         doc.rect(margin, y, pageW - margin * 2, rowH);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(40);
-        doc.text(k, margin + 10, y + 17);
+        doc.text(k, margin + 8, y + 13);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(20);
-        const text = doc.splitTextToSize(v, pageW - margin * 2 - labelW - 20);
-        doc.text(text, margin + labelW + 10, y + 17);
+        const text = doc.splitTextToSize(v, pageW - margin * 2 - labelW - 16);
+        doc.text(text, margin + labelW + 8, y + 13);
         y += rowH;
       });
-      y += 18;
+      y += 10;
 
       const section = (title: string, body: string) => {
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
+        doc.setFontSize(10);
         doc.setTextColor(20, 20, 20);
         doc.text(title, margin, y);
-        y += 14;
+        y += 11;
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.setTextColor(20);
         const lines = doc.splitTextToSize(body || "—", pageW - margin * 2);
         doc.text(lines, margin, y);
-        y += lines.length * 13 + 14;
-        if (y > pageH - 160) { doc.addPage(); drawBackground(); y = 150; }
+        y += lines.length * 11 + 8;
       };
 
       section("DESCRIÇÃO DO EVENTO:", form.descricao);
@@ -174,48 +173,44 @@ function RfoPage() {
       section("LOCALIZAÇÃO:", form.localizacao);
 
       // Responsável
-      if (y > pageH - 160) { doc.addPage(); drawBackground(); y = 150; }
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setTextColor(20);
-      doc.text("Responsável pelo acompanhamento:", margin, y); y += 14;
+      doc.text("Responsável pelo acompanhamento:", margin, y); y += 11;
       doc.setFont("helvetica", "bold");
-      doc.text(form.responsavel || "—", margin, y); y += 13;
+      doc.text(form.responsavel || "—", margin, y); y += 11;
       doc.setFont("helvetica", "normal");
       doc.setTextColor(80);
-      if (form.responsavelArea) { doc.text(form.responsavelArea, margin, y); y += 13; }
-      if (form.responsavelEmail) { doc.text(form.responsavelEmail, margin, y); y += 13; }
+      if (form.responsavelArea) { doc.text(form.responsavelArea, margin, y); y += 11; }
+      if (form.responsavelEmail) { doc.text(form.responsavelEmail, margin, y); y += 11; }
       y += 6;
 
-      // Fotos
+      // Fotos (compactas, na mesma página quando possível)
       if (fotos.length > 0) {
-        doc.addPage();
-        drawBackground();
-        y = 150;
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(13);
+        doc.setFontSize(10);
         doc.setTextColor(20);
         doc.text("Registros fotográficos", margin, y);
-        y += 20;
-        const colW = (pageW - margin * 2 - 12) / 2;
-        const imgH = 180;
+        y += 14;
+        const cols = fotos.length >= 3 ? 3 : 2;
+        const gap = 8;
+        const colW = (pageW - margin * 2 - gap * (cols - 1)) / cols;
+        const available = pageH - 60 - y;
+        const imgH = Math.max(70, Math.min(120, available / Math.ceil(fotos.length / cols) - 14));
         let col = 0;
         for (const foto of fotos) {
-          if (y + imgH > pageH - 80) { doc.addPage(); drawBackground(); y = 150; col = 0; }
-          const x = margin + col * (colW + 12);
+          if (y + imgH > pageH - 50) break;
+          const x = margin + col * (colW + gap);
           try {
             const ext = foto.dataUrl.startsWith("data:image/png") ? "PNG" : "JPEG";
             doc.addImage(foto.dataUrl, ext, x, y, colW, imgH, undefined, "FAST");
             doc.setDrawColor(220);
             doc.rect(x, y, colW, imgH);
-            doc.setFontSize(8);
-            doc.setTextColor(110);
-            doc.text(foto.name.slice(0, 60), x + 2, y + imgH + 10);
           } catch {
             // ignore
           }
           col++;
-          if (col >= 2) { col = 0; y += imgH + 24; }
+          if (col >= cols) { col = 0; y += imgH + 8; }
         }
       }
 
@@ -229,11 +224,11 @@ function RfoPage() {
         doc.line(margin, pageH - 36, pageW - margin, pageH - 36);
         // texto institucional centralizado
         doc.setFontSize(9);
-        doc.setTextColor(110, 120, 140);
+        doc.setTextColor(255, 255, 255);
         doc.text("IVI Tecnologia e Comunicação LTDA  |  www.ivitlm.com.br", pageW / 2, pageH - 22, { align: "center" });
         // numeração à direita
         doc.setFontSize(8);
-        doc.setTextColor(140, 140, 150);
+        doc.setTextColor(255, 255, 255);
         doc.text(`${i}/${pages}`, pageW - margin, pageH - 22, { align: "right" });
       }
 
