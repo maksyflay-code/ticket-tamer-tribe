@@ -219,13 +219,22 @@ function RfoPage() {
         }
       }
 
-      // Numeração de páginas (rodapé já vem na arte)
+      // Rodapé IVI + numeração de páginas
       const pages = doc.getNumberOfPages();
       for (let i = 1; i <= pages; i++) {
         doc.setPage(i);
+        // linha separadora
+        doc.setDrawColor(180, 180, 190);
+        doc.setLineWidth(0.5);
+        doc.line(margin, pageH - 36, pageW - margin, pageH - 36);
+        // texto institucional centralizado
+        doc.setFontSize(9);
+        doc.setTextColor(110, 120, 140);
+        doc.text("IVI Tecnologia e Comunicação LTDA  |  www.ivitlm.com.br", pageW / 2, pageH - 22, { align: "center" });
+        // numeração à direita
         doc.setFontSize(8);
-        doc.setTextColor(255, 255, 255);
-        doc.text(`${i}/${pages}`, pageW - margin, pageH - 14, { align: "right" });
+        doc.setTextColor(140, 140, 150);
+        doc.text(`${i}/${pages}`, pageW - margin, pageH - 22, { align: "right" });
       }
 
       const filename = `RFO_${(form.cliente || "cliente").replace(/\s+/g, "_")}_${form.data.replaceAll("-", "")}.pdf`;
