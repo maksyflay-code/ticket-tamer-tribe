@@ -365,11 +365,11 @@ function ChamadosPage() {
               <tr><td colSpan={8} className="p-8 text-center text-muted-foreground font-mono">Nenhum chamado encontrado.</td></tr>
             )}
             {filtered.map((c) => {
-              const sla = slaInfo(c);
+              const sla = slaMap ? calcSla(c, slaMap) : null;
               const finalizado = c.status === "resolvido" || c.status === "fechado";
               const meu = !!c.responsavel_id && c.responsavel_id === user?.id;
               return (
-              <tr key={c.id} className={`hover:bg-secondary/30 cursor-pointer ${sla.estourado ? "bg-red-500/5" : ""}`} onClick={() => setDetail(c)}>
+              <tr key={c.id} className={`hover:bg-secondary/30 cursor-pointer ${sla?.estourado ? "bg-red-500/5" : ""}`} onClick={() => setDetail(c)}>
                 <td className="p-4 font-mono text-muted-foreground">{ticketLabel(c)}</td>
                 <td className="p-4 font-medium">{c.clientes?.nome ?? "—"}</td>
                 <td className="p-4">{c.titulo}</td>
@@ -380,15 +380,27 @@ function ChamadosPage() {
                 </td>
                 <td className={`p-4 font-mono uppercase ${prioridadeColor(c.prioridade)}`}>{c.prioridade}</td>
                 <td className="p-4 font-mono text-[10px]">
-                  {!sla.ativo ? <span className="text-muted-foreground">—</span> :
-                    sla.estourado ? (
+                  {!sla ? <span className="text-muted-foreground">…</span> :
+                    !sla.ativo ? (
+                      <span className={sla.cumprido ? "text-emerald-400" : "text-red-400"}>
+                        {sla.cumprido ? "CUMPRIDO" : "ESTOURADO"}
+                      </span>
+                    ) : sla.estourado ? (
                       <span className="inline-flex items-center gap-1 text-red-400">
-                        <AlertTriangle className="h-3 w-3" /> ESTOURADO ({Math.abs(sla.restante).toFixed(0)}h)
+                        <AlertTriangle className="h-3 w-3" /> {formatHorasRestantes(sla.restante)} atrasado
                       </span>
                     ) : (
-                      <span className={sla.restante < sla.limite * 0.25 ? "text-amber-400" : "text-emerald-400"}>
-                        {sla.restante.toFixed(0)}h restantes
-                      </span>
+                      <div className="space-y-1">
+                        <div className={
+                          sla.color === "red" ? "text-red-400" :
+                          sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
+                        }>{formatHorasRestantes(sla.restante)} restantes</div>
+                        <div className="h-1 w-full bg-secondary overflow-hidden">
+                          <div className={
+                            (sla.color === "red" ? "bg-red-400" : sla.color === "amber" ? "bg-amber-400" : "bg-emerald-400") + " h-full"
+                          } style={{ width: `${Math.min(100, sla.pct)}%` }} />
+                        </div>
+                      </div>
                     )}
                 </td>
                 <td className="p-4">
