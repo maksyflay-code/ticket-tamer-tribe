@@ -150,6 +150,10 @@ export async function listAssignableOperatorUsers() {
     .map((u) => ({
       id: u.id,
       email: u.email ?? "",
+      name:
+        ((u.user_metadata as { full_name?: string; name?: string } | null)?.full_name ??
+          (u.user_metadata as { full_name?: string; name?: string } | null)?.name ??
+          "") || null,
       role: roleByUser.get(u.id) ?? "",
     }))
     .sort((a, b) => a.email.localeCompare(b.email));
