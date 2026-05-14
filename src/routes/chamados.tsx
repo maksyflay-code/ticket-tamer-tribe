@@ -113,8 +113,8 @@ function ChamadosPage() {
   const [searchDebounced, setSearchDebounced] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     if (typeof window === "undefined") return "todos";
-    const sp = new URLSearchParams(window.location.search);
-    const s = sp.get("status");
+    const s = sessionStorage.getItem("chamados:initial-status");
+    if (s) sessionStorage.removeItem("chamados:initial-status");
     return s && ["aberto", "em_andamento", "resolvido", "fechado"].includes(s) ? s : "todos";
   });
   const [prioridadeFilter, setPrioridadeFilter] = useState<string>("todos");
