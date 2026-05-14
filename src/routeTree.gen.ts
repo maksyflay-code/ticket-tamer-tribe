@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
+import { Route as RfoRouteImport } from './routes/rfo'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as PerfilRouteImport } from './routes/perfil'
@@ -24,6 +25,11 @@ import { Route as ApiPublicDiagRouteImport } from './routes/api/public/_diag'
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RfoRoute = RfoRouteImport.update({
+  id: '/rfo',
+  path: '/rfo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RelatoriosRoute = RelatoriosRouteImport.update({
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof PerfilRoute
   '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
+  '/rfo': typeof RfoRoute
   '/usuarios': typeof UsuariosRoute
   '/api/public': typeof ApiPublicDiagRoute
 }
@@ -100,6 +107,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof PerfilRoute
   '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
+  '/rfo': typeof RfoRoute
   '/usuarios': typeof UsuariosRoute
   '/api/public': typeof ApiPublicDiagRoute
 }
@@ -114,6 +122,7 @@ export interface FileRoutesById {
   '/perfil': typeof PerfilRoute
   '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
+  '/rfo': typeof RfoRoute
   '/usuarios': typeof UsuariosRoute
   '/api/public/_diag': typeof ApiPublicDiagRoute
 }
@@ -129,6 +138,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/planos'
     | '/relatorios'
+    | '/rfo'
     | '/usuarios'
     | '/api/public'
   fileRoutesByTo: FileRoutesByTo
@@ -142,6 +152,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/planos'
     | '/relatorios'
+    | '/rfo'
     | '/usuarios'
     | '/api/public'
   id:
@@ -155,6 +166,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/planos'
     | '/relatorios'
+    | '/rfo'
     | '/usuarios'
     | '/api/public/_diag'
   fileRoutesById: FileRoutesById
@@ -169,6 +181,7 @@ export interface RootRouteChildren {
   PerfilRoute: typeof PerfilRoute
   PlanosRoute: typeof PlanosRoute
   RelatoriosRoute: typeof RelatoriosRoute
+  RfoRoute: typeof RfoRoute
   UsuariosRoute: typeof UsuariosRoute
   ApiPublicDiagRoute: typeof ApiPublicDiagRoute
 }
@@ -180,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rfo': {
+      id: '/rfo'
+      path: '/rfo'
+      fullPath: '/rfo'
+      preLoaderRoute: typeof RfoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/relatorios': {
@@ -265,6 +285,7 @@ const rootRouteChildren: RootRouteChildren = {
   PerfilRoute: PerfilRoute,
   PlanosRoute: PlanosRoute,
   RelatoriosRoute: RelatoriosRoute,
+  RfoRoute: RfoRoute,
   UsuariosRoute: UsuariosRoute,
   ApiPublicDiagRoute: ApiPublicDiagRoute,
 }
