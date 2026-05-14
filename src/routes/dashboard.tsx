@@ -29,6 +29,7 @@ type Stats = {
 type Chamado = {
   id: string;
   numero: number;
+  codigo: string | null;
   titulo: string;
   status: string;
   prioridade: string;
@@ -79,7 +80,7 @@ function DashboardPage() {
       supabase.from("chamados").select("created_at,resolvido_at,prioridade").not("resolvido_at", "is", null).gte("resolvido_at", since30.toISOString()),
       supabase
         .from("chamados")
-        .select("id, numero, titulo, status, prioridade, created_at, clientes(nome)")
+        .select("id, numero, codigo, titulo, status, prioridade, created_at, clientes(nome)")
         .order("created_at", { ascending: false })
         .limit(8),
       supabase.from("chamados").select("prioridade").in("status", ["aberto", "em_andamento"]),
@@ -288,7 +289,7 @@ function DashboardPage() {
               )}
               {recentes.map((c) => (
                 <tr key={c.id} className="hover:bg-secondary/30 transition-colors">
-                  <td className="p-4 text-muted-foreground font-mono">#TK-{String(c.numero).padStart(4, "0")}</td>
+                  <td className="p-4 text-muted-foreground font-mono">{c.codigo ?? `#TK-${String(c.numero).padStart(4, "0")}`}</td>
                   <td className="p-4 font-medium">{c.clientes?.nome ?? "—"}</td>
                   <td className="p-4">{c.titulo}</td>
                   <td className={`p-4 font-mono uppercase ${prioridadeColor(c.prioridade)}`}>{c.prioridade}</td>
