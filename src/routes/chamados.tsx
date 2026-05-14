@@ -622,7 +622,7 @@ function Lbl({ children }: { children: React.ReactNode }) {
 }
 
 function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamado: Chamado; onClose: () => void; autor: string; operators: Operator[]; canWrite: boolean }) {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [anexos, setAnexos] = useState<Anexo[]>([]);
   const [comentario, setComentario] = useState("");
