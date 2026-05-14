@@ -89,7 +89,14 @@ function DashboardPage() {
       supabase.from("chamados").select("created_at,resolvido_at").gte("created_at", startMonth.toISOString()),
       supabase.from("chamados").select("tecnico_responsavel,resolvido_at").not("resolvido_at", "is", null).gte("resolvido_at", startMonth.toISOString()),
     ]);
-    const SLA: Record<string, number> = { urgente: 4, alta: 8, media: 24, baixa: 72 };
+    const { getSlaMap } = await import("@/lib/sla");
+    const slaMap = await getSlaMap();
+    const SLA: Record<string, number> = {
+      urgente: slaMap.urgente.horas_resolucao,
+      alta: slaMap.alta.horas_resolucao,
+      media: slaMap.media.horas_resolucao,
+      baixa: slaMap.baixa.horas_resolucao,
+    };
     const list = (resolvidos30.data ?? []) as { created_at: string; resolvido_at: string; prioridade: string }[];
     let okSla = 0, totalH = 0;
     list.forEach((x) => {
