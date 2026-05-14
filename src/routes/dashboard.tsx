@@ -159,13 +159,13 @@ function DashboardPage() {
   }, []);
 
   const cards = [
-    { label: "Chamados Abertos", value: stats.abertos, icon: AlertTriangle, color: "bg-amber-500", w: "65%", to: "/chamados?status=aberto" },
-    { label: "Em Andamento", value: stats.emAndamento, icon: Clock, color: "bg-primary", w: "45%", to: "/chamados?status=em_andamento" },
-    { label: "Resolvidos Hoje", value: stats.resolvidosHoje, icon: CheckCircle2, color: "bg-emerald-500", w: "80%", to: "/chamados?status=resolvido" },
-    { label: "Total de Clientes", value: stats.totalClientes, icon: Users, color: "bg-blue-500", w: "72%", to: "/clientes" },
-    { label: "SLA (30d)", value: `${stats.slaPct.toFixed(0)}%`, icon: Target, color: "bg-violet-500", w: `${stats.slaPct.toFixed(0)}%`, to: "/chamados" },
-    { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, color: "bg-cyan-500", w: "55%", to: "/chamados" },
-    { label: "Novos Clientes (30d)", value: stats.novosClientes30d, icon: UserPlus, color: "bg-pink-500", w: "60%", to: "/clientes" },
+    { label: "Chamados Abertos", value: stats.abertos, icon: AlertTriangle, color: "bg-amber-500", w: "65%", to: "/chamados", status: "aberto" as const },
+    { label: "Em Andamento", value: stats.emAndamento, icon: Clock, color: "bg-primary", w: "45%", to: "/chamados", status: "em_andamento" as const },
+    { label: "Resolvidos Hoje", value: stats.resolvidosHoje, icon: CheckCircle2, color: "bg-emerald-500", w: "80%", to: "/chamados", status: "resolvido" as const },
+    { label: "Total de Clientes", value: stats.totalClientes, icon: Users, color: "bg-blue-500", w: "72%", to: "/clientes", status: null },
+    { label: "SLA (30d)", value: `${stats.slaPct.toFixed(0)}%`, icon: Target, color: "bg-violet-500", w: `${stats.slaPct.toFixed(0)}%`, to: "/chamados", status: null },
+    { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, color: "bg-cyan-500", w: "55%", to: "/chamados", status: null },
+    { label: "Novos Clientes (30d)", value: stats.novosClientes30d, icon: UserPlus, color: "bg-pink-500", w: "60%", to: "/clientes", status: null },
   ];
 
   return (
@@ -174,7 +174,14 @@ function DashboardPage() {
         {cards.map((c) => {
           const Icon = c.icon;
           return (
-            <a key={c.label} href={c.to}
+            <Link key={c.label}
+              to={c.to}
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  if (c.status) sessionStorage.setItem("chamados:initial-status", c.status);
+                  else sessionStorage.removeItem("chamados:initial-status");
+                }
+              }}
               className="border border-border bg-card p-3 md:p-5 block hover:border-primary/60 hover:bg-secondary/30 transition-colors">
               <div className="flex items-start justify-between mb-3">
                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
@@ -186,7 +193,7 @@ function DashboardPage() {
               <div className="mt-4 h-1 bg-border w-full">
                 <div className={`${c.color} h-full`} style={{ width: c.w }} />
               </div>
-            </a>
+            </Link>
           );
         })}
       </section>
