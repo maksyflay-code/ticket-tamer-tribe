@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock } from "lucide-react";
 import logo from "@/assets/ivi-logo.jpeg";
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -14,6 +14,10 @@ const nav = [
   { to: "/equipamentos", label: "Equipamentos", icon: Server, n: "05" },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, n: "06" },
   { to: "/rfo", label: "Gerar RFO", icon: FileText, n: "07" },
+] as const;
+
+const adminNav = [
+  { to: "/configuracoes/sla", label: "Config. SLA", icon: Clock, n: "08" },
 ] as const;
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
