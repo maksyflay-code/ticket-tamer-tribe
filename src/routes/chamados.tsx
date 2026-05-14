@@ -503,6 +503,17 @@ function ChamadosPage() {
                   className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary font-mono" />
               </div>
               <div>
+                <Lbl>Tipo de problema</Lbl>
+                <select
+                  value={form.tipo_problema ?? ""}
+                  onChange={(e) => setForm({ ...form, tipo_problema: e.target.value || null })}
+                  className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                >
+                  <option value="">— Selecionar —</option>
+                  {TIPOS_PROBLEMA.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div>
                 <Lbl>Prioridade</Lbl>
                 <select value={form.prioridade ?? "media"} onChange={(e) => setForm({ ...form, prioridade: e.target.value as Prioridade })}
                   className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary">
