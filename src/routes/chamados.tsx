@@ -445,12 +445,12 @@ function ChamadosPage() {
           <div className="border border-border bg-card p-6 text-center text-muted-foreground font-mono text-xs">Nenhum chamado encontrado.</div>
         )}
         {filtered.map((c) => {
-          const sla = slaInfo(c);
+          const sla = slaMap ? calcSla(c, slaMap) : null;
           const finalizado = c.status === "resolvido" || c.status === "fechado";
           const meu = !!c.responsavel_id && c.responsavel_id === user?.id;
           return (
             <div key={c.id} onClick={() => setDetail(c)}
-              className={`border border-border bg-card p-3 active:bg-secondary/40 ${sla.estourado ? "bg-red-500/5" : ""}`}>
+              className={`border border-border bg-card p-3 active:bg-secondary/40 ${sla?.estourado ? "bg-red-500/5" : ""}`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
@@ -464,8 +464,10 @@ function ChamadosPage() {
                     {c.responsavel_id
                       ? <span className="text-primary">{(opEmailById.get(c.responsavel_id) ?? c.tecnico_responsavel ?? "—").split("@")[0]}</span>
                       : <span className="text-muted-foreground">não atribuído</span>}
-                    {sla.ativo && <span className={`ml-2 ${sla.estourado ? "text-red-400" : sla.restante < sla.limite * 0.25 ? "text-amber-400" : "text-emerald-400"}`}>
-                      · {sla.estourado ? `ESTOURADO ${Math.abs(sla.restante).toFixed(0)}h` : `${sla.restante.toFixed(0)}h`}
+                    {sla?.ativo && <span className={`ml-2 ${
+                      sla.color === "red" ? "text-red-400" : sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
+                    }`}>
+                      · {sla.estourado ? `${formatHorasRestantes(sla.restante)} atrasado` : formatHorasRestantes(sla.restante)}
                     </span>}
                   </div>
                 </div>
