@@ -8,6 +8,7 @@ import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download
 import { toast } from "sonner";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
+import { getSlaMap, calcSla, formatHorasRestantes, type SlaMap } from "@/lib/sla";
 
 export const Route = createFileRoute("/chamados")({
   beforeLoad: requireAuth,
@@ -68,8 +69,6 @@ const prioridadeColor = (p: Prioridade) => ({
   baixa: "text-muted-foreground",
 })[p];
 
-const SLA_HORAS: Record<Prioridade, number> = { urgente: 4, alta: 8, media: 24, baixa: 72 };
-
 // Converte ISO -> valor para <input type="datetime-local"> (timezone local)
 function isoToLocalInput(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -88,16 +87,6 @@ function formatDuracao(ini: string | null, fim: string | null): string {
   const h = Math.floor(ms / 3_600_000);
   const m = Math.floor((ms % 3_600_000) / 60_000);
   return `${h}h ${m}m`;
-}
-
-function slaInfo(c: Pick<Chamado, "status" | "prioridade" | "created_at" | "resolvido_at">) {
-  const limite = SLA_HORAS[c.prioridade];
-  const fim = c.resolvido_at ? new Date(c.resolvido_at).getTime() : Date.now();
-  const horas = (fim - new Date(c.created_at).getTime()) / 3_600_000;
-  const ativo = c.status !== "resolvido" && c.status !== "fechado";
-  const estourado = ativo && horas > limite;
-  const restante = limite - horas;
-  return { estourado, ativo, restante, limite };
 }
 
 const PAGE_SIZE = 20;
@@ -123,6 +112,9 @@ function ChamadosPage() {
   const [form, setForm] = useState<Partial<Chamado>>(empty);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [detail, setDetail] = useState<Chamado | null>(null);
+  const [slaMap, setSlaMap] = useState<SlaMap | null>(null);
+
+  useEffect(() => { getSlaMap().then(setSlaMap); }, []);
 
   // debounce de busca
   useEffect(() => {
@@ -168,6 +160,25 @@ function ChamadosPage() {
     }
   };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [page, searchDebounced, statusFilter, prioridadeFilter, responsavelFilter, user?.id]);
+
+  // Abertura automática via deeplink (ex: vindo da página de cliente)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const openId = sessionStorage.getItem("chamados:open-id");
+    if (!openId) return;
+    sessionStorage.removeItem("chamados:open-id");
+    (async () => {
+      const { data } = await supabase.from("chamados").select("*, clientes(nome)").eq("id", openId).maybeSingle();
+      if (data) setDetail(data as unknown as Chamado);
+    })();
+    // Pré-preencher cliente em "Novo chamado"
+    const preCli = sessionStorage.getItem("chamados:prefill-cliente");
+    if (preCli) {
+      sessionStorage.removeItem("chamados:prefill-cliente");
+      setForm({ ...empty, cliente_id: preCli });
+      setOpen(true);
+    }
+  }, []);
 
   const opEmailById = useMemo(() => {
     const m = new Map<string, string>();
@@ -354,11 +365,11 @@ function ChamadosPage() {
               <tr><td colSpan={8} className="p-8 text-center text-muted-foreground font-mono">Nenhum chamado encontrado.</td></tr>
             )}
             {filtered.map((c) => {
-              const sla = slaInfo(c);
+              const sla = slaMap ? calcSla(c, slaMap) : null;
               const finalizado = c.status === "resolvido" || c.status === "fechado";
               const meu = !!c.responsavel_id && c.responsavel_id === user?.id;
               return (
-              <tr key={c.id} className={`hover:bg-secondary/30 cursor-pointer ${sla.estourado ? "bg-red-500/5" : ""}`} onClick={() => setDetail(c)}>
+              <tr key={c.id} className={`hover:bg-secondary/30 cursor-pointer ${sla?.estourado ? "bg-red-500/5" : ""}`} onClick={() => setDetail(c)}>
                 <td className="p-4 font-mono text-muted-foreground">{ticketLabel(c)}</td>
                 <td className="p-4 font-medium">{c.clientes?.nome ?? "—"}</td>
                 <td className="p-4">{c.titulo}</td>
@@ -369,15 +380,27 @@ function ChamadosPage() {
                 </td>
                 <td className={`p-4 font-mono uppercase ${prioridadeColor(c.prioridade)}`}>{c.prioridade}</td>
                 <td className="p-4 font-mono text-[10px]">
-                  {!sla.ativo ? <span className="text-muted-foreground">—</span> :
-                    sla.estourado ? (
+                  {!sla ? <span className="text-muted-foreground">…</span> :
+                    !sla.ativo ? (
+                      <span className={sla.cumprido ? "text-emerald-400" : "text-red-400"}>
+                        {sla.cumprido ? "CUMPRIDO" : "ESTOURADO"}
+                      </span>
+                    ) : sla.estourado ? (
                       <span className="inline-flex items-center gap-1 text-red-400">
-                        <AlertTriangle className="h-3 w-3" /> ESTOURADO ({Math.abs(sla.restante).toFixed(0)}h)
+                        <AlertTriangle className="h-3 w-3" /> {formatHorasRestantes(sla.restante)} atrasado
                       </span>
                     ) : (
-                      <span className={sla.restante < sla.limite * 0.25 ? "text-amber-400" : "text-emerald-400"}>
-                        {sla.restante.toFixed(0)}h restantes
-                      </span>
+                      <div className="space-y-1">
+                        <div className={
+                          sla.color === "red" ? "text-red-400" :
+                          sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
+                        }>{formatHorasRestantes(sla.restante)} restantes</div>
+                        <div className="h-1 w-full bg-secondary overflow-hidden">
+                          <div className={
+                            (sla.color === "red" ? "bg-red-400" : sla.color === "amber" ? "bg-amber-400" : "bg-emerald-400") + " h-full"
+                          } style={{ width: `${Math.min(100, sla.pct)}%` }} />
+                        </div>
+                      </div>
                     )}
                 </td>
                 <td className="p-4">
@@ -422,12 +445,12 @@ function ChamadosPage() {
           <div className="border border-border bg-card p-6 text-center text-muted-foreground font-mono text-xs">Nenhum chamado encontrado.</div>
         )}
         {filtered.map((c) => {
-          const sla = slaInfo(c);
+          const sla = slaMap ? calcSla(c, slaMap) : null;
           const finalizado = c.status === "resolvido" || c.status === "fechado";
           const meu = !!c.responsavel_id && c.responsavel_id === user?.id;
           return (
             <div key={c.id} onClick={() => setDetail(c)}
-              className={`border border-border bg-card p-3 active:bg-secondary/40 ${sla.estourado ? "bg-red-500/5" : ""}`}>
+              className={`border border-border bg-card p-3 active:bg-secondary/40 ${sla?.estourado ? "bg-red-500/5" : ""}`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
@@ -441,8 +464,10 @@ function ChamadosPage() {
                     {c.responsavel_id
                       ? <span className="text-primary">{(opEmailById.get(c.responsavel_id) ?? c.tecnico_responsavel ?? "—").split("@")[0]}</span>
                       : <span className="text-muted-foreground">não atribuído</span>}
-                    {sla.ativo && <span className={`ml-2 ${sla.estourado ? "text-red-400" : sla.restante < sla.limite * 0.25 ? "text-amber-400" : "text-emerald-400"}`}>
-                      · {sla.estourado ? `ESTOURADO ${Math.abs(sla.restante).toFixed(0)}h` : `${sla.restante.toFixed(0)}h`}
+                    {sla?.ativo && <span className={`ml-2 ${
+                      sla.color === "red" ? "text-red-400" : sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
+                    }`}>
+                      · {sla.estourado ? `${formatHorasRestantes(sla.restante)} atrasado` : formatHorasRestantes(sla.restante)}
                     </span>}
                   </div>
                 </div>
@@ -636,6 +661,15 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
   const [prioridade, setPrioridade] = useState<Prioridade>(chamado.prioridade);
   const [responsavelId, setResponsavelId] = useState<string>(chamado.responsavel_id ?? "");
   const [savingQuick, setSavingQuick] = useState(false);
+  const [slaMap, setSlaMap] = useState<SlaMap | null>(null);
+  const [nowTick, setNowTick] = useState(0);
+
+  useEffect(() => { getSlaMap().then(setSlaMap); }, []);
+  // Atualiza contador de SLA a cada 30s
+  useEffect(() => {
+    const t = setInterval(() => setNowTick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     setStatus(chamado.status);
@@ -689,6 +723,9 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
     setAnexos((a.data as Anexo[]) ?? []);
   };
   useEffect(() => { load(); }, [chamado.id]);
+
+  const sla = slaMap ? calcSla({ ...chamado, prioridade }, slaMap) : null;
+  void nowTick; // força re-render no tick
 
   const addComentario = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -803,6 +840,31 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
               />
             )}
           </section>
+
+          {sla && (
+            <section className="border border-border bg-background p-3">
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-2">
+                <span>SLA · Prazo {sla.limite}h ({prioridade})</span>
+                <span className={
+                  sla.color === "red" ? "text-red-400" : sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
+                }>
+                  {!sla.ativo
+                    ? (sla.cumprido ? "CUMPRIDO" : "ESTOURADO")
+                    : sla.estourado
+                      ? `Estourou há ${formatHorasRestantes(sla.restante)}`
+                      : `Vence em ${formatHorasRestantes(sla.restante)}`}
+                </span>
+              </div>
+              <div className="h-2 w-full bg-secondary overflow-hidden">
+                <div className={
+                  (sla.color === "red" ? "bg-red-400" : sla.color === "amber" ? "bg-amber-400" : "bg-emerald-400") + " h-full transition-all"
+                } style={{ width: `${Math.min(100, sla.pct)}%` }} />
+              </div>
+              <div className="mt-1 text-[10px] font-mono text-muted-foreground">
+                {sla.decorrido.toFixed(1)}h decorridas de {sla.limite}h ({sla.pct.toFixed(0)}%)
+              </div>
+            </section>
+          )}
 
           {chamado.descricao && (
             <section>

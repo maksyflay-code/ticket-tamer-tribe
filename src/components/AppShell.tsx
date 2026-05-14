@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock } from "lucide-react";
 import logo from "@/assets/ivi-logo.jpeg";
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -14,6 +14,10 @@ const nav = [
   { to: "/equipamentos", label: "Equipamentos", icon: Server, n: "05" },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, n: "06" },
   { to: "/rfo", label: "Gerar RFO", icon: FileText, n: "07" },
+] as const;
+
+const adminNav = [
+  { to: "/configuracoes/sla", label: "Config. SLA", icon: Clock, n: "08" },
 ] as const;
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
@@ -97,6 +101,22 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                 <span>Usuários</span>
               </Link>
             )}
+            {isAdmin && adminNav.map((item) => {
+              const Icon = item.icon;
+              const active = path.startsWith(item.to);
+              return (
+                <Link key={item.to} to={item.to} onClick={onNavigate}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 text-sm font-mono transition-colors border-l-2",
+                    active ? "bg-accent text-primary border-primary"
+                      : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
+                  )}>
+                  <span className="text-[10px] opacity-60">10</span>
+                  <Icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </div>
         </nav>
         <div className="p-4 border-t border-sidebar-border">
