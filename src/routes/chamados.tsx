@@ -765,6 +765,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
           <section className="grid grid-cols-2 gap-4 text-xs font-mono">
             <Info label="Cliente" value={chamado.clientes?.nome ?? "—"} />
             <Info label="Categoria" value={chamado.categoria ?? "—"} />
+            <Info label="Tipo de problema" value={chamado.tipo_problema ?? "—"} />
             <Info label="Responsável" value={chamado.tecnico_responsavel ?? (chamado.responsavel_id ? "atribuído" : "não atribuído")} />
             <Info label="Aberto em" value={new Date(chamado.created_at).toLocaleString("pt-BR")} />
             <Info label="Horário inicial" value={chamado.iniciado_at ? new Date(chamado.iniciado_at).toLocaleString("pt-BR") : "—"} />
@@ -807,12 +808,15 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
 
           <section>
             <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
-              <MessageSquare className="h-3 w-3" /> Histórico & Comentários
+              <MessageSquare className="h-3 w-3" /> Relatos / Andamento & Histórico
             </h3>
-            <form onSubmit={addComentario} className="mb-4 flex gap-2">
-              <input value={comentario} onChange={(e) => setComentario(e.target.value)} placeholder="Adicionar comentário…"
-                className="flex-1 bg-background border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-              <button type="submit" className="bg-primary text-primary-foreground px-3 py-2 text-xs font-semibold uppercase">Enviar</button>
+            <form onSubmit={addComentario} className="mb-4 space-y-2">
+              <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} rows={3}
+                placeholder="Adicionar relato sobre o andamento do chamado…"
+                className="w-full bg-background border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+              <div className="flex justify-end">
+                <button type="submit" className="bg-primary text-primary-foreground px-3 py-2 text-xs font-semibold uppercase">Adicionar relato</button>
+              </div>
             </form>
             <div className="space-y-3">
               {historico.length === 0 && <div className="text-xs text-muted-foreground font-mono">Sem registros.</div>}
