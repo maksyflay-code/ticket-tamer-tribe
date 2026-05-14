@@ -16,14 +16,17 @@ export const Route = createFileRoute("/chamados")({
 
 type Status = "aberto" | "em_andamento" | "resolvido" | "fechado";
 type Prioridade = "baixa" | "media" | "alta" | "urgente";
+type TipoProblema = "ROMPIMENTO" | "ATENUACAO" | "OUTROS";
 
 type Chamado = {
   id: string;
   numero: number;
+  codigo: string | null;
   cliente_id: string | null;
   titulo: string;
   descricao: string | null;
   categoria: string | null;
+  tipo_problema: string | null;
   status: Status;
   prioridade: Prioridade;
   tecnico_responsavel: string | null;
@@ -41,6 +44,15 @@ type Historico = { id: string; tipo: string; descricao: string; autor: string | 
 type Anexo = { id: string; nome_arquivo: string; storage_path: string; mime_type: string | null; tamanho: number | null; created_at: string };
 
 const empty: Partial<Chamado> = { status: "aberto", prioridade: "media" };
+
+const TIPOS_PROBLEMA: { value: TipoProblema; label: string }[] = [
+  { value: "ROMPIMENTO", label: "Rompimento" },
+  { value: "ATENUACAO", label: "Atenuação" },
+  { value: "OUTROS", label: "Outros" },
+];
+
+const ticketLabel = (c: Pick<Chamado, "codigo" | "numero">) =>
+  c.codigo ?? `#TK-${String(c.numero).padStart(4, "0")}`;
 
 const statusBadge = (s: Status) => ({
   aberto: "border-amber-500/30 bg-amber-500/10 text-amber-400",
