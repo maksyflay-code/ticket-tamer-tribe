@@ -182,7 +182,7 @@ function RfoPage() {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.setTextColor(20);
-        doc.text("Registros fotográficos", margin, y);
+        doc.text("FOTOS DO EVENTO", margin, y);
         y += 14;
         const cols = fotos.length >= 3 ? 3 : 2;
         const gap = 8;
@@ -216,7 +216,7 @@ function RfoPage() {
         doc.setFont("helvetica", "bold");
         doc.text(form.responsavel || "—", margin, ry); ry += 11;
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(80);
+        doc.setTextColor(20);
         if (form.responsavelArea) { doc.text(form.responsavelArea, margin, ry); ry += 11; }
         if (form.responsavelEmail) { doc.text(form.responsavelEmail, margin, ry); ry += 11; }
       }
