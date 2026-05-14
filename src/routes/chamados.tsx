@@ -111,7 +111,12 @@ function ChamadosPage() {
   const [operators, setOperators] = useState<Operator[]>([]);
   const [search, setSearch] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    if (typeof window === "undefined") return "todos";
+    const sp = new URLSearchParams(window.location.search);
+    const s = sp.get("status");
+    return s && ["aberto", "em_andamento", "resolvido", "fechado"].includes(s) ? s : "todos";
+  });
   const [prioridadeFilter, setPrioridadeFilter] = useState<string>("todos");
   const [responsavelFilter, setResponsavelFilter] = useState<string>("todos");
   const [open, setOpen] = useState(false);
@@ -659,10 +664,17 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
     if (status !== "resolvido" && status !== "fechado") payload.resolvido_at = null;
     if (status === "em_andamento" && !chamado.iniciado_at) payload.iniciado_at = new Date().toISOString();
     if (status === "resolvido" && !chamado.finalizado_at) payload.finalizado_at = new Date().toISOString();
+    // Se houver texto no relato, grava junto (ideal no fechamento)
+    if (comentario.trim()) {
+      await supabase.from("chamado_historico").insert({
+        chamado_id: chamado.id, tipo: "relato", descricao: comentario.trim(), autor,
+      } as never);
+      setComentario("");
+    }
     const { error } = await supabase.from("chamados").update(payload as never).eq("id", chamado.id);
     setSavingQuick(false);
     if (error) return toast.error(error.message);
-    toast.success("Chamado atualizado");
+    toast.success(finalizando ? "Chamado finalizado" : "Chamado atualizado");
     Object.assign(chamado, payload);
     if (finalizando && effectiveRespId) setResponsavelId(effectiveRespId);
     load();
@@ -764,12 +776,9 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                   {operators.map((o) => <option key={o.id} value={o.id}>{o.email}</option>)}
                 </select>
               </div>
-              {dirty && (
-                <div className="md:col-span-3 flex justify-end">
-                  <button disabled={savingQuick} onClick={saveQuick}
-                    className="bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold uppercase tracking-wider disabled:opacity-50">
-                    {savingQuick ? "Salvando…" : "Aplicar alterações"}
-                  </button>
+              {dirty && (status === "resolvido" || status === "fechado") && (
+                <div className="md:col-span-3 text-[10px] font-mono text-emerald-400">
+                  Ao finalizar, você será definido como responsável e o relato abaixo (se houver) será registrado.
                 </div>
               )}
             </section>
@@ -834,10 +843,29 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
             </h3>
             <form onSubmit={addComentario} className="mb-4 space-y-2">
               <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} rows={3}
-                placeholder="Adicionar relato sobre o andamento do chamado…"
+                placeholder={status === "resolvido" || status === "fechado"
+                  ? "Descreva a resolução / observações finais…"
+                  : "Adicionar relato sobre o andamento do chamado…"}
                 className="w-full bg-background border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary" />
-              <div className="flex justify-end">
-                <button type="submit" className="bg-primary text-primary-foreground px-3 py-2 text-xs font-semibold uppercase">Adicionar relato</button>
+              <div className="flex justify-end gap-2 flex-wrap">
+                <button type="submit" disabled={!comentario.trim()}
+                  className="bg-secondary border border-border text-foreground px-3 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-40 hover:bg-secondary/70">
+                  Adicionar relato
+                </button>
+                {canWrite && dirty && (
+                  <button type="button" disabled={savingQuick} onClick={saveQuick}
+                    className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50 ${
+                      status === "resolvido" || status === "fechado"
+                        ? "bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
+                        : "bg-primary text-primary-foreground hover:opacity-90"
+                    }`}>
+                    {savingQuick
+                      ? "Salvando…"
+                      : status === "resolvido" || status === "fechado"
+                        ? "Finalizar"
+                        : "Aplicar"}
+                  </button>
+                )}
               </div>
             </form>
             <div className="space-y-3">

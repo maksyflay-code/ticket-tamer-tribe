@@ -60,7 +60,6 @@ function DashboardPage() {
   const [recentes, setRecentes] = useState<Chamado[]>([]);
   const [statusDist, setStatusDist] = useState<{ name: string; value: number; color: string }[]>([]);
   const [prioridadeDist, setPrioridadeDist] = useState<{ name: string; value: number; color: string }[]>([]);
-  const [categoriaDist, setCategoriaDist] = useState<{ name: string; value: number }[]>([]);
   const [dailySerie, setDailySerie] = useState<{ dia: string; abertos: number; resolvidos: number }[]>([]);
   const [ranking, setRanking] = useState<{ tecnico: string; resolvidos: number }[]>([]);
 
@@ -71,7 +70,7 @@ function DashboardPage() {
     // início do mês corrente para gráficos
     const startMonth = new Date();
     startMonth.setDate(1); startMonth.setHours(0, 0, 0, 0);
-    const [a, e, r, c, novos, resolvidos30, rec, abertosPri, todosStatus, todosPri, todasCat, mensal, resolvidosMes] = await Promise.all([
+    const [a, e, r, c, novos, resolvidos30, rec, abertosPri, todosStatus, todosPri, mensal, resolvidosMes] = await Promise.all([
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aberto"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "em_andamento"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "resolvido").gte("resolvido_at", today.toISOString()),
@@ -86,7 +85,6 @@ function DashboardPage() {
       supabase.from("chamados").select("prioridade").in("status", ["aberto", "em_andamento"]),
       supabase.from("chamados").select("status"),
       supabase.from("chamados").select("prioridade"),
-      supabase.from("chamados").select("tipo_problema"),
       supabase.from("chamados").select("created_at,resolvido_at").gte("created_at", startMonth.toISOString()),
       supabase.from("chamados").select("tecnico_responsavel,resolvido_at").not("resolvido_at", "is", null).gte("resolvido_at", startMonth.toISOString()),
     ]);
@@ -127,16 +125,6 @@ function DashboardPage() {
       acc[x.prioridade] = (acc[x.prioridade] ?? 0) + 1; return acc;
     }, {});
     setPrioridadeDist(Object.entries(pCount).map(([k, v]) => ({ name: k, value: v, color: prioridadeColors[k] ?? "#888" })));
-    const tipoLabels: Record<string, string> = {
-      ROMPIMENTO: "Rompimento",
-      ATENUACAO: "Atenuação",
-      OUTROS: "Outros",
-    };
-    const cCount = ((todasCat.data ?? []) as { tipo_problema: string | null }[]).reduce<Record<string, number>>((acc, x) => {
-      const k = tipoLabels[x.tipo_problema ?? ""] ?? "Não informado";
-      acc[k] = (acc[k] ?? 0) + 1; return acc;
-    }, {});
-    setCategoriaDist(Object.entries(cCount).sort((a,b)=>b[1]-a[1]).map(([name, value]) => ({ name, value })));
 
     // série diária do mês
     const dias = new Date(startMonth.getFullYear(), startMonth.getMonth() + 1, 0).getDate();
@@ -171,13 +159,13 @@ function DashboardPage() {
   }, []);
 
   const cards = [
-    { label: "Chamados Abertos", value: stats.abertos, icon: AlertTriangle, color: "bg-amber-500", w: "65%" },
-    { label: "Em Andamento", value: stats.emAndamento, icon: Clock, color: "bg-primary", w: "45%" },
-    { label: "Resolvidos Hoje", value: stats.resolvidosHoje, icon: CheckCircle2, color: "bg-emerald-500", w: "80%" },
-    { label: "Total de Clientes", value: stats.totalClientes, icon: Users, color: "bg-blue-500", w: "72%" },
-    { label: "SLA (30d)", value: `${stats.slaPct.toFixed(0)}%`, icon: Target, color: "bg-violet-500", w: `${stats.slaPct.toFixed(0)}%` },
-    { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, color: "bg-cyan-500", w: "55%" },
-    { label: "Novos Clientes (30d)", value: stats.novosClientes30d, icon: UserPlus, color: "bg-pink-500", w: "60%" },
+    { label: "Chamados Abertos", value: stats.abertos, icon: AlertTriangle, color: "bg-amber-500", w: "65%", to: "/chamados?status=aberto" },
+    { label: "Em Andamento", value: stats.emAndamento, icon: Clock, color: "bg-primary", w: "45%", to: "/chamados?status=em_andamento" },
+    { label: "Resolvidos Hoje", value: stats.resolvidosHoje, icon: CheckCircle2, color: "bg-emerald-500", w: "80%", to: "/chamados?status=resolvido" },
+    { label: "Total de Clientes", value: stats.totalClientes, icon: Users, color: "bg-blue-500", w: "72%", to: "/clientes" },
+    { label: "SLA (30d)", value: `${stats.slaPct.toFixed(0)}%`, icon: Target, color: "bg-violet-500", w: `${stats.slaPct.toFixed(0)}%`, to: "/chamados" },
+    { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, color: "bg-cyan-500", w: "55%", to: "/chamados" },
+    { label: "Novos Clientes (30d)", value: stats.novosClientes30d, icon: UserPlus, color: "bg-pink-500", w: "60%", to: "/clientes" },
   ];
 
   return (
@@ -186,7 +174,8 @@ function DashboardPage() {
         {cards.map((c) => {
           const Icon = c.icon;
           return (
-            <div key={c.label} className="border border-border bg-card p-3 md:p-5">
+            <a key={c.label} href={c.to}
+              className="border border-border bg-card p-3 md:p-5 block hover:border-primary/60 hover:bg-secondary/30 transition-colors">
               <div className="flex items-start justify-between mb-3">
                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
                   {c.label}
@@ -197,7 +186,7 @@ function DashboardPage() {
               <div className="mt-4 h-1 bg-border w-full">
                 <div className={`${c.color} h-full`} style={{ width: c.w }} />
               </div>
-            </div>
+            </a>
           );
         })}
       </section>
@@ -250,7 +239,7 @@ function DashboardPage() {
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="Ranking de técnicos (mês)">
+        <ChartCard title="Ranking de técnicos (mês)" className="lg:col-span-2">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={ranking} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
               <CartesianGrid stroke="#27272a" strokeDasharray="3 3" horizontal={false} />
@@ -258,17 +247,6 @@ function DashboardPage() {
               <YAxis type="category" dataKey="tecnico" tick={{ fontSize: 10, fill: "#a1a1aa" }} width={110} />
               <Tooltip contentStyle={tooltipStyle} />
               <Bar dataKey="resolvidos" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-        <ChartCard title="Chamados por tipo de problema" className="lg:col-span-2">
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={categoriaDist} margin={{ top: 8, right: 16, left: -10, bottom: 0 }}>
-              <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#a1a1aa" }} interval={0} angle={-15} textAnchor="end" height={60} />
-              <YAxis tick={{ fontSize: 10, fill: "#a1a1aa" }} allowDecimals={false} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="value" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
