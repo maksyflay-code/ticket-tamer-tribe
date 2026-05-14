@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText } from "lucide-react";
 import logo from "@/assets/ivi-logo.jpeg";
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -13,6 +13,7 @@ const nav = [
   { to: "/planos", label: "Planos", icon: Package, n: "04" },
   { to: "/equipamentos", label: "Equipamentos", icon: Server, n: "05" },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, n: "06" },
+  { to: "/rfo", label: "Gerar RFO", icon: FileText, n: "07" },
 ] as const;
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
@@ -76,7 +77,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                   : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
               )}
             >
-              <span className="text-[10px] opacity-60">07</span>
+              <span className="text-[10px] opacity-60">08</span>
               <UserCircle className="h-4 w-4" />
               <span>Meu perfil</span>
             </Link>
@@ -91,7 +92,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                     : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
                 )}
               >
-                <span className="text-[10px] opacity-60">08</span>
+                <span className="text-[10px] opacity-60">09</span>
                 <UserCog className="h-4 w-4" />
                 <span>Usuários</span>
               </Link>
