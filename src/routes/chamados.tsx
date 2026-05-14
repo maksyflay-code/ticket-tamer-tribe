@@ -669,7 +669,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
     e.preventDefault();
     if (!comentario.trim()) return;
     const { error } = await supabase.from("chamado_historico").insert({
-      chamado_id: chamado.id, tipo: "comentario", descricao: comentario.trim(), autor,
+      chamado_id: chamado.id, tipo: "relato", descricao: comentario.trim(), autor,
     } as never);
     if (error) return toast.error(error.message);
     setComentario(""); load();
@@ -827,6 +827,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                   h.tipo === "mudanca_prioridade" ? "border-orange-500/60" :
                   h.tipo === "mudanca_responsavel" ? "border-violet-500/60" :
                   h.tipo === "anexo" ? "border-cyan-500/60" :
+                  h.tipo === "relato" ? "border-emerald-500/60" :
                   "border-border";
                 return (
                   <div key={h.id} className={`border-l-2 pl-3 pb-2 ${tone}`}>
