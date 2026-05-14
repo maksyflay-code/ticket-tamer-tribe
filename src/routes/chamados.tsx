@@ -8,6 +8,7 @@ import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download
 import { toast } from "sonner";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
+import { getSlaMap, calcSla, formatHorasRestantes, type SlaMap } from "@/lib/sla";
 
 export const Route = createFileRoute("/chamados")({
   beforeLoad: requireAuth,
@@ -68,8 +69,6 @@ const prioridadeColor = (p: Prioridade) => ({
   baixa: "text-muted-foreground",
 })[p];
 
-const SLA_HORAS: Record<Prioridade, number> = { urgente: 4, alta: 8, media: 24, baixa: 72 };
-
 // Converte ISO -> valor para <input type="datetime-local"> (timezone local)
 function isoToLocalInput(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -88,16 +87,6 @@ function formatDuracao(ini: string | null, fim: string | null): string {
   const h = Math.floor(ms / 3_600_000);
   const m = Math.floor((ms % 3_600_000) / 60_000);
   return `${h}h ${m}m`;
-}
-
-function slaInfo(c: Pick<Chamado, "status" | "prioridade" | "created_at" | "resolvido_at">) {
-  const limite = SLA_HORAS[c.prioridade];
-  const fim = c.resolvido_at ? new Date(c.resolvido_at).getTime() : Date.now();
-  const horas = (fim - new Date(c.created_at).getTime()) / 3_600_000;
-  const ativo = c.status !== "resolvido" && c.status !== "fechado";
-  const estourado = ativo && horas > limite;
-  const restante = limite - horas;
-  return { estourado, ativo, restante, limite };
 }
 
 const PAGE_SIZE = 20;
@@ -123,6 +112,9 @@ function ChamadosPage() {
   const [form, setForm] = useState<Partial<Chamado>>(empty);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [detail, setDetail] = useState<Chamado | null>(null);
+  const [slaMap, setSlaMap] = useState<SlaMap | null>(null);
+
+  useEffect(() => { getSlaMap().then(setSlaMap); }, []);
 
   // debounce de busca
   useEffect(() => {
@@ -168,6 +160,25 @@ function ChamadosPage() {
     }
   };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [page, searchDebounced, statusFilter, prioridadeFilter, responsavelFilter, user?.id]);
+
+  // Abertura automática via deeplink (ex: vindo da página de cliente)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const openId = sessionStorage.getItem("chamados:open-id");
+    if (!openId) return;
+    sessionStorage.removeItem("chamados:open-id");
+    (async () => {
+      const { data } = await supabase.from("chamados").select("*, clientes(nome)").eq("id", openId).maybeSingle();
+      if (data) setDetail(data as unknown as Chamado);
+    })();
+    // Pré-preencher cliente em "Novo chamado"
+    const preCli = sessionStorage.getItem("chamados:prefill-cliente");
+    if (preCli) {
+      sessionStorage.removeItem("chamados:prefill-cliente");
+      setForm({ ...empty, cliente_id: preCli });
+      setOpen(true);
+    }
+  }, []);
 
   const opEmailById = useMemo(() => {
     const m = new Map<string, string>();
