@@ -197,6 +197,11 @@ function ChamadosPage() {
     if (payload.status === "resolvido" && !payload.finalizado_at) {
       payload.finalizado_at = new Date().toISOString();
     }
+    // Quem finaliza vira o responsável (entra nas estatísticas por técnico)
+    if ((payload.status === "resolvido" || payload.status === "fechado") && user?.id) {
+      payload.responsavel_id = user.id;
+      payload.tecnico_responsavel = user.email ?? opEmailById.get(user.id) ?? null;
+    }
     let chamadoId = form.id as string | undefined;
     if (chamadoId) {
       const { error } = await supabase.from("chamados").update(payload as never).eq("id", chamadoId);
@@ -617,6 +622,7 @@ function Lbl({ children }: { children: React.ReactNode }) {
 }
 
 function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamado: Chamado; onClose: () => void; autor: string; operators: Operator[]; canWrite: boolean }) {
+  const { user } = useAuth();
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [anexos, setAnexos] = useState<Anexo[]>([]);
   const [comentario, setComentario] = useState("");
@@ -637,11 +643,17 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
   const saveQuick = async () => {
     if (!canWrite) return toast.error("Sem permissão.");
     setSavingQuick(true);
-    const opEmail = operators.find((o) => o.id === responsavelId)?.email ?? null;
+    const finalizando = status === "resolvido" || status === "fechado";
+    // Quem finaliza vira o responsável automaticamente
+    const effectiveRespId = finalizando && user?.id ? user.id : (responsavelId || null);
+    const opEmail = operators.find((o) => o.id === effectiveRespId)?.email ?? null;
+    const effectiveTecnico = finalizando
+      ? (opEmail ?? user?.email ?? null)
+      : (responsavelId ? opEmail : null);
     const payload: Record<string, unknown> = {
       status, prioridade,
-      responsavel_id: responsavelId || null,
-      tecnico_responsavel: responsavelId ? opEmail : null,
+      responsavel_id: effectiveRespId,
+      tecnico_responsavel: effectiveTecnico,
     };
     if (status === "resolvido" && !chamado.resolvido_at) payload.resolvido_at = new Date().toISOString();
     if (status !== "resolvido" && status !== "fechado") payload.resolvido_at = null;
@@ -652,6 +664,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
     if (error) return toast.error(error.message);
     toast.success("Chamado atualizado");
     Object.assign(chamado, payload);
+    if (finalizando && effectiveRespId) setResponsavelId(effectiveRespId);
     load();
   };
 
