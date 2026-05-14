@@ -197,6 +197,11 @@ function ChamadosPage() {
     if (payload.status === "resolvido" && !payload.finalizado_at) {
       payload.finalizado_at = new Date().toISOString();
     }
+    // Quem finaliza vira o responsável (entra nas estatísticas por técnico)
+    if ((payload.status === "resolvido" || payload.status === "fechado") && user?.id) {
+      payload.responsavel_id = user.id;
+      payload.tecnico_responsavel = user.email ?? opEmailById.get(user.id) ?? null;
+    }
     let chamadoId = form.id as string | undefined;
     if (chamadoId) {
       const { error } = await supabase.from("chamados").update(payload as never).eq("id", chamadoId);
