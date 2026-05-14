@@ -298,6 +298,27 @@ export type Database = {
         }
         Relationships: []
       }
+      sla_config: {
+        Row: {
+          horas_resolucao: number
+          horas_resposta: number | null
+          prioridade: string
+          updated_at: string
+        }
+        Insert: {
+          horas_resolucao: number
+          horas_resposta?: number | null
+          prioridade: string
+          updated_at?: string
+        }
+        Update: {
+          horas_resolucao?: number
+          horas_resposta?: number | null
+          prioridade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
