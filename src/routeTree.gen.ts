@@ -21,7 +21,7 @@ import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ChamadosRouteImport } from './routes/chamados'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConfiguracoesSlaRouteImport } from './routes/configuracoes.sla'
-import { Route as ClientesIdRouteImport } from './routes/clientes.$id'
+import { Route as ClientesIdRouteImport } from './routes/clientes_.$id'
 import { Route as ApiPublicDiagRouteImport } from './routes/api/public/_diag'
 
 const UsuariosRoute = UsuariosRouteImport.update({
@@ -85,9 +85,9 @@ const ConfiguracoesSlaRoute = ConfiguracoesSlaRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientesIdRoute = ClientesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ClientesRoute,
+  id: '/clientes_/$id',
+  path: '/clientes/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicDiagRoute = ApiPublicDiagRouteImport.update({
   id: '/api/public/_diag',
@@ -98,7 +98,7 @@ const ApiPublicDiagRoute = ApiPublicDiagRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/chamados': typeof ChamadosRoute
-  '/clientes': typeof ClientesRouteWithChildren
+  '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
   '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
@@ -114,7 +114,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/chamados': typeof ChamadosRoute
-  '/clientes': typeof ClientesRouteWithChildren
+  '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
   '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
@@ -131,7 +131,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/chamados': typeof ChamadosRoute
-  '/clientes': typeof ClientesRouteWithChildren
+  '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
   '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
@@ -140,7 +140,7 @@ export interface FileRoutesById {
   '/relatorios': typeof RelatoriosRoute
   '/rfo': typeof RfoRoute
   '/usuarios': typeof UsuariosRoute
-  '/clientes/$id': typeof ClientesIdRoute
+  '/clientes_/$id': typeof ClientesIdRoute
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
   '/api/public/_diag': typeof ApiPublicDiagRoute
 }
@@ -190,7 +190,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/rfo'
     | '/usuarios'
-    | '/clientes/$id'
+    | '/clientes_/$id'
     | '/configuracoes/sla'
     | '/api/public/_diag'
   fileRoutesById: FileRoutesById
@@ -198,7 +198,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ChamadosRoute: typeof ChamadosRoute
-  ClientesRoute: typeof ClientesRouteWithChildren
+  ClientesRoute: typeof ClientesRoute
   DashboardRoute: typeof DashboardRoute
   EquipamentosRoute: typeof EquipamentosRoute
   LoginRoute: typeof LoginRoute
@@ -207,6 +207,7 @@ export interface RootRouteChildren {
   RelatoriosRoute: typeof RelatoriosRoute
   RfoRoute: typeof RfoRoute
   UsuariosRoute: typeof UsuariosRoute
+  ClientesIdRoute: typeof ClientesIdRoute
   ConfiguracoesSlaRoute: typeof ConfiguracoesSlaRoute
   ApiPublicDiagRoute: typeof ApiPublicDiagRoute
 }
@@ -297,12 +298,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracoesSlaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/clientes/$id': {
-      id: '/clientes/$id'
-      path: '/$id'
+    '/clientes_/$id': {
+      id: '/clientes_/$id'
+      path: '/clientes/$id'
       fullPath: '/clientes/$id'
       preLoaderRoute: typeof ClientesIdRouteImport
-      parentRoute: typeof ClientesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/_diag': {
       id: '/api/public/_diag'
@@ -314,22 +315,10 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface ClientesRouteChildren {
-  ClientesIdRoute: typeof ClientesIdRoute
-}
-
-const ClientesRouteChildren: ClientesRouteChildren = {
-  ClientesIdRoute: ClientesIdRoute,
-}
-
-const ClientesRouteWithChildren = ClientesRoute._addFileChildren(
-  ClientesRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChamadosRoute: ChamadosRoute,
-  ClientesRoute: ClientesRouteWithChildren,
+  ClientesRoute: ClientesRoute,
   DashboardRoute: DashboardRoute,
   EquipamentosRoute: EquipamentosRoute,
   LoginRoute: LoginRoute,
@@ -338,9 +327,19 @@ const rootRouteChildren: RootRouteChildren = {
   RelatoriosRoute: RelatoriosRoute,
   RfoRoute: RfoRoute,
   UsuariosRoute: UsuariosRoute,
+  ClientesIdRoute: ClientesIdRoute,
   ConfiguracoesSlaRoute: ConfiguracoesSlaRoute,
   ApiPublicDiagRoute: ApiPublicDiagRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

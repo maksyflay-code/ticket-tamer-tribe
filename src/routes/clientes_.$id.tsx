@@ -7,7 +7,7 @@ import { ArrowLeft, Mail, Phone, MapPin, FileText, Plus, Ticket, Clock, CheckCir
 import { toast } from "sonner";
 import { getSlaMap, calcSla, type SlaMap } from "@/lib/sla";
 
-export const Route = createFileRoute("/clientes/$id")({
+export const Route = createFileRoute("/clientes_/$id")({
   beforeLoad: requireAuth,
   component: ClienteDetailPage,
 });
