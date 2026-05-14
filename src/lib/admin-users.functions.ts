@@ -7,6 +7,7 @@ import {
   deleteAdminUser,
   listAdminUsers,
   resetAdminUserPassword,
+  setAdminUserName,
   setAdminUserRole,
 } from "./admin-users.server";
 
@@ -27,6 +28,7 @@ export const adminCreateUser = createServerFn({ method: "POST" })
         email: z.string().email().max(255),
         password: z.string().min(8).max(128),
         role: RoleSchema,
+        name: z.string().trim().max(120).optional().nullable(),
       })
       .parse(input),
   )
@@ -64,4 +66,16 @@ export const adminResetPassword = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     return resetAdminUserPassword(data);
+  });
+
+export const adminSetUserName = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({ userId: z.string().uuid(), name: z.string().trim().max(120).nullable() })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    return setAdminUserName(data);
   });
