@@ -70,19 +70,24 @@ export async function listAdminUsers() {
   return users.users.map((u) => ({
     id: u.id,
     email: u.email ?? "",
+    name:
+      ((u.user_metadata as { full_name?: string; name?: string } | null)?.full_name ??
+        (u.user_metadata as { full_name?: string; name?: string } | null)?.name ??
+        "") || null,
     created_at: u.created_at,
     last_sign_in_at: u.last_sign_in_at,
     role: (map.get(u.id) as AdminRole | undefined) ?? null,
   }));
 }
 
-export async function createAdminUser(data: { email: string; password: string; role: AdminRole }) {
+export async function createAdminUser(data: { email: string; password: string; role: AdminRole; name?: string | null }) {
   ensureAdminConfig();
 
   const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
     email: data.email,
     password: data.password,
     email_confirm: true,
+    user_metadata: data.name ? { full_name: data.name } : undefined,
   });
   if (error) throw adminError(error);
   if (!created.user) throw new Error("Falha ao criar usuário");
@@ -119,6 +124,22 @@ export async function resetAdminUserPassword(data: { userId: string; password: s
 
   const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
     password: data.password,
+  });
+  if (error) throw adminError(error);
+  return { ok: true };
+}
+
+export async function setAdminUserName(data: { userId: string; name: string | null }) {
+  ensureAdminConfig();
+
+  const { data: existing, error: getErr } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+  if (getErr) throw adminError(getErr);
+
+  const meta = (existing.user?.user_metadata as Record<string, unknown> | null) ?? {};
+  const next = { ...meta, full_name: data.name ?? "" };
+
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+    user_metadata: next,
   });
   if (error) throw adminError(error);
   return { ok: true };

@@ -11,6 +11,7 @@ import {
   adminSetUserRole,
   adminDeleteUser,
   adminResetPassword,
+  adminSetUserName,
 } from "@/lib/admin-users.functions";
 import { authHeaders } from "@/lib/server-call";
 
@@ -38,7 +39,7 @@ function UsuariosPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ email: "", password: "", role: "operador" as Role });
+  const [form, setForm] = useState({ email: "", password: "", role: "operador" as Role, name: "" });
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -59,10 +60,13 @@ function UsuariosPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await adminCreateUser({ data: form, headers: await authHeaders() });
+      await adminCreateUser({
+        data: { ...form, name: form.name.trim() || null },
+        headers: await authHeaders(),
+      });
       toast.success("Usuário criado");
       setOpen(false);
-      setForm({ email: "", password: "", role: "operador" });
+      setForm({ email: "", password: "", role: "operador", name: "" });
       load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro");
@@ -107,6 +111,18 @@ function UsuariosPage() {
     }
   };
 
+  const editName = async (userId: string, current: string | null, email: string) => {
+    const value = prompt(`Nome completo de ${email}:`, current ?? "");
+    if (value === null) return;
+    try {
+      await adminSetUserName({ data: { userId, name: value.trim() || null }, headers: await authHeaders() });
+      toast.success("Nome atualizado");
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro");
+    }
+  };
+
   return (
     <AppShell title="Usuários & Permissões">
       <div className="flex items-center justify-between mb-6">
@@ -126,6 +142,7 @@ function UsuariosPage() {
         <table className="w-full text-sm">
           <thead className="bg-secondary/30">
             <tr className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">
+              <th className="text-left px-4 py-3">Nome</th>
               <th className="text-left px-4 py-3">Email</th>
               <th className="text-left px-4 py-3">Permissão</th>
               <th className="text-left px-4 py-3">Último acesso</th>
@@ -134,11 +151,20 @@ function UsuariosPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">Carregando…</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Carregando…</td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">Nenhum usuário</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Nenhum usuário</td></tr>
             ) : rows.map((r) => (
               <tr key={r.id} className="border-t border-border">
+                <td className="px-4 py-3 text-sm">
+                  <button
+                    onClick={() => editName(r.id, r.name, r.email)}
+                    className="text-left hover:text-primary"
+                    title="Editar nome"
+                  >
+                    {r.name || <span className="text-muted-foreground italic">— sem nome —</span>}
+                  </button>
+                </td>
                 <td className="px-4 py-3 font-mono text-xs">{r.email}{r.id === user?.id && <span className="ml-2 text-[10px] text-primary">(você)</span>}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -203,6 +229,14 @@ function UsuariosPage() {
           <div className="bg-card border border-border w-full max-w-md p-6">
             <h3 className="font-display text-lg font-bold mb-4">Novo usuário</h3>
             <form onSubmit={create} className="space-y-4">
+              <div>
+                <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Nome completo</label>
+                <input
+                  type="text" value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm"
+                />
+              </div>
               <div>
                 <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Email</label>
                 <input
