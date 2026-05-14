@@ -101,6 +101,22 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                 <span>Usuários</span>
               </Link>
             )}
+            {isAdmin && adminNav.map((item) => {
+              const Icon = item.icon;
+              const active = path.startsWith(item.to);
+              return (
+                <Link key={item.to} to={item.to} onClick={onNavigate}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 text-sm font-mono transition-colors border-l-2",
+                    active ? "bg-accent text-primary border-primary"
+                      : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
+                  )}>
+                  <span className="text-[10px] opacity-60">10</span>
+                  <Icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </div>
         </nav>
         <div className="p-4 border-t border-sidebar-border">
