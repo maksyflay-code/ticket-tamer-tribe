@@ -263,7 +263,7 @@ function ChamadosPage() {
   };
   const reabrir = async (c: Chamado) => {
     if (!isAdmin) return toast.error("Apenas administradores podem reabrir.");
-    if (!confirm(`Reabrir o chamado #TK-${String(c.numero).padStart(4, "0")}?`)) return;
+    if (!confirm(`Reabrir o chamado ${ticketLabel(c)}?`)) return;
     const { error } = await supabase.from("chamados")
       .update({ status: "em_andamento", resolvido_at: null, finalizado_at: null } as never)
       .eq("id", c.id);
@@ -349,7 +349,7 @@ function ChamadosPage() {
               const meu = !!c.responsavel_id && c.responsavel_id === user?.id;
               return (
               <tr key={c.id} className={`hover:bg-secondary/30 cursor-pointer ${sla.estourado ? "bg-red-500/5" : ""}`} onClick={() => setDetail(c)}>
-                <td className="p-4 font-mono text-muted-foreground">#TK-{String(c.numero).padStart(4, "0")}</td>
+                <td className="p-4 font-mono text-muted-foreground">{ticketLabel(c)}</td>
                 <td className="p-4 font-medium">{c.clientes?.nome ?? "—"}</td>
                 <td className="p-4">{c.titulo}</td>
                 <td className="p-4 font-mono text-xs">
@@ -421,7 +421,7 @@ function ChamadosPage() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
-                    <span>#TK-{String(c.numero).padStart(4, "0")}</span>
+                    <span>{ticketLabel(c)}</span>
                     <span className={`px-1.5 py-px border uppercase ${statusBadge(c.status)}`}>{c.status.replace("_", " ")}</span>
                     <span className={`uppercase ${prioridadeColor(c.prioridade)}`}>● {c.prioridade}</span>
                   </div>
@@ -703,7 +703,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
       <div className="bg-card border-l border-border w-full max-w-2xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-border flex justify-between items-start sticky top-0 bg-card z-10">
           <div>
-            <div className="text-[10px] font-mono text-muted-foreground uppercase">#TK-{String(chamado.numero).padStart(4, "0")}</div>
+            <div className="text-[10px] font-mono text-muted-foreground uppercase">{ticketLabel(chamado)}</div>
             <h2 className="font-display text-xl font-bold mt-1">{chamado.titulo}</h2>
             <div className="flex gap-2 mt-2">
               <span className={`px-2 py-0.5 border text-[10px] font-mono uppercase ${statusBadge(chamado.status)}`}>{chamado.status.replace("_", " ")}</span>
