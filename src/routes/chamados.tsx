@@ -787,7 +787,10 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
             {chamado.finalizado_at && (
               <Info
                 label="Finalizado por"
-                value={chamado.tecnico_responsavel ?? (chamado.responsavel_id ? (operators.find((o) => o.id === chamado.responsavel_id)?.email ?? "atribuído") : "—")}
+                value={(() => {
+                  const op = chamado.responsavel_id ? operators.find((o) => o.id === chamado.responsavel_id) : undefined;
+                  return op?.name || op?.email || chamado.tecnico_responsavel || "—";
+                })()}
               />
             )}
           </section>
