@@ -841,6 +841,31 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
             )}
           </section>
 
+          {sla && (
+            <section className="border border-border bg-background p-3">
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-2">
+                <span>SLA · Prazo {sla.limite}h ({prioridade})</span>
+                <span className={
+                  sla.color === "red" ? "text-red-400" : sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
+                }>
+                  {!sla.ativo
+                    ? (sla.cumprido ? "CUMPRIDO" : "ESTOURADO")
+                    : sla.estourado
+                      ? `Estourou há ${formatHorasRestantes(sla.restante)}`
+                      : `Vence em ${formatHorasRestantes(sla.restante)}`}
+                </span>
+              </div>
+              <div className="h-2 w-full bg-secondary overflow-hidden">
+                <div className={
+                  (sla.color === "red" ? "bg-red-400" : sla.color === "amber" ? "bg-amber-400" : "bg-emerald-400") + " h-full transition-all"
+                } style={{ width: `${Math.min(100, sla.pct)}%` }} />
+              </div>
+              <div className="mt-1 text-[10px] font-mono text-muted-foreground">
+                {sla.decorrido.toFixed(1)}h decorridas de {sla.limite}h ({sla.pct.toFixed(0)}%)
+              </div>
+            </section>
+          )}
+
           {chamado.descricao && (
             <section>
               <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Descrição</h3>
