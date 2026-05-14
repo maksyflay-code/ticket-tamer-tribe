@@ -787,7 +787,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
             {chamado.finalizado_at && (
               <Info
                 label="Finalizado por"
-                value={chamado.tecnico_responsavel ?? (chamado.responsavel_id ? (opEmailById.get(chamado.responsavel_id) ?? "atribuído") : "—")}
+                value={chamado.tecnico_responsavel ?? (chamado.responsavel_id ? (operators.find((o) => o.id === chamado.responsavel_id)?.email ?? "atribuído") : "—")}
               />
             )}
           </section>
