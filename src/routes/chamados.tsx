@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { useAuth } from "@/lib/auth";
-import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X, UserCheck, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X, UserCheck, AlertTriangle, ChevronLeft, ChevronRight, Hand, UserMinus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
@@ -230,6 +230,36 @@ function ChamadosPage() {
     load();
   };
 
+  const pegarParaMim = async (c: Chamado) => {
+    if (!canWrite || !user) return toast.error("Sem permissão.");
+    const { error } = await supabase.from("chamados")
+      .update({ responsavel_id: user.id, tecnico_responsavel: user.email } as never)
+      .eq("id", c.id);
+    if (error) return toast.error(error.message);
+    toast.success("Chamado atribuído a você");
+    load();
+  };
+  const liberar = async (c: Chamado) => {
+    if (!canWrite || !user) return toast.error("Sem permissão.");
+    if (!isAdmin && c.responsavel_id !== user.id) return toast.error("Apenas o responsável ou um admin pode liberar.");
+    const { error } = await supabase.from("chamados")
+      .update({ responsavel_id: null, tecnico_responsavel: null } as never)
+      .eq("id", c.id);
+    if (error) return toast.error(error.message);
+    toast.success("Chamado liberado");
+    load();
+  };
+  const reabrir = async (c: Chamado) => {
+    if (!isAdmin) return toast.error("Apenas administradores podem reabrir.");
+    if (!confirm(`Reabrir o chamado #TK-${String(c.numero).padStart(4, "0")}?`)) return;
+    const { error } = await supabase.from("chamados")
+      .update({ status: "em_andamento", resolvido_at: null, finalizado_at: null } as never)
+      .eq("id", c.id);
+    if (error) return toast.error(error.message);
+    toast.success("Chamado reaberto");
+    load();
+  };
+
   const filtered = items.filter((c) => {
     // Refino client-side por nome do cliente (server-side já filtrou o resto)
     if (!searchDebounced.trim()) return true;
@@ -249,10 +279,10 @@ function ChamadosPage() {
             <Search className="h-4 w-4 text-muted-foreground" />
             <input value={search} onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por título, cliente ou ID…"
-              className="flex-1 bg-transparent text-sm focus:outline-none font-mono" />
+              className="flex-1 bg-transparent text-sm focus:outline-none font-mono min-w-0" />
           </div>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-card border border-border px-3 py-2 text-sm font-mono">
+            className="bg-card border border-border px-2 md:px-3 py-2 text-xs md:text-sm font-mono">
             <option value="todos">Todos os status</option>
             <option value="aberto">Aberto</option>
             <option value="em_andamento">Em andamento</option>
@@ -260,7 +290,7 @@ function ChamadosPage() {
             <option value="fechado">Fechado</option>
           </select>
           <select value={prioridadeFilter} onChange={(e) => setPrioridadeFilter(e.target.value)}
-            className="bg-card border border-border px-3 py-2 text-sm font-mono">
+            className="bg-card border border-border px-2 md:px-3 py-2 text-xs md:text-sm font-mono">
             <option value="todos">Todas prioridades</option>
             <option value="baixa">Baixa</option>
             <option value="media">Média</option>
@@ -268,7 +298,7 @@ function ChamadosPage() {
             <option value="urgente">Urgente</option>
           </select>
           <select value={responsavelFilter} onChange={(e) => setResponsavelFilter(e.target.value)}
-            className="bg-card border border-border px-3 py-2 text-sm font-mono">
+            className="bg-card border border-border px-2 md:px-3 py-2 text-xs md:text-sm font-mono">
             <option value="todos">Todos responsáveis</option>
             <option value="meus">Meus chamados</option>
             <option value="nao_atribuidos">Não atribuídos</option>
@@ -277,13 +307,13 @@ function ChamadosPage() {
         </div>
         {canWrite && (
           <button onClick={() => { setForm(empty); setOpen(true); }}
-            className="bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 hover:opacity-90">
-            <Plus className="h-4 w-4" /> Novo Chamado
+            className="bg-primary text-primary-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold uppercase tracking-wider flex items-center gap-2 hover:opacity-90 shrink-0">
+            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Novo Chamado</span><span className="sm:hidden">Novo</span>
           </button>
         )}
       </div>
 
-      <div className="border border-border bg-card overflow-x-auto">
+      <div className="hidden md:block border border-border bg-card overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead className="bg-secondary/50 border-b border-border text-muted-foreground">
             <tr>
@@ -303,6 +333,8 @@ function ChamadosPage() {
             )}
             {filtered.map((c) => {
               const sla = slaInfo(c);
+              const finalizado = c.status === "resolvido" || c.status === "fechado";
+              const meu = !!c.responsavel_id && c.responsavel_id === user?.id;
               return (
               <tr key={c.id} className={`hover:bg-secondary/30 cursor-pointer ${sla.estourado ? "bg-red-500/5" : ""}`} onClick={() => setDetail(c)}>
                 <td className="p-4 font-mono text-muted-foreground">#TK-{String(c.numero).padStart(4, "0")}</td>
@@ -333,6 +365,18 @@ function ChamadosPage() {
                 </td>
                 <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                   <div className="inline-flex gap-1">
+                    {canWrite && !finalizado && !c.responsavel_id && (
+                      <button title="Pegar pra mim" onClick={() => pegarParaMim(c)}
+                        className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-primary"><Hand className="h-3.5 w-3.5" /></button>
+                    )}
+                    {canWrite && !finalizado && c.responsavel_id && (isAdmin || meu) && (
+                      <button title="Liberar" onClick={() => liberar(c)}
+                        className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-amber-400"><UserMinus className="h-3.5 w-3.5" /></button>
+                    )}
+                    {isAdmin && finalizado && (
+                      <button title="Reabrir" onClick={() => reabrir(c)}
+                        className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-emerald-400"><RotateCcw className="h-3.5 w-3.5" /></button>
+                    )}
                     {canWrite && (
                       <button onClick={() => { setForm(c); setOpen(true); }}
                         className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
@@ -348,6 +392,59 @@ function ChamadosPage() {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile: lista em cards */}
+      <div className="md:hidden space-y-2">
+        {filtered.length === 0 && (
+          <div className="border border-border bg-card p-6 text-center text-muted-foreground font-mono text-xs">Nenhum chamado encontrado.</div>
+        )}
+        {filtered.map((c) => {
+          const sla = slaInfo(c);
+          const finalizado = c.status === "resolvido" || c.status === "fechado";
+          const meu = !!c.responsavel_id && c.responsavel_id === user?.id;
+          return (
+            <div key={c.id} onClick={() => setDetail(c)}
+              className={`border border-border bg-card p-3 active:bg-secondary/40 ${sla.estourado ? "bg-red-500/5" : ""}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+                    <span>#TK-{String(c.numero).padStart(4, "0")}</span>
+                    <span className={`px-1.5 py-px border uppercase ${statusBadge(c.status)}`}>{c.status.replace("_", " ")}</span>
+                    <span className={`uppercase ${prioridadeColor(c.prioridade)}`}>● {c.prioridade}</span>
+                  </div>
+                  <div className="text-sm font-medium mt-1 truncate">{c.titulo}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">{c.clientes?.nome ?? "—"}</div>
+                  <div className="text-[10px] font-mono mt-1">
+                    {c.responsavel_id
+                      ? <span className="text-primary">{(opEmailById.get(c.responsavel_id) ?? c.tecnico_responsavel ?? "—").split("@")[0]}</span>
+                      : <span className="text-muted-foreground">não atribuído</span>}
+                    {sla.ativo && <span className={`ml-2 ${sla.estourado ? "text-red-400" : sla.restante < sla.limite * 0.25 ? "text-amber-400" : "text-emerald-400"}`}>
+                      · {sla.estourado ? `ESTOURADO ${Math.abs(sla.restante).toFixed(0)}h` : `${sla.restante.toFixed(0)}h`}
+                    </span>}
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-1 mt-2 pt-2 border-t border-border" onClick={(e) => e.stopPropagation()}>
+                {canWrite && !finalizado && !c.responsavel_id && (
+                  <button title="Pegar pra mim" onClick={() => pegarParaMim(c)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-primary"><Hand className="h-3.5 w-3.5" /></button>
+                )}
+                {canWrite && !finalizado && c.responsavel_id && (isAdmin || meu) && (
+                  <button title="Liberar" onClick={() => liberar(c)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-amber-400"><UserMinus className="h-3.5 w-3.5" /></button>
+                )}
+                {isAdmin && finalizado && (
+                  <button title="Reabrir" onClick={() => reabrir(c)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-emerald-400"><RotateCcw className="h-3.5 w-3.5" /></button>
+                )}
+                {canWrite && (
+                  <button onClick={() => { setForm(c); setOpen(true); }} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
+                )}
+                {isAdmin && (
+                  <button onClick={() => remove(c.id)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="flex items-center justify-between mt-4 text-xs font-mono text-muted-foreground">
