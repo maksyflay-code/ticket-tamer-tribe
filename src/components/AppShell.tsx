@@ -77,7 +77,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                   : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
               )}
             >
-              <span className="text-[10px] opacity-60">07</span>
+              <span className="text-[10px] opacity-60">08</span>
               <UserCircle className="h-4 w-4" />
               <span>Meu perfil</span>
             </Link>
@@ -92,7 +92,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                     : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
                 )}
               >
-                <span className="text-[10px] opacity-60">08</span>
+                <span className="text-[10px] opacity-60">09</span>
                 <UserCog className="h-4 w-4" />
                 <span>Usuários</span>
               </Link>
