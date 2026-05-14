@@ -51,6 +51,15 @@ function formatDataBr(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+function formatDateTimeBr(value: string): string {
+  if (!value) return "—";
+  // value: yyyy-mm-ddTHH:MM
+  const [date, time] = value.split("T");
+  if (!date) return "—";
+  const [y, m, d] = date.split("-");
+  return `${d}/${m}/${y}${time ? ` ${time}` : ""}`;
+}
+
 function RfoPage() {
   const { user } = useAuth();
   const today = new Date().toISOString().slice(0, 10);
@@ -58,8 +67,8 @@ function RfoPage() {
     cliente: "",
     protocolo: "",
     data: today,
-    inicio: "",
-    fim: "",
+    inicio: `${today}T00:00`,
+    fim: `${today}T00:00`,
     trecho: "",
     descricao: "",
     solucao: "",
