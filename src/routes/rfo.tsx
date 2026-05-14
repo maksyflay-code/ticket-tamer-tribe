@@ -245,6 +245,9 @@ function RfoPage() {
             <Field label="Cliente *">
               <input value={form.cliente} onChange={(e) => setF("cliente", e.target.value)} className={inputCls} />
             </Field>
+            <Field label="Protocolo interno">
+              <input value={form.protocolo} onChange={(e) => setF("protocolo", e.target.value)} placeholder="Ex: #1234 / CHM-000123" className={inputCls} />
+            </Field>
             <Field label="Data">
               <input type="date" value={form.data} onChange={(e) => setF("data", e.target.value)} className={inputCls} />
             </Field>
