@@ -7,7 +7,7 @@ import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPl
 import { Link } from "@tanstack/react-router";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
-  XAxis, YAxis, CartesianGrid, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, AreaChart, Area, defs as _defs,
 } from "recharts";
 
 export const Route = createFileRoute("/dashboard")({
