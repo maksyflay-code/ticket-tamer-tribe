@@ -80,13 +80,15 @@ function localInputToIso(v: string): string | null {
   if (!v) return null;
   return new Date(v).toISOString();
 }
-function formatDuracao(ini: string | null, fim: string | null): string {
-  if (!ini || !fim) return "—";
-  const ms = new Date(fim).getTime() - new Date(ini).getTime();
+function formatDuracao(ini: string | null, fim: string | null, opts?: { emAndamento?: boolean }): string {
+  if (!ini) return "—";
+  const fimMs = fim ? new Date(fim).getTime() : Date.now();
+  const ms = fimMs - new Date(ini).getTime();
   if (ms < 0) return "—";
   const h = Math.floor(ms / 3_600_000);
   const m = Math.floor((ms % 3_600_000) / 60_000);
-  return `${h}h ${m}m`;
+  const base = `${h}h ${m}m`;
+  return !fim && opts?.emAndamento ? `${base} (em andamento)` : base;
 }
 
 const PAGE_SIZE = 20;
@@ -829,7 +831,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
             <Info label="Aberto em" value={new Date(chamado.created_at).toLocaleString("pt-BR")} />
             <Info label="Horário inicial" value={chamado.iniciado_at ? new Date(chamado.iniciado_at).toLocaleString("pt-BR") : "—"} />
             <Info label="Horário final" value={chamado.finalizado_at ? new Date(chamado.finalizado_at).toLocaleString("pt-BR") : "—"} />
-            <Info label="Duração do atendimento" value={formatDuracao(chamado.iniciado_at ?? chamado.created_at, chamado.finalizado_at)} />
+            <Info label="Duração do atendimento" value={formatDuracao(chamado.iniciado_at ?? chamado.created_at, chamado.finalizado_at, { emAndamento: true })} />
             {chamado.finalizado_at && (
               <Info
                 label="Finalizado por"
