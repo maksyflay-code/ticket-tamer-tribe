@@ -718,7 +718,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
 
   const load = async () => {
     const [h, a] = await Promise.all([
-      supabase.from("chamado_historico").select("*").eq("chamado_id", chamado.id).order("created_at", { ascending: true }),
+      supabase.from("chamado_historico").select("*").eq("chamado_id", chamado.id).order("created_at", { ascending: false }),
       supabase.from("chamado_anexos").select("*").eq("chamado_id", chamado.id).order("created_at", { ascending: false }),
     ]);
     setHistorico((h.data as Historico[]) ?? []);
