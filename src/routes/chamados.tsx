@@ -656,6 +656,12 @@ function Lbl({ children }: { children: React.ReactNode }) {
 function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamado: Chamado; onClose: () => void; autor: string; operators: Operator[]; canWrite: boolean }) {
   const { user } = useAuth();
   const [historico, setHistorico] = useState<Historico[]>([]);
+  const [historicoPage, setHistoricoPage] = useState(0);
+  const [historicoHasMore, setHistoricoHasMore] = useState(true);
+  const [historicoLoadingMore, setHistoricoLoadingMore] = useState(false);
+  const HISTORICO_PAGE_SIZE = 20;
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [anexos, setAnexos] = useState<Anexo[]>([]);
   const [comentario, setComentario] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -718,13 +724,57 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
 
   const load = async () => {
     const [h, a] = await Promise.all([
-      supabase.from("chamado_historico").select("*").eq("chamado_id", chamado.id).order("created_at", { ascending: false }),
+      supabase
+        .from("chamado_historico")
+        .select("*")
+        .eq("chamado_id", chamado.id)
+        .order("created_at", { ascending: false })
+        .range(0, HISTORICO_PAGE_SIZE - 1),
       supabase.from("chamado_anexos").select("*").eq("chamado_id", chamado.id).order("created_at", { ascending: false }),
     ]);
-    setHistorico((h.data as Historico[]) ?? []);
+    const rows = (h.data as Historico[]) ?? [];
+    setHistorico(rows);
+    setHistoricoPage(0);
+    setHistoricoHasMore(rows.length === HISTORICO_PAGE_SIZE);
     setAnexos((a.data as Anexo[]) ?? []);
   };
   useEffect(() => { load(); }, [chamado.id]);
+
+  const loadMoreHistorico = async () => {
+    if (historicoLoadingMore || !historicoHasMore) return;
+    setHistoricoLoadingMore(true);
+    const nextPage = historicoPage + 1;
+    const from = nextPage * HISTORICO_PAGE_SIZE;
+    const to = from + HISTORICO_PAGE_SIZE - 1;
+    const { data } = await supabase
+      .from("chamado_historico")
+      .select("*")
+      .eq("chamado_id", chamado.id)
+      .order("created_at", { ascending: false })
+      .range(from, to);
+    const rows = (data as Historico[]) ?? [];
+    setHistorico((prev) => {
+      const seen = new Set(prev.map((p) => p.id));
+      return [...prev, ...rows.filter((r) => !seen.has(r.id))];
+    });
+    setHistoricoPage(nextPage);
+    setHistoricoHasMore(rows.length === HISTORICO_PAGE_SIZE);
+    setHistoricoLoadingMore(false);
+  };
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    const root = scrollRef.current;
+    if (!sentinel || !root) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMoreHistorico();
+      },
+      { root, rootMargin: "200px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [historicoPage, historicoHasMore, historicoLoadingMore, chamado.id]);
 
   const sla = slaMap ? calcSla({ ...chamado, prioridade }, slaMap) : null;
   void nowTick; // força re-render no tick
