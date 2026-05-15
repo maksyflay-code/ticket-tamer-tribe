@@ -163,19 +163,58 @@ function ChamadosPage() {
   };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [page, searchDebounced, statusFilter, prioridadeFilter, responsavelFilter, user?.id]);
 
-  // Realtime: recarrega a lista quando qualquer chamado muda (criação/edição/remoção)
+  // Realtime: recarrega a lista e notifica quando qualquer chamado muda
   useEffect(() => {
+    const codeOf = (r: { codigo?: string | null; numero?: number | null } | null | undefined) =>
+      r?.codigo ?? (r?.numero != null ? `#TK-${String(r.numero).padStart(4, "0")}` : "");
     const channel = supabase
       .channel("chamados-list-realtime")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "chamados" },
+        { event: "INSERT", schema: "public", table: "chamados" },
+        (payload) => {
+          const n = payload.new as { codigo?: string | null; numero?: number | null; titulo?: string };
+          toast.info(`Novo chamado ${codeOf(n)}`, { description: n.titulo ?? undefined });
+          load();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "chamados" },
+        (payload) => {
+          const o = payload.old as { status?: string };
+          const n = payload.new as { status?: string; codigo?: string | null; numero?: number | null; titulo?: string };
+          if (o?.status !== n?.status) {
+            const code = codeOf(n);
+            if (n.status === "resolvido" || n.status === "fechado") {
+              toast.success(`Chamado ${code} finalizado`, { description: n.titulo ?? undefined });
+            } else {
+              toast.message(`Chamado ${code} → ${(n.status ?? "").replace("_", " ")}`, { description: n.titulo ?? undefined });
+            }
+          }
+          load();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "chamados" },
         () => { load(); },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chamado_historico" },
+        (payload) => {
+          const h = payload.new as { tipo?: string; descricao?: string; autor?: string | null };
+          if (h.autor && user?.email && h.autor === user.email) return;
+          if (h.tipo === "relato") {
+            toast.info("Novo relato adicionado", { description: h.descricao });
+          }
+        },
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [page, searchDebounced, statusFilter, prioridadeFilter, responsavelFilter, user?.id]);
+  }, [page, searchDebounced, statusFilter, prioridadeFilter, responsavelFilter, user?.id, user?.email]);
 
   // Abertura automática via deeplink (ex: vindo da página de cliente)
   useEffect(() => {
