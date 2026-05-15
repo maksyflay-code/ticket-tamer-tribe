@@ -326,6 +326,59 @@ function ChartCard({ title, children, className = "" }: { title: string; childre
   );
 }
 
+function DonutChart({ data }: { data: { name: string; value: number; color: string }[] }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  if (total === 0) {
+    return (
+      <div className="h-[240px] flex items-center justify-center text-muted-foreground font-mono text-xs">
+        Sem dados.
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-4">
+      <div className="relative w-[180px] h-[200px] shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius="62%"
+              outerRadius="92%"
+              paddingAngle={2}
+              stroke="hsl(var(--card))"
+              strokeWidth={2}
+            >
+              {data.map((d, i) => <Cell key={i} fill={d.color} />)}
+            </Pie>
+            <Tooltip contentStyle={tooltipStyle} formatter={(v: number, n: string) => [`${v} (${((v/total)*100).toFixed(0)}%)`, n]} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <div className="font-display text-3xl font-bold tabular-nums">{total}</div>
+          <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">total</div>
+        </div>
+      </div>
+      <ul className="flex-1 min-w-0 space-y-1.5">
+        {data.map((d) => {
+          const pct = (d.value / total) * 100;
+          return (
+            <li key={d.name} className="flex items-center gap-2 text-xs">
+              <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
+              <span className="font-mono uppercase truncate flex-1">{d.name}</span>
+              <span className="font-mono tabular-nums text-muted-foreground">{d.value}</span>
+              <span className="font-mono tabular-nums text-muted-foreground w-10 text-right">{pct.toFixed(0)}%</span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function RankingList({ ranking }: { ranking: { tecnico: string; resolvidos: number }[] }) {
   if (ranking.length === 0) {
     return (
