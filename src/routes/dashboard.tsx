@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -57,6 +59,7 @@ const prioridadeColor = (p: string) => {
 };
 
 function DashboardPage() {
+  const { user } = useAuth();
   const [stats, setStats] = useState<Stats>({ abertos: 0, emAndamento: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0, porPrioridade: {} });
   const [recentes, setRecentes] = useState<Chamado[]>([]);
   const [statusDist, setStatusDist] = useState<{ name: string; value: number; color: string }[]>([]);
@@ -165,6 +168,51 @@ function DashboardPage() {
   useEffect(() => {
     load();
   }, []);
+
+  // Realtime: notifica e atualiza dashboard ao receber novos chamados/relatos/finalizações
+  useEffect(() => {
+    const codeOf = (r: { codigo?: string | null; numero?: number | null } | null | undefined) =>
+      r?.codigo ?? (r?.numero != null ? `#TK-${String(r.numero).padStart(4, "0")}` : "");
+    const channel = supabase
+      .channel("dashboard-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chamados" },
+        (payload) => {
+          const n = payload.new as { codigo?: string | null; numero?: number | null; titulo?: string };
+          toast.info(`Novo chamado ${codeOf(n)}`, { description: n.titulo ?? undefined });
+          load();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "chamados" },
+        (payload) => {
+          const o = payload.old as { status?: string };
+          const n = payload.new as { status?: string; codigo?: string | null; numero?: number | null; titulo?: string };
+          if (o?.status !== n?.status && (n.status === "resolvido" || n.status === "fechado")) {
+            toast.success(`Chamado ${codeOf(n)} finalizado`, { description: n.titulo ?? undefined });
+          }
+          load();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "chamados" },
+        () => { load(); },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chamado_historico" },
+        (payload) => {
+          const h = payload.new as { tipo?: string; descricao?: string; autor?: string | null };
+          if (h.autor && user?.email && h.autor === user.email) return;
+          if (h.tipo === "relato") toast.info("Novo relato adicionado", { description: h.descricao });
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.email]);
 
   const cards = [
     { label: "Chamados Abertos", value: stats.abertos, icon: AlertTriangle, color: "bg-amber-500", w: "65%", to: "/chamados", status: "aberto" as const },
