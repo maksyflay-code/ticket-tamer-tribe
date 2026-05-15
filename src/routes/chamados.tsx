@@ -825,7 +825,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex justify-end" onClick={onClose}>
-      <div className="bg-card border-l border-border w-full max-w-2xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div ref={scrollRef} className="bg-card border-l border-border w-full max-w-2xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-border flex justify-between items-start sticky top-0 bg-card z-10">
           <div>
             <div className="text-[10px] font-mono text-muted-foreground uppercase">{ticketLabel(chamado)}</div>
@@ -1013,6 +1013,11 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                   </div>
                 );
               })}
+              {historicoHasMore && (
+                <div ref={sentinelRef} className="text-center text-[10px] font-mono text-muted-foreground py-2">
+                  {historicoLoadingMore ? "Carregando…" : ""}
+                </div>
+              )}
             </div>
           </section>
         </div>
