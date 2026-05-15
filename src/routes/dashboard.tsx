@@ -7,7 +7,7 @@ import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPl
 import { Link } from "@tanstack/react-router";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
-  XAxis, YAxis, CartesianGrid, AreaChart, Area, defs as _defs,
+  XAxis, YAxis, CartesianGrid, AreaChart, Area,
 } from "recharts";
 
 export const Route = createFileRoute("/dashboard")({
@@ -220,38 +220,32 @@ function DashboardPage() {
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
         <ChartCard title="Distribuição por status">
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
-              <Pie data={statusDist} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius="80%" label={(e: { value?: number }) => e.value ?? ""}>
-                {statusDist.map((d, i) => <Cell key={i} fill={d.color} />)}
-              </Pie>
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={legendStyle} />
-            </PieChart>
-          </ResponsiveContainer>
+          <DonutChart data={statusDist} />
         </ChartCard>
         <ChartCard title="Distribuição por prioridade">
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
-              <Pie data={prioridadeDist} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius="80%" label={(e: { value?: number }) => e.value ?? ""}>
-                {prioridadeDist.map((d, i) => <Cell key={i} fill={d.color} />)}
-              </Pie>
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={legendStyle} />
-            </PieChart>
-          </ResponsiveContainer>
+          <DonutChart data={prioridadeDist} />
         </ChartCard>
         <ChartCard title="Volume diário no mês">
           <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={dailySerie} margin={{ top: 8, right: 16, left: -10, bottom: 0 }}>
-              <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
-              <XAxis dataKey="dia" tick={{ fontSize: 10, fill: "#a1a1aa" }} />
-              <YAxis tick={{ fontSize: 10, fill: "#a1a1aa" }} allowDecimals={false} />
+            <AreaChart data={dailySerie} margin={{ top: 8, right: 16, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gradAbertos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradResolvidos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="#27272a" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="dia" tick={{ fontSize: 10, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: "#a1a1aa" }} allowDecimals={false} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={tooltipStyle} />
               <Legend wrapperStyle={legendStyle} />
-              <Line type="monotone" dataKey="abertos" stroke="#f59e0b" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="resolvidos" stroke="#10b981" strokeWidth={2} dot={false} />
-            </LineChart>
+              <Area type="monotone" dataKey="abertos" stroke="#f59e0b" strokeWidth={2} fill="url(#gradAbertos)" />
+              <Area type="monotone" dataKey="resolvidos" stroke="#10b981" strokeWidth={2} fill="url(#gradResolvidos)" />
+            </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
         <ChartCard title="Ranking de técnicos (mês)">
