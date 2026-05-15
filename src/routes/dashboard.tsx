@@ -7,7 +7,7 @@ import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPl
 import { Link } from "@tanstack/react-router";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
-  XAxis, YAxis, CartesianGrid, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, AreaChart, Area,
 } from "recharts";
 
 export const Route = createFileRoute("/dashboard")({
@@ -220,38 +220,32 @@ function DashboardPage() {
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
         <ChartCard title="Distribuição por status">
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
-              <Pie data={statusDist} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius="80%" label={(e: { value?: number }) => e.value ?? ""}>
-                {statusDist.map((d, i) => <Cell key={i} fill={d.color} />)}
-              </Pie>
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={legendStyle} />
-            </PieChart>
-          </ResponsiveContainer>
+          <DonutChart data={statusDist} />
         </ChartCard>
         <ChartCard title="Distribuição por prioridade">
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
-              <Pie data={prioridadeDist} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius="80%" label={(e: { value?: number }) => e.value ?? ""}>
-                {prioridadeDist.map((d, i) => <Cell key={i} fill={d.color} />)}
-              </Pie>
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={legendStyle} />
-            </PieChart>
-          </ResponsiveContainer>
+          <DonutChart data={prioridadeDist} />
         </ChartCard>
         <ChartCard title="Volume diário no mês">
           <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={dailySerie} margin={{ top: 8, right: 16, left: -10, bottom: 0 }}>
-              <CartesianGrid stroke="#27272a" strokeDasharray="3 3" />
-              <XAxis dataKey="dia" tick={{ fontSize: 10, fill: "#a1a1aa" }} />
-              <YAxis tick={{ fontSize: 10, fill: "#a1a1aa" }} allowDecimals={false} />
+            <AreaChart data={dailySerie} margin={{ top: 8, right: 16, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gradAbertos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradResolvidos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="#27272a" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="dia" tick={{ fontSize: 10, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: "#a1a1aa" }} allowDecimals={false} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={tooltipStyle} />
               <Legend wrapperStyle={legendStyle} />
-              <Line type="monotone" dataKey="abertos" stroke="#f59e0b" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="resolvidos" stroke="#10b981" strokeWidth={2} dot={false} />
-            </LineChart>
+              <Area type="monotone" dataKey="abertos" stroke="#f59e0b" strokeWidth={2} fill="url(#gradAbertos)" />
+              <Area type="monotone" dataKey="resolvidos" stroke="#10b981" strokeWidth={2} fill="url(#gradResolvidos)" />
+            </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
         <ChartCard title="Ranking de técnicos (mês)">
@@ -328,6 +322,59 @@ function ChartCard({ title, children, className = "" }: { title: string; childre
     <div className={`border border-border bg-card p-3 md:p-5 ${className}`}>
       <h3 className="font-display text-sm font-bold tracking-tight mb-3">{title}</h3>
       <div className="w-full">{children}</div>
+    </div>
+  );
+}
+
+function DonutChart({ data }: { data: { name: string; value: number; color: string }[] }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  if (total === 0) {
+    return (
+      <div className="h-[240px] flex items-center justify-center text-muted-foreground font-mono text-xs">
+        Sem dados.
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-4">
+      <div className="relative w-[180px] h-[200px] shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius="62%"
+              outerRadius="92%"
+              paddingAngle={2}
+              stroke="hsl(var(--card))"
+              strokeWidth={2}
+            >
+              {data.map((d, i) => <Cell key={i} fill={d.color} />)}
+            </Pie>
+            <Tooltip contentStyle={tooltipStyle} formatter={(v: number, n: string) => [`${v} (${((v/total)*100).toFixed(0)}%)`, n]} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <div className="font-display text-3xl font-bold tabular-nums">{total}</div>
+          <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">total</div>
+        </div>
+      </div>
+      <ul className="flex-1 min-w-0 space-y-1.5">
+        {data.map((d) => {
+          const pct = (d.value / total) * 100;
+          return (
+            <li key={d.name} className="flex items-center gap-2 text-xs">
+              <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
+              <span className="font-mono uppercase truncate flex-1">{d.name}</span>
+              <span className="font-mono tabular-nums text-muted-foreground">{d.value}</span>
+              <span className="font-mono tabular-nums text-muted-foreground w-10 text-right">{pct.toFixed(0)}%</span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
