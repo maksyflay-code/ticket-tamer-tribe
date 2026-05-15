@@ -163,6 +163,20 @@ function ChamadosPage() {
   };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [page, searchDebounced, statusFilter, prioridadeFilter, responsavelFilter, user?.id]);
 
+  // Realtime: recarrega a lista quando qualquer chamado muda (criação/edição/remoção)
+  useEffect(() => {
+    const channel = supabase
+      .channel("chamados-list-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chamados" },
+        () => { load(); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [page, searchDebounced, statusFilter, prioridadeFilter, responsavelFilter, user?.id]);
+
   // Abertura automática via deeplink (ex: vindo da página de cliente)
   useEffect(() => {
     if (typeof window === "undefined") return;
