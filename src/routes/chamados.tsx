@@ -793,6 +793,25 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
   };
   useEffect(() => { load(); }, [chamado.id]);
 
+  // Realtime: novos relatos/eventos do chamado aberto
+  useEffect(() => {
+    const channel = supabase
+      .channel(`chamado-historico-${chamado.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chamado_historico", filter: `chamado_id=eq.${chamado.id}` },
+        (payload) => {
+          const h = payload.new as Historico;
+          setHistorico((prev) => (prev.some((p) => p.id === h.id) ? prev : [h, ...prev]));
+          if (h.autor && h.autor === autor) return;
+          if (h.tipo === "relato") toast.info("Novo relato neste chamado", { description: h.descricao });
+          else if (h.tipo === "mudanca_status") toast.message("Status atualizado", { description: h.descricao });
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [chamado.id, autor]);
+
   const loadMoreHistorico = async () => {
     if (historicoLoadingMore || !historicoHasMore) return;
     setHistoricoLoadingMore(true);
