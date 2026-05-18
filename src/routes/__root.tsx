@@ -1,8 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "@/components/ui/sonner";
-import { installServerFunctionFailureMonitor } from "@/lib/server-function-monitor";
 
 import appCss from "../styles.css?url";
 
@@ -77,10 +75,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  useEffect(() => {
-    installServerFunctionFailureMonitor();
-  }, []);
-
   return (
     <AuthProvider>
       <Outlet />
