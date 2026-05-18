@@ -62,18 +62,25 @@ function TransitoVtalPage() {
   const lookupPrefixos = async (asn: string) => {
     try {
       const r = await fetch(
-        `https://stat.ripe.net/data/announced-prefixes/data.json?resource=AS${asn}`,
+        `https://stat.ripe.net/data/announced-prefixes/data.json?resource=AS${asn}&min_peers_seeing=1`,
       );
       if (!r.ok) throw new Error("ripestat falhou");
       const j = await r.json();
-      const list: string[] = (j?.data?.prefixes ?? []).map((p: any) => p.prefix);
-      const all = Array.from(new Set(list));
+      const list: string[] = (j?.data?.prefixes ?? [])
+        .map((p: any) => String(p.prefix || "").trim())
+        .filter(Boolean);
+      const unique = Array.from(new Set(list));
+      const v4 = unique.filter((p) => p.includes(".")).sort();
+      const v6 = unique.filter((p) => p.includes(":")).sort();
+      const all = [...v4, ...v6];
       if (all.length === 0) {
         toast.message("Nenhum prefixo anunciado encontrado para este AS.");
         return;
       }
       setPrefixos(all);
-      toast.success(`${all.length} prefixo(s) carregado(s).`);
+      toast.success(
+        `${all.length} prefixo(s) carregado(s) (IPv4: ${v4.length}, IPv6: ${v6.length}).`,
+      );
     } catch {
       toast.error("Falha ao consultar prefixos (RIPEstat).");
     }
