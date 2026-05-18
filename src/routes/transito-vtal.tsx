@@ -114,9 +114,9 @@ function TransitoVtalPage() {
       // Cobrir valores antigos: AS / AS-PATH e a área de prefixos (estendida)
       const prefixAreaH = Math.max(13, 14 * prefList.length + 4);
       const lines = [
-        { top: 612, h: 13, x: 83, w: 457 },
-        { top: 635, h: 13, x: 83, w: 457 },
-        { top: 657, h: prefixAreaH, x: 83, w: 457 },
+        { top: 612, h: 13, x: 83, w: 445 },
+        { top: 635, h: 13, x: 83, w: 445 },
+        { top: 657, h: prefixAreaH, x: 83, w: 445 },
       ];
       for (const l of lines) {
         page.drawRectangle({
