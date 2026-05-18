@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
 import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { listAssignableOperators } from "@/lib/operators.functions";
+import { authHeaders } from "@/lib/server-call";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
   XAxis, YAxis, CartesianGrid, AreaChart, Area,
