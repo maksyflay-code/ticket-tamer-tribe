@@ -183,6 +183,50 @@ function NotificacoesPage() {
   );
 }
 
+async function loadNotificationsPage(userId: string, page: number, pageSize: number, onlyUnread: boolean) {
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+  const { data: hist, count, error } = await supabase
+    .from("chamado_historico")
+    .select("id, chamado_id, tipo, descricao, autor, status_anterior, status_novo, created_at", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(from, to);
+  if (error) throw error;
+
+  const rows = (hist ?? []) as HistRow[];
+  const ids = rows.map((r) => r.id);
+  const chamadoIds = Array.from(new Set(rows.map((r) => r.chamado_id)));
+
+  const [readsRes, chamadosRes] = await Promise.all([
+    ids.length
+      ? supabase.from("notification_reads").select("historico_id").eq("user_id", userId).in("historico_id", ids)
+      : Promise.resolve({ data: [] as { historico_id: string }[] }),
+    chamadoIds.length
+      ? supabase.from("chamados").select("id, codigo, numero, titulo").in("id", chamadoIds)
+      : Promise.resolve({ data: [] as { id: string; codigo: string | null; numero: number; titulo: string }[] }),
+  ]);
+
+  const readSet = new Set((readsRes.data ?? []).map((r) => r.historico_id));
+  const chamadoMap = new Map(
+    ((chamadosRes.data ?? []) as { id: string; codigo: string | null; numero: number; titulo: string }[]).map((c) => [c.id, c]),
+  );
+
+  const items = rows
+    .filter((r) => (onlyUnread ? !readSet.has(r.id) : true))
+    .map((r): NotificationItem => {
+      const chamado = chamadoMap.get(r.chamado_id);
+      return {
+        ...r,
+        read: readSet.has(r.id),
+        chamado_codigo: chamado?.codigo ?? null,
+        chamado_numero: chamado?.numero ?? null,
+        chamado_titulo: chamado?.titulo ?? null,
+      };
+    });
+
+  return { items, total: count ?? 0, page, pageSize };
+}
+
 function iconFor(tipo: string) {
   if (tipo === "mudanca_status") return <RefreshCw className="h-4 w-4 text-amber-400" />;
   if (tipo === "comentario" || tipo === "relato")
