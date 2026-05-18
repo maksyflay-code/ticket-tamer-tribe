@@ -1,10 +1,13 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock, Bell } from "lucide-react";
 import logo from "@/assets/ivi-logo.jpeg";
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { getUnreadCount } from "@/lib/notifications.functions";
+import { authHeaders } from "@/lib/server-call";
+import { supabase } from "@/integrations/supabase/client";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, n: "01" },
@@ -25,6 +28,25 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const r = await getUnreadCount({ headers: await authHeaders() });
+        if (active) setUnread(r.count);
+      } catch { /* ignore */ }
+    };
+    refresh();
+    const channel = supabase
+      .channel("appshell-notif")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chamado_historico" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notification_reads" }, refresh)
+      .subscribe();
+    return () => { active = false; supabase.removeChannel(channel); };
+  }, [user]);
 
   const onLogout = async () => {
     await signOut();
@@ -168,6 +190,19 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
             <Activity className="h-3.5 w-3.5 text-emerald-400" />
             <span>SISTEMA OPERACIONAL</span>
           </div>
+          <Link
+            to="/notificacoes"
+            className="relative ml-auto sm:ml-2 p-2 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Notificações"
+            title="Notificações"
+          >
+            <Bell className="h-5 w-5" />
+            {unread > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
+                {unread > 99 ? "99+" : unread}
+              </span>
+            )}
+          </Link>
         </header>
         <div className="flex-1 p-4 md:p-8">{children}</div>
       </main>
