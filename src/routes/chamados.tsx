@@ -118,11 +118,6 @@ function ChamadosPage() {
   const [slaMap, setSlaMap] = useState<SlaMap | null>(null);
 
   useEffect(() => { getSlaMap().then(setSlaMap); }, []);
-  const authorName =
-    (user?.user_metadata as { full_name?: string; name?: string } | undefined)?.full_name?.trim() ||
-    (user?.user_metadata as { full_name?: string; name?: string } | undefined)?.name?.trim() ||
-    operators.find((o) => o.email === autor)?.name?.trim() ||
-    autor;
 
   // Mantemos um ref atualizado com operadores para uso dentro dos handlers do realtime
   const operatorsRef = useRef<Operator[]>([]);
@@ -753,6 +748,11 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
   const [nowTick, setNowTick] = useState(0);
 
   useEffect(() => { getSlaMap().then(setSlaMap); }, []);
+  const authorName =
+    (user?.user_metadata as { full_name?: string; name?: string } | undefined)?.full_name?.trim() ||
+    (user?.user_metadata as { full_name?: string; name?: string } | undefined)?.name?.trim() ||
+    operators.find((o) => o.email === autor)?.name?.trim() ||
+    autor;
   // Atualiza contador de SLA a cada 30s
   useEffect(() => {
     const t = setInterval(() => setNowTick((n) => n + 1), 30_000);
