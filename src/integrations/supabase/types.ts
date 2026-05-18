@@ -259,6 +259,54 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          notify_finalizacao: boolean
+          notify_relato: boolean
+          notify_status: boolean
+          push_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          notify_finalizacao?: boolean
+          notify_relato?: boolean
+          notify_status?: boolean
+          push_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          notify_finalizacao?: boolean
+          notify_relato?: boolean
+          notify_status?: boolean
+          push_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_reads: {
+        Row: {
+          historico_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          historico_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          historico_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       planos: {
         Row: {
           ativo: boolean
@@ -295,6 +343,39 @@ export type Database = {
           updated_at?: string
           velocidade_download?: number | null
           velocidade_upload?: number | null
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_used_at: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_used_at?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_used_at?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
