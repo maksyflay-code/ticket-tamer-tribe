@@ -170,6 +170,22 @@ function DashboardPage() {
     load();
   }, []);
 
+  // Mapa email -> nome dos operadores para mostrar nas notificações
+  const operatorsRef = useRef<Array<{ email: string; name: string | null }>>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const ops = await listAssignableOperators({ headers: await authHeaders() });
+        operatorsRef.current = ops as Array<{ email: string; name: string | null }>;
+      } catch { /* visualizador: ignora */ }
+    })();
+  }, []);
+  const nameOf = (email?: string | null) => {
+    if (!email) return "sistema";
+    const op = operatorsRef.current.find((o) => o.email === email);
+    return op?.name?.trim() || email;
+  };
+
   // Realtime: notifica e atualiza dashboard ao receber novos chamados/relatos/finalizações
   useEffect(() => {
     const codeOf = (r: { codigo?: string | null; numero?: number | null } | null | undefined) =>
@@ -223,7 +239,7 @@ function DashboardPage() {
             .from("chamados").select("codigo, numero, titulo").eq("id", h.chamado_id).maybeSingle();
           const code = codeOf(c as { codigo?: string | null; numero?: number | null } | null);
           const head = `${ACTION_LABEL[h.tipo ?? ""] ?? "Atualização"} • ${code}`;
-          const desc = `por ${h.autor ?? "sistema"}${h.descricao ? ` — ${h.descricao}` : ""}`;
+          const desc = `por ${nameOf(h.autor)}${h.descricao ? ` — ${h.descricao}` : ""}`;
           const opts = { description: desc, action: actionFor(h.chamado_id) };
           const isFinal = h.tipo === "mudanca_status" && /resolvido|fechado/i.test(h.descricao ?? "");
           if (isFinal) toast.success(head, opts);
