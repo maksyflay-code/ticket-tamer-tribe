@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
 import { getSlaMap, calcSla, formatHorasRestantes, type SlaMap } from "@/lib/sla";
+import { triggerPushForChamado } from "@/lib/notifications.functions";
 
 export const Route = createFileRoute("/chamados")({
   beforeLoad: requireAuth,
@@ -747,6 +748,11 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
   const [nowTick, setNowTick] = useState(0);
 
   useEffect(() => { getSlaMap().then(setSlaMap); }, []);
+  const authorName =
+    (user?.user_metadata as { full_name?: string; name?: string } | undefined)?.full_name?.trim() ||
+    (user?.user_metadata as { full_name?: string; name?: string } | undefined)?.name?.trim() ||
+    operators.find((o) => o.email === autor)?.name?.trim() ||
+    autor;
   // Atualiza contador de SLA a cada 30s
   useEffect(() => {
     const t = setInterval(() => setNowTick((n) => n + 1), 30_000);
@@ -785,11 +791,26 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
       await supabase.from("chamado_historico").insert({
         chamado_id: chamado.id, tipo: "relato", descricao: comentario.trim(), autor,
       } as never);
+      void triggerPushForChamado({
+        headers: await authHeaders(),
+        data: { chamadoId: chamado.id, tipo: "relato", descricao: comentario.trim(), autorNome: authorName },
+      }).catch(() => {});
       setComentario("");
     }
     const { error } = await supabase.from("chamados").update(payload as never).eq("id", chamado.id);
     setSavingQuick(false);
     if (error) return toast.error(error.message);
+    if (status !== chamado.status) {
+      void triggerPushForChamado({
+        headers: await authHeaders(),
+        data: {
+          chamadoId: chamado.id,
+          tipo: finalizando ? "finalizacao" : "status",
+          descricao: `Status alterado de ${chamado.status} para ${status}`,
+          autorNome: authorName,
+        },
+      }).catch(() => {});
+    }
     toast.success(finalizando ? "Chamado finalizado" : "Chamado atualizado");
     Object.assign(chamado, payload);
     if (finalizando && effectiveRespId) setResponsavelId(effectiveRespId);
@@ -892,6 +913,10 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
       chamado_id: chamado.id, tipo: "relato", descricao: comentario.trim(), autor,
     } as never);
     if (error) return toast.error(error.message);
+    void triggerPushForChamado({
+      headers: await authHeaders(),
+      data: { chamadoId: chamado.id, tipo: "relato", descricao: comentario.trim(), autorNome: authorName },
+    }).catch(() => {});
     setComentario(""); load();
   };
 

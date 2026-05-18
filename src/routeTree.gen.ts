@@ -14,12 +14,14 @@ import { Route as RfoRouteImport } from './routes/rfo'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as NotificacoesRouteImport } from './routes/notificacoes'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EquipamentosRouteImport } from './routes/equipamentos'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ChamadosRouteImport } from './routes/chamados'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as NotificacoesPreferenciasRouteImport } from './routes/notificacoes.preferencias'
 import { Route as ConfiguracoesSlaRouteImport } from './routes/configuracoes.sla'
 import { Route as ClientesIdRouteImport } from './routes/clientes_.$id'
 import { Route as ApiPublicDiagRouteImport } from './routes/api/public/_diag'
@@ -47,6 +49,11 @@ const PlanosRoute = PlanosRouteImport.update({
 const PerfilRoute = PerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificacoesRoute = NotificacoesRouteImport.update({
+  id: '/notificacoes',
+  path: '/notificacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -79,6 +86,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NotificacoesPreferenciasRoute =
+  NotificacoesPreferenciasRouteImport.update({
+    id: '/preferencias',
+    path: '/preferencias',
+    getParentRoute: () => NotificacoesRoute,
+  } as any)
 const ConfiguracoesSlaRoute = ConfiguracoesSlaRouteImport.update({
   id: '/configuracoes/sla',
   path: '/configuracoes/sla',
@@ -102,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
+  '/notificacoes': typeof NotificacoesRouteWithChildren
   '/perfil': typeof PerfilRoute
   '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
@@ -109,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/usuarios': typeof UsuariosRoute
   '/clientes/$id': typeof ClientesIdRoute
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
+  '/notificacoes/preferencias': typeof NotificacoesPreferenciasRoute
   '/api/public': typeof ApiPublicDiagRoute
 }
 export interface FileRoutesByTo {
@@ -118,6 +133,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
+  '/notificacoes': typeof NotificacoesRouteWithChildren
   '/perfil': typeof PerfilRoute
   '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
@@ -125,6 +141,7 @@ export interface FileRoutesByTo {
   '/usuarios': typeof UsuariosRoute
   '/clientes/$id': typeof ClientesIdRoute
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
+  '/notificacoes/preferencias': typeof NotificacoesPreferenciasRoute
   '/api/public': typeof ApiPublicDiagRoute
 }
 export interface FileRoutesById {
@@ -135,6 +152,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
+  '/notificacoes': typeof NotificacoesRouteWithChildren
   '/perfil': typeof PerfilRoute
   '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
@@ -142,6 +160,7 @@ export interface FileRoutesById {
   '/usuarios': typeof UsuariosRoute
   '/clientes_/$id': typeof ClientesIdRoute
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
+  '/notificacoes/preferencias': typeof NotificacoesPreferenciasRoute
   '/api/public/_diag': typeof ApiPublicDiagRoute
 }
 export interface FileRouteTypes {
@@ -153,6 +172,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/equipamentos'
     | '/login'
+    | '/notificacoes'
     | '/perfil'
     | '/planos'
     | '/relatorios'
@@ -160,6 +180,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/clientes/$id'
     | '/configuracoes/sla'
+    | '/notificacoes/preferencias'
     | '/api/public'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -169,6 +190,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/equipamentos'
     | '/login'
+    | '/notificacoes'
     | '/perfil'
     | '/planos'
     | '/relatorios'
@@ -176,6 +198,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/clientes/$id'
     | '/configuracoes/sla'
+    | '/notificacoes/preferencias'
     | '/api/public'
   id:
     | '__root__'
@@ -185,6 +208,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/equipamentos'
     | '/login'
+    | '/notificacoes'
     | '/perfil'
     | '/planos'
     | '/relatorios'
@@ -192,6 +216,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/clientes_/$id'
     | '/configuracoes/sla'
+    | '/notificacoes/preferencias'
     | '/api/public/_diag'
   fileRoutesById: FileRoutesById
 }
@@ -202,6 +227,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   EquipamentosRoute: typeof EquipamentosRoute
   LoginRoute: typeof LoginRoute
+  NotificacoesRoute: typeof NotificacoesRouteWithChildren
   PerfilRoute: typeof PerfilRoute
   PlanosRoute: typeof PlanosRoute
   RelatoriosRoute: typeof RelatoriosRoute
@@ -249,6 +275,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/notificacoes': {
+      id: '/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/notificacoes'
+      preLoaderRoute: typeof NotificacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -291,6 +324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/notificacoes/preferencias': {
+      id: '/notificacoes/preferencias'
+      path: '/preferencias'
+      fullPath: '/notificacoes/preferencias'
+      preLoaderRoute: typeof NotificacoesPreferenciasRouteImport
+      parentRoute: typeof NotificacoesRoute
+    }
     '/configuracoes/sla': {
       id: '/configuracoes/sla'
       path: '/configuracoes/sla'
@@ -315,6 +355,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface NotificacoesRouteChildren {
+  NotificacoesPreferenciasRoute: typeof NotificacoesPreferenciasRoute
+}
+
+const NotificacoesRouteChildren: NotificacoesRouteChildren = {
+  NotificacoesPreferenciasRoute: NotificacoesPreferenciasRoute,
+}
+
+const NotificacoesRouteWithChildren = NotificacoesRoute._addFileChildren(
+  NotificacoesRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChamadosRoute: ChamadosRoute,
@@ -322,6 +374,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   EquipamentosRoute: EquipamentosRoute,
   LoginRoute: LoginRoute,
+  NotificacoesRoute: NotificacoesRouteWithChildren,
   PerfilRoute: PerfilRoute,
   PlanosRoute: PlanosRoute,
   RelatoriosRoute: RelatoriosRoute,
@@ -334,12 +387,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
