@@ -1,0 +1,76 @@
+import webpush from "web-push";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+const VAPID_PUBLIC =
+  "BPYLG9Ly9J-cCP4nXoxUbyzM-4VoF02enSHjK-1zLSDdsmGJtAHDzoTJ3NErTIyCq_rgXbrJdV5S0pjhuWwZ1UA";
+const VAPID_PRIVATE = "uzx_jtblYHlDKKymVY-gh_ySr4UFKOWmK654sKxo7MY";
+const VAPID_SUBJECT = "mailto:no-reply@ivitelecom.local";
+
+let configured = false;
+function ensureConfigured() {
+  if (configured) return;
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+  configured = true;
+}
+
+export type PushPayload = {
+  title: string;
+  body: string;
+  url?: string;
+  tag?: string;
+};
+
+type PrefKey = "notify_finalizacao" | "notify_relato" | "notify_status";
+
+/**
+ * Fan out a push notification to every user that opted-in for the given
+ * preference key and that has at least one active push subscription.
+ */
+export async function fanOutPush(prefKey: PrefKey, payload: PushPayload) {
+  ensureConfigured();
+
+  const { data: prefs, error: prefsErr } = await supabaseAdmin
+    .from("notification_preferences")
+    .select("user_id, push_enabled, " + prefKey)
+    .eq("push_enabled", true)
+    .eq(prefKey, true);
+
+  if (prefsErr || !prefs?.length) return { sent: 0 };
+
+  const userIds = prefs.map((p: { user_id: string }) => p.user_id);
+
+  const { data: subs, error: subsErr } = await supabaseAdmin
+    .from("push_subscriptions")
+    .select("id, endpoint, p256dh, auth, user_id")
+    .in("user_id", userIds);
+
+  if (subsErr || !subs?.length) return { sent: 0 };
+
+  const body = JSON.stringify(payload);
+  let sent = 0;
+  const toDelete: string[] = [];
+
+  await Promise.all(
+    subs.map(async (s) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: s.endpoint,
+            keys: { p256dh: s.p256dh, auth: s.auth },
+          },
+          body,
+        );
+        sent++;
+      } catch (err: unknown) {
+        const statusCode = (err as { statusCode?: number })?.statusCode;
+        if (statusCode === 404 || statusCode === 410) toDelete.push(s.id);
+      }
+    }),
+  );
+
+  if (toDelete.length) {
+    await supabaseAdmin.from("push_subscriptions").delete().in("id", toDelete);
+  }
+
+  return { sent };
+}
