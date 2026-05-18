@@ -31,13 +31,13 @@ export async function fanOutPush(prefKey: PrefKey, payload: PushPayload) {
 
   const { data: prefs, error: prefsErr } = await supabaseAdmin
     .from("notification_preferences")
-    .select("user_id, push_enabled, " + prefKey)
+    .select("user_id, push_enabled, notify_finalizacao, notify_relato, notify_status")
     .eq("push_enabled", true)
     .eq(prefKey, true);
 
   if (prefsErr || !prefs?.length) return { sent: 0 };
 
-  const userIds = prefs.map((p: { user_id: string }) => p.user_id);
+  const userIds = (prefs as { user_id: string }[]).map((p) => p.user_id);
 
   const { data: subs, error: subsErr } = await supabaseAdmin
     .from("push_subscriptions")
