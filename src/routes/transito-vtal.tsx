@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, Plus, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/transito-vtal")({
@@ -17,11 +17,55 @@ function TransitoVtalPage() {
   const [asNumber, setAsNumber] = useState("");
   const [asName, setAsName] = useState("");
   const [asPath, setAsPath] = useState("");
-  const [prefixo, setPrefixo] = useState("");
+  const [prefixos, setPrefixos] = useState<string[]>([""]);
   const [busy, setBusy] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+
+  const lookupAs = async (asn: string) => {
+    const clean = asn.replace(/^AS/i, "").trim();
+    if (!/^\d+$/.test(clean)) return;
+    setLookingUp(true);
+    try {
+      const r = await fetch(`https://rdap.registro.br/autnum/${clean}`, {
+        headers: { Accept: "application/rdap+json" },
+      });
+      if (!r.ok) {
+        // fallback RDAP global
+        const r2 = await fetch(`https://rdap.arin.net/registry/autnum/${clean}`);
+        if (!r2.ok) throw new Error("not found");
+        const j2 = await r2.json();
+        const nm = j2.name || j2.handle;
+        if (nm) setAsName(nm);
+        toast.success(`AS${clean}: ${nm ?? "encontrado"}`);
+        return;
+      }
+      const j = await r.json();
+      // registro.br: name = handle do AS; entidade vCard tem o nome legal
+      let nome: string | undefined = j.name;
+      const ent = (j.entities ?? [])[0];
+      const vcard = ent?.vcardArray?.[1];
+      if (Array.isArray(vcard)) {
+        const fn = vcard.find((v: any) => v[0] === "fn");
+        if (fn?.[3]) nome = String(fn[3]);
+      }
+      if (nome) setAsName(nome);
+      toast.success(`AS${clean}: ${nome ?? "encontrado"}`);
+    } catch {
+      toast.error("AS não encontrado no registro.br");
+    } finally {
+      setLookingUp(false);
+    }
+  };
+
+  const updatePrefixo = (i: number, v: string) =>
+    setPrefixos((p) => p.map((x, idx) => (idx === i ? v : x)));
+  const addPrefixo = () => setPrefixos((p) => [...p, ""]);
+  const removePrefixo = (i: number) =>
+    setPrefixos((p) => (p.length === 1 ? [""] : p.filter((_, idx) => idx !== i)));
 
   const gerarPdf = async () => {
-    if (!asNumber.trim() || !asPath.trim() || !prefixo.trim()) {
+    const prefList = prefixos.map((p) => p.trim()).filter(Boolean);
+    if (!asNumber.trim() || !asPath.trim() || prefList.length === 0) {
       toast.error("Preencha AS, AS-PATH e PREFIXO.");
       return;
     }
@@ -38,12 +82,12 @@ function TransitoVtalPage() {
       const white = rgb(1, 1, 1);
       const black = rgb(0, 0, 0);
 
-      // Cobrir valores antigos: AS / AS-PATH / Prefixo
-      // Coordenadas extraídas do template (origem topo, converte p/ origem inferior).
+      // Cobrir valores antigos: AS / AS-PATH e a área de prefixos (estendida)
+      const prefixAreaH = Math.max(13, 14 * prefList.length + 4);
       const lines = [
-        { top: 612, h: 13, x: 82, w: 460 }, // linha AS:
-        { top: 635, h: 13, x: 82, w: 460 }, // linha AS-PATH:
-        { top: 657, h: 13, x: 82, w: 460 }, // linha do prefixo
+        { top: 612, h: 13, x: 82, w: 460 },
+        { top: 635, h: 13, x: 82, w: 460 },
+        { top: 657, h: prefixAreaH, x: 82, w: 460 },
       ];
       for (const l of lines) {
         page.drawRectangle({
@@ -68,7 +112,7 @@ function TransitoVtalPage() {
       const asLine = `AS: ${asNumber.trim()}${asName.trim() ? "  " + asName.trim() : ""}`;
       draw(asLine, 83, 613);
       draw(`AS-PATH: ${asPath.trim()}`, 83, 636);
-      draw(prefixo.trim(), 83, 658);
+      prefList.forEach((p, i) => draw(p, 83, 658 + i * 14));
 
       const out = await pdf.save();
       const blob = new Blob([out as BlobPart], { type: "application/pdf" });
@@ -100,18 +144,31 @@ function TransitoVtalPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="asn">AS (ASN)</Label>
-                <Input
-                  id="asn"
-                  placeholder="268199"
-                  value={asNumber}
-                  onChange={(e) => setAsNumber(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="asn"
+                    placeholder="268199"
+                    value={asNumber}
+                    onChange={(e) => setAsNumber(e.target.value)}
+                    onBlur={(e) => e.target.value && lookupAs(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => lookupAs(asNumber)}
+                    disabled={lookingUp || !asNumber.trim()}
+                    title="Consultar no registro.br"
+                  >
+                    {lookingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="asname">Nome do AS (opcional)</Label>
+                <Label htmlFor="asname">Nome do AS</Label>
                 <Input
                   id="asname"
-                  placeholder="Rios Network"
+                  placeholder="Preenchido automaticamente"
                   value={asName}
                   onChange={(e) => setAsName(e.target.value)}
                 />
@@ -127,13 +184,33 @@ function TransitoVtalPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="prefixo">PREFIXO</Label>
-              <Input
-                id="prefixo"
-                placeholder="151.246.225.0/24"
-                value={prefixo}
-                onChange={(e) => setPrefixo(e.target.value)}
-              />
+              <div className="flex items-center justify-between">
+                <Label>PREFIXOS</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addPrefixo}>
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {prefixos.map((p, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input
+                      placeholder="151.246.225.0/24"
+                      value={p}
+                      onChange={(e) => updatePrefixo(i, e.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removePrefixo(i)}
+                      disabled={prefixos.length === 1 && !p}
+                      title="Remover"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
             <Button onClick={gerarPdf} disabled={busy} className="w-full">
               {busy ? (
