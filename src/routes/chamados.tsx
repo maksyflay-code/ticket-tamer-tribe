@@ -118,6 +118,15 @@ function ChamadosPage() {
 
   useEffect(() => { getSlaMap().then(setSlaMap); }, []);
 
+  // Mantemos um ref atualizado com operadores para uso dentro dos handlers do realtime
+  const operatorsRef = useRef<Operator[]>([]);
+  useEffect(() => { operatorsRef.current = operators; }, [operators]);
+  const nameOf = (email?: string | null) => {
+    if (!email) return "sistema";
+    const op = operatorsRef.current.find((o) => o.email === email);
+    return op?.name?.trim() || email;
+  };
+
   // debounce de busca
   useEffect(() => {
     const t = setTimeout(() => setSearchDebounced(search), 300);
@@ -216,8 +225,7 @@ function ChamadosPage() {
           const titulo = ACTION_LABEL[h.tipo ?? ""] ?? "Atualização";
           const isFinal = h.tipo === "mudanca_status" && /resolvido|fechado/i.test(h.descricao ?? "");
           const head = `${titulo} • ${code}`;
-          const autor = h.autor ?? "sistema";
-          const desc = `por ${autor}${h.descricao ? ` — ${h.descricao}` : ""}`;
+          const desc = `por ${nameOf(h.autor)}${h.descricao ? ` — ${h.descricao}` : ""}`;
           const opts = { description: desc, action: actionFor(h.chamado_id) };
           if (isFinal) toast.success(head, opts);
           else if (h.tipo === "relato") toast.info(head, opts);
