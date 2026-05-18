@@ -50,6 +50,7 @@ function NotificacoesPage() {
         setItems((prev) => (replace ? res.items : [...prev, ...res.items]));
         setPage(p);
       } catch (e) {
+        console.error("[notificacoes] load error", e);
         toast.error("Falha ao carregar notificações");
       } finally {
         setLoading(false);
