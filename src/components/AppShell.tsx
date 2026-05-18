@@ -5,8 +5,6 @@ import { useState, useEffect, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { getUnreadCount } from "@/lib/notifications.functions";
-import { authHeaders } from "@/lib/server-call";
 import { supabase } from "@/integrations/supabase/client";
 
 const nav = [
@@ -36,8 +34,14 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
     let active = true;
     const refresh = async () => {
       try {
-        const r = await getUnreadCount({ headers: await authHeaders() });
-        if (active) setUnread(r.count);
+        const [totalRes, readRes] = await Promise.all([
+          supabase.from("chamado_historico").select("id", { count: "exact", head: true }),
+          supabase
+            .from("notification_reads")
+            .select("historico_id", { count: "exact", head: true })
+            .eq("user_id", user.id),
+        ]);
+        if (active) setUnread(Math.max(0, (totalRes.count ?? 0) - (readRes.count ?? 0)));
       } catch { /* ignore */ }
     };
     refresh();
