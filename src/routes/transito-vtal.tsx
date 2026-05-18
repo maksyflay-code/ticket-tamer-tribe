@@ -71,7 +71,7 @@ function TransitoVtalPage() {
       draw(prefixo.trim(), 83, 658);
 
       const out = await pdf.save();
-      const blob = new Blob([out], { type: "application/pdf" });
+      const blob = new Blob([out as BlobPart], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
