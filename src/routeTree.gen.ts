@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
+import { Route as TransitoVtalRouteImport } from './routes/transito-vtal'
 import { Route as RfoRouteImport } from './routes/rfo'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as PlanosRouteImport } from './routes/planos'
@@ -29,6 +30,11 @@ import { Route as ApiPublicDiagRouteImport } from './routes/api/public/_diag'
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TransitoVtalRoute = TransitoVtalRouteImport.update({
+  id: '/transito-vtal',
+  path: '/transito-vtal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RfoRoute = RfoRouteImport.update({
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
   '/rfo': typeof RfoRoute
+  '/transito-vtal': typeof TransitoVtalRoute
   '/usuarios': typeof UsuariosRoute
   '/clientes/$id': typeof ClientesIdRoute
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
   '/rfo': typeof RfoRoute
+  '/transito-vtal': typeof TransitoVtalRoute
   '/usuarios': typeof UsuariosRoute
   '/clientes/$id': typeof ClientesIdRoute
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/planos': typeof PlanosRoute
   '/relatorios': typeof RelatoriosRoute
   '/rfo': typeof RfoRoute
+  '/transito-vtal': typeof TransitoVtalRoute
   '/usuarios': typeof UsuariosRoute
   '/clientes_/$id': typeof ClientesIdRoute
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/planos'
     | '/relatorios'
     | '/rfo'
+    | '/transito-vtal'
     | '/usuarios'
     | '/clientes/$id'
     | '/configuracoes/sla'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/planos'
     | '/relatorios'
     | '/rfo'
+    | '/transito-vtal'
     | '/usuarios'
     | '/clientes/$id'
     | '/configuracoes/sla'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/planos'
     | '/relatorios'
     | '/rfo'
+    | '/transito-vtal'
     | '/usuarios'
     | '/clientes_/$id'
     | '/configuracoes/sla'
@@ -232,6 +244,7 @@ export interface RootRouteChildren {
   PlanosRoute: typeof PlanosRoute
   RelatoriosRoute: typeof RelatoriosRoute
   RfoRoute: typeof RfoRoute
+  TransitoVtalRoute: typeof TransitoVtalRoute
   UsuariosRoute: typeof UsuariosRoute
   ClientesIdRoute: typeof ClientesIdRoute
   ConfiguracoesSlaRoute: typeof ConfiguracoesSlaRoute
@@ -245,6 +258,13 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/transito-vtal': {
+      id: '/transito-vtal'
+      path: '/transito-vtal'
+      fullPath: '/transito-vtal'
+      preLoaderRoute: typeof TransitoVtalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rfo': {
@@ -379,6 +399,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlanosRoute: PlanosRoute,
   RelatoriosRoute: RelatoriosRoute,
   RfoRoute: RfoRoute,
+  TransitoVtalRoute: TransitoVtalRoute,
   UsuariosRoute: UsuariosRoute,
   ClientesIdRoute: ClientesIdRoute,
   ConfiguracoesSlaRoute: ConfiguracoesSlaRoute,
