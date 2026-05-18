@@ -808,6 +808,14 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
 
   // Realtime: novos relatos/eventos do chamado aberto
   useEffect(() => {
+    const ACTION_LABEL: Record<string, string> = {
+      relato: "Relato adicionado",
+      mudanca_status: "Status atualizado",
+      mudanca_prioridade: "Prioridade atualizada",
+      mudanca_responsavel: "Responsável atualizado",
+      anexo: "Anexo enviado",
+      criacao: "Chamado criado",
+    };
     const channel = supabase
       .channel(`chamado-historico-${chamado.id}`)
       .on(
@@ -816,14 +824,17 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
         (payload) => {
           const h = payload.new as Historico;
           setHistorico((prev) => (prev.some((p) => p.id === h.id) ? prev : [h, ...prev]));
-          if (h.autor && h.autor === autor) return;
-          if (h.tipo === "relato") toast.info("Novo relato neste chamado", { description: h.descricao });
-          else if (h.tipo === "mudanca_status") toast.message("Status atualizado", { description: h.descricao });
+          const head = ACTION_LABEL[h.tipo] ?? "Atualização";
+          const desc = `por ${h.autor ?? "sistema"}${h.descricao ? ` — ${h.descricao}` : ""}`;
+          const isFinal = h.tipo === "mudanca_status" && /resolvido|fechado/i.test(h.descricao ?? "");
+          if (isFinal) toast.success(head, { description: desc });
+          else if (h.tipo === "relato") toast.info(head, { description: desc });
+          else toast.message(head, { description: desc });
         },
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [chamado.id, autor]);
+  }, [chamado.id]);
 
   const loadMoreHistorico = async () => {
     if (historicoLoadingMore || !historicoHasMore) return;
