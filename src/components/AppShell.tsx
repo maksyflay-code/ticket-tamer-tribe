@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock, Bell, ServerCrash } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock, Bell } from "lucide-react";
 import logo from "@/assets/ivi-logo.jpeg";
 import { useState, useEffect, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -19,7 +19,6 @@ const nav = [
 
 const adminNav = [
   { to: "/configuracoes/sla", label: "Config. SLA", icon: Clock, n: "08" },
-  { to: "/diagnostico/server-functions", label: "Diag. Functions", icon: ServerCrash, n: "11" },
 ] as const;
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
