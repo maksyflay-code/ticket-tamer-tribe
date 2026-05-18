@@ -379,6 +379,60 @@ export type Database = {
         }
         Relationships: []
       }
+      server_function_failures: {
+        Row: {
+          app_version: string | null
+          build_id: string | null
+          build_time: string | null
+          client_timestamp: string | null
+          created_at: string
+          deploy_url: string | null
+          function_name: string | null
+          id: string
+          message: string
+          metadata: Json
+          resolved_at: string | null
+          resolved_by: string | null
+          route: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          app_version?: string | null
+          build_id?: string | null
+          build_time?: string | null
+          client_timestamp?: string | null
+          created_at?: string
+          deploy_url?: string | null
+          function_name?: string | null
+          id?: string
+          message: string
+          metadata?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          route?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          app_version?: string | null
+          build_id?: string | null
+          build_time?: string | null
+          client_timestamp?: string | null
+          created_at?: string
+          deploy_url?: string | null
+          function_name?: string | null
+          id?: string
+          message?: string
+          metadata?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          route?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       sla_config: {
         Row: {
           horas_resolucao: number

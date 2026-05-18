@@ -22,6 +22,7 @@ import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ChamadosRouteImport } from './routes/chamados'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as NotificacoesPreferenciasRouteImport } from './routes/notificacoes.preferencias'
+import { Route as DiagnosticoServerFunctionsRouteImport } from './routes/diagnostico.server-functions'
 import { Route as ConfiguracoesSlaRouteImport } from './routes/configuracoes.sla'
 import { Route as ClientesIdRouteImport } from './routes/clientes_.$id'
 import { Route as ApiPublicDiagRouteImport } from './routes/api/public/_diag'
@@ -92,6 +93,12 @@ const NotificacoesPreferenciasRoute =
     path: '/preferencias',
     getParentRoute: () => NotificacoesRoute,
   } as any)
+const DiagnosticoServerFunctionsRoute =
+  DiagnosticoServerFunctionsRouteImport.update({
+    id: '/diagnostico/server-functions',
+    path: '/diagnostico/server-functions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ConfiguracoesSlaRoute = ConfiguracoesSlaRouteImport.update({
   id: '/configuracoes/sla',
   path: '/configuracoes/sla',
@@ -123,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/usuarios': typeof UsuariosRoute
   '/clientes/$id': typeof ClientesIdRoute
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
+  '/diagnostico/server-functions': typeof DiagnosticoServerFunctionsRoute
   '/notificacoes/preferencias': typeof NotificacoesPreferenciasRoute
   '/api/public': typeof ApiPublicDiagRoute
 }
@@ -141,6 +149,7 @@ export interface FileRoutesByTo {
   '/usuarios': typeof UsuariosRoute
   '/clientes/$id': typeof ClientesIdRoute
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
+  '/diagnostico/server-functions': typeof DiagnosticoServerFunctionsRoute
   '/notificacoes/preferencias': typeof NotificacoesPreferenciasRoute
   '/api/public': typeof ApiPublicDiagRoute
 }
@@ -160,6 +169,7 @@ export interface FileRoutesById {
   '/usuarios': typeof UsuariosRoute
   '/clientes_/$id': typeof ClientesIdRoute
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
+  '/diagnostico/server-functions': typeof DiagnosticoServerFunctionsRoute
   '/notificacoes/preferencias': typeof NotificacoesPreferenciasRoute
   '/api/public/_diag': typeof ApiPublicDiagRoute
 }
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/clientes/$id'
     | '/configuracoes/sla'
+    | '/diagnostico/server-functions'
     | '/notificacoes/preferencias'
     | '/api/public'
   fileRoutesByTo: FileRoutesByTo
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/clientes/$id'
     | '/configuracoes/sla'
+    | '/diagnostico/server-functions'
     | '/notificacoes/preferencias'
     | '/api/public'
   id:
@@ -216,6 +228,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/clientes_/$id'
     | '/configuracoes/sla'
+    | '/diagnostico/server-functions'
     | '/notificacoes/preferencias'
     | '/api/public/_diag'
   fileRoutesById: FileRoutesById
@@ -235,6 +248,7 @@ export interface RootRouteChildren {
   UsuariosRoute: typeof UsuariosRoute
   ClientesIdRoute: typeof ClientesIdRoute
   ConfiguracoesSlaRoute: typeof ConfiguracoesSlaRoute
+  DiagnosticoServerFunctionsRoute: typeof DiagnosticoServerFunctionsRoute
   ApiPublicDiagRoute: typeof ApiPublicDiagRoute
 }
 
@@ -331,6 +345,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotificacoesPreferenciasRouteImport
       parentRoute: typeof NotificacoesRoute
     }
+    '/diagnostico/server-functions': {
+      id: '/diagnostico/server-functions'
+      path: '/diagnostico/server-functions'
+      fullPath: '/diagnostico/server-functions'
+      preLoaderRoute: typeof DiagnosticoServerFunctionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/configuracoes/sla': {
       id: '/configuracoes/sla'
       path: '/configuracoes/sla'
@@ -382,17 +403,9 @@ const rootRouteChildren: RootRouteChildren = {
   UsuariosRoute: UsuariosRoute,
   ClientesIdRoute: ClientesIdRoute,
   ConfiguracoesSlaRoute: ConfiguracoesSlaRoute,
+  DiagnosticoServerFunctionsRoute: DiagnosticoServerFunctionsRoute,
   ApiPublicDiagRoute: ApiPublicDiagRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
