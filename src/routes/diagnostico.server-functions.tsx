@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, Clock, Code2, Layers3, Loader2, RefreshCw, ServerCrash } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -161,7 +161,7 @@ function ServerFunctionsDiagnosticsPage() {
   );
 }
 
-function MetricCard({ icon, label, value, compact = false }: { icon: React.ReactNode; label: string; value: React.ReactNode; compact?: boolean }) {
+function MetricCard({ icon, label, value, compact = false }: { icon: ReactNode; label: string; value: ReactNode; compact?: boolean }) {
   return (
     <Card className="p-4">
       <div className="flex items-center gap-2 text-muted-foreground">
