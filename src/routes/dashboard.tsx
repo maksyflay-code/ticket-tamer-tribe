@@ -176,7 +176,7 @@ function DashboardPage() {
     (async () => {
       try {
         const ops = await listAssignableOperators({ headers: await authHeaders() });
-        operatorsRef.current = ops as Array<{ email: string; name: string | null }>;
+        operatorsRef.current = ops as unknown as Array<{ email: string; name: string | null }>;
       } catch { /* visualizador: ignora */ }
     })();
   }, []);
