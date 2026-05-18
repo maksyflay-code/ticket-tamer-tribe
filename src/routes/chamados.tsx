@@ -167,33 +167,38 @@ function ChamadosPage() {
   useEffect(() => {
     const codeOf = (r: { codigo?: string | null; numero?: number | null } | null | undefined) =>
       r?.codigo ?? (r?.numero != null ? `#TK-${String(r.numero).padStart(4, "0")}` : "");
+    const openChamado = async (id: string) => {
+      const { data } = await supabase
+        .from("chamados").select("*, clientes(nome)").eq("id", id).maybeSingle();
+      if (data) setDetail(data as unknown as Chamado);
+    };
+    const actionFor = (id: string) => ({ label: "Abrir", onClick: () => { void openChamado(id); } });
+    const ACTION_LABEL: Record<string, string> = {
+      relato: "Relato adicionado",
+      mudanca_status: "Status atualizado",
+      mudanca_prioridade: "Prioridade atualizada",
+      mudanca_responsavel: "Responsável atualizado",
+      anexo: "Anexo enviado",
+      criacao: "Chamado criado",
+    };
     const channel = supabase
       .channel("chamados-list-realtime")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chamados" },
         (payload) => {
-          const n = payload.new as { codigo?: string | null; numero?: number | null; titulo?: string };
-          toast.info(`Novo chamado ${codeOf(n)}`, { description: n.titulo ?? undefined });
+          const n = payload.new as { id: string; codigo?: string | null; numero?: number | null; titulo?: string };
+          toast.info(`Novo chamado ${codeOf(n)}`, {
+            description: n.titulo ?? undefined,
+            action: actionFor(n.id),
+          });
           load();
         },
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "chamados" },
-        (payload) => {
-          const o = payload.old as { status?: string };
-          const n = payload.new as { status?: string; codigo?: string | null; numero?: number | null; titulo?: string };
-          if (o?.status !== n?.status) {
-            const code = codeOf(n);
-            if (n.status === "resolvido" || n.status === "fechado") {
-              toast.success(`Chamado ${code} finalizado`, { description: n.titulo ?? undefined });
-            } else {
-              toast.message(`Chamado ${code} → ${(n.status ?? "").replace("_", " ")}`, { description: n.titulo ?? undefined });
-            }
-          }
-          load();
-        },
+        () => { load(); },
       )
       .on(
         "postgres_changes",
@@ -203,18 +208,26 @@ function ChamadosPage() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chamado_historico" },
-        (payload) => {
-          const h = payload.new as { tipo?: string; descricao?: string; autor?: string | null };
-          if (h.autor && user?.email && h.autor === user.email) return;
-          if (h.tipo === "relato") {
-            toast.info("Novo relato adicionado", { description: h.descricao });
-          }
+        async (payload) => {
+          const h = payload.new as { chamado_id: string; tipo?: string; descricao?: string; autor?: string | null };
+          const { data: c } = await supabase
+            .from("chamados").select("codigo, numero, titulo").eq("id", h.chamado_id).maybeSingle();
+          const code = codeOf(c as { codigo?: string | null; numero?: number | null } | null);
+          const titulo = ACTION_LABEL[h.tipo ?? ""] ?? "Atualização";
+          const isFinal = h.tipo === "mudanca_status" && /resolvido|fechado/i.test(h.descricao ?? "");
+          const head = `${titulo} • ${code}`;
+          const autor = h.autor ?? "sistema";
+          const desc = `por ${autor}${h.descricao ? ` — ${h.descricao}` : ""}`;
+          const opts = { description: desc, action: actionFor(h.chamado_id) };
+          if (isFinal) toast.success(head, opts);
+          else if (h.tipo === "relato") toast.info(head, opts);
+          else toast.message(head, opts);
         },
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [page, searchDebounced, statusFilter, prioridadeFilter, responsavelFilter, user?.id, user?.email]);
+  }, [page, searchDebounced, statusFilter, prioridadeFilter, responsavelFilter, user?.id]);
 
   // Abertura automática via deeplink (ex: vindo da página de cliente)
   useEffect(() => {
