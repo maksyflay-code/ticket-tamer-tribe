@@ -61,12 +61,13 @@ function TransitoVtalPage() {
 
   const lookupPrefixos = async (asn: string) => {
     try {
-      const r = await fetch(`https://api.bgpview.io/asn/${asn}/prefixes`);
-      if (!r.ok) throw new Error("bgpview falhou");
+      const r = await fetch(
+        `https://stat.ripe.net/data/announced-prefixes/data.json?resource=AS${asn}`,
+      );
+      if (!r.ok) throw new Error("ripestat falhou");
       const j = await r.json();
-      const v4: string[] = (j?.data?.ipv4_prefixes ?? []).map((p: any) => p.prefix);
-      const v6: string[] = (j?.data?.ipv6_prefixes ?? []).map((p: any) => p.prefix);
-      const all = Array.from(new Set([...v4, ...v6]));
+      const list: string[] = (j?.data?.prefixes ?? []).map((p: any) => p.prefix);
+      const all = Array.from(new Set(list));
       if (all.length === 0) {
         toast.message("Nenhum prefixo anunciado encontrado para este AS.");
         return;
@@ -74,7 +75,7 @@ function TransitoVtalPage() {
       setPrefixos(all);
       toast.success(`${all.length} prefixo(s) carregado(s).`);
     } catch {
-      toast.error("Falha ao consultar prefixos (bgpview.io).");
+      toast.error("Falha ao consultar prefixos (RIPEstat).");
     }
   };
 
