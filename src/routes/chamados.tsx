@@ -833,7 +833,9 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
           const h = payload.new as Historico;
           setHistorico((prev) => (prev.some((p) => p.id === h.id) ? prev : [h, ...prev]));
           const head = ACTION_LABEL[h.tipo] ?? "Atualização";
-          const desc = `por ${h.autor ?? "sistema"}${h.descricao ? ` — ${h.descricao}` : ""}`;
+          const autorOp = h.autor ? operators.find((o) => o.email === h.autor) : undefined;
+          const autorLabel = autorOp?.name?.trim() || h.autor || "sistema";
+          const desc = `por ${autorLabel}${h.descricao ? ` — ${h.descricao}` : ""}`;
           const isFinal = h.tipo === "mudanca_status" && /resolvido|fechado/i.test(h.descricao ?? "");
           if (isFinal) toast.success(head, { description: desc });
           else if (h.tipo === "relato") toast.info(head, { description: desc });
