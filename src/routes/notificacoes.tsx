@@ -16,13 +16,9 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  listMyNotifications,
-  markAsRead,
-  markAllAsRead,
-} from "@/lib/notifications.functions";
-import type { NotificationItem } from "@/lib/notifications.types";
+import type { HistRow, NotificationItem } from "@/lib/notifications.types";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/notificacoes")({
   beforeLoad: requireAuth,
@@ -32,6 +28,7 @@ export const Route = createFileRoute("/notificacoes")({
 const PAGE_SIZE = 20;
 
 function NotificacoesPage() {
+  const { user } = useAuth();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -43,9 +40,8 @@ function NotificacoesPage() {
     async (p: number, replace: boolean) => {
       setLoading(true);
       try {
-        const res = await listMyNotifications({
-          data: { page: p, pageSize: PAGE_SIZE, onlyUnread },
-        });
+        if (!user) return;
+        const res = await loadNotificationsPage(user.id, p, PAGE_SIZE, onlyUnread);
         setTotal(res.total);
         setItems((prev) => (replace ? res.items : [...prev, ...res.items]));
         setPage(p);
@@ -56,7 +52,7 @@ function NotificacoesPage() {
         setLoading(false);
       }
     },
-    [onlyUnread],
+    [onlyUnread, user],
   );
 
   useEffect(() => {
@@ -81,7 +77,11 @@ function NotificacoesPage() {
   const onMarkOne = async (id: string) => {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, read: true } : it)));
     try {
-      await markAsRead({ data: { ids: [id] } });
+      if (!user) return;
+      const { error } = await supabase
+        .from("notification_reads")
+        .upsert({ user_id: user.id, historico_id: id }, { onConflict: "user_id,historico_id" });
+      if (error) throw error;
     } catch {
       toast.error("Falha ao marcar como lida");
     }
@@ -89,7 +89,17 @@ function NotificacoesPage() {
 
   const onMarkAll = async () => {
     try {
-      await markAllAsRead();
+      if (!user) return;
+      const ids = items.filter((it) => !it.read).map((it) => it.id);
+      if (ids.length) {
+        const { error } = await supabase
+          .from("notification_reads")
+          .upsert(
+            ids.map((id) => ({ user_id: user.id, historico_id: id })),
+            { onConflict: "user_id,historico_id" },
+          );
+        if (error) throw error;
+      }
       setItems((prev) => prev.map((it) => ({ ...it, read: true })));
       toast.success("Tudo marcado como lido");
     } catch {
