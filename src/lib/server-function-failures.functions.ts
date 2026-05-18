@@ -7,6 +7,7 @@ import {
   recordServerFunctionFailure,
   resolveServerFunctionFailure,
 } from "./server-function-failures.server";
+import type { ServerFunctionFailurePayload } from "./server-function-failures.types";
 
 const JsonRecord = z.record(z.unknown()).default({});
 
@@ -27,7 +28,7 @@ export const reportServerFunctionFailure = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => FailurePayloadSchema.parse(input))
   .handler(async ({ data, context }) => {
-    return recordServerFunctionFailure(context.userId, data);
+    return recordServerFunctionFailure(context.userId, data as ServerFunctionFailurePayload);
   });
 
 export const listServerFunctionFailureLogs = createServerFn({ method: "GET" })
