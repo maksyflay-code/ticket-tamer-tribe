@@ -20,8 +20,8 @@ import {
   listMyNotifications,
   markAsRead,
   markAllAsRead,
-  type NotificationItem,
 } from "@/lib/notifications.functions";
+import type { NotificationItem } from "@/lib/notifications.types";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/notificacoes")({
@@ -50,6 +50,7 @@ function NotificacoesPage() {
         setItems((prev) => (replace ? res.items : [...prev, ...res.items]));
         setPage(p);
       } catch (e) {
+        console.error("[notificacoes] load error", e);
         toast.error("Falha ao carregar notificações");
       } finally {
         setLoading(false);

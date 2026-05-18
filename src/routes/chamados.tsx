@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
 import { getSlaMap, calcSla, formatHorasRestantes, type SlaMap } from "@/lib/sla";
-import { triggerPushForChamado } from "@/lib/notifications.functions";
+import { triggerPushForChamado } from "@/lib/push.functions";
 
 export const Route = createFileRoute("/chamados")({
   beforeLoad: requireAuth,

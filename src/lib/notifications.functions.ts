@@ -1,22 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { fanOutPush } from "./push.server";
-
-type PrefRow = {
-  user_id: string;
-  notify_finalizacao: boolean;
-  notify_relato: boolean;
-  notify_status: boolean;
-  push_enabled: boolean;
-};
-
-const DEFAULT_PREFS: Omit<PrefRow, "user_id"> = {
-  notify_finalizacao: true,
-  notify_relato: true,
-  notify_status: true,
-  push_enabled: false,
-};
+import { DEFAULT_PREFS, type PrefRow, type HistRow, type NotificationItem } from "./notifications.types";
 
 export const getMyPreferences = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -92,24 +77,6 @@ export const removePushSubscription = createServerFn({ method: "POST" })
   });
 
 /* ─────────── Central de notificações ─────────── */
-
-type HistRow = {
-  id: string;
-  chamado_id: string;
-  tipo: string;
-  descricao: string;
-  autor: string | null;
-  status_anterior: string | null;
-  status_novo: string | null;
-  created_at: string;
-};
-
-export type NotificationItem = HistRow & {
-  read: boolean;
-  chamado_codigo: string | null;
-  chamado_numero: number | null;
-  chamado_titulo: string | null;
-};
 
 export const listMyNotifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -231,49 +198,4 @@ export const markAllAsRead = createServerFn({ method: "POST" })
     const rows = missing.map((id) => ({ user_id: userId, historico_id: id }));
     await supabase.from("notification_reads").insert(rows);
     return { ok: true };
-  });
-
-/* ─────────── Push fan-out ─────────── */
-
-export const triggerPushForChamado = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
-    z
-      .object({
-        chamadoId: z.string().uuid(),
-        tipo: z.enum(["finalizacao", "relato", "status"]),
-        descricao: z.string().min(1).max(500),
-        autorNome: z.string().min(1).max(200).default("Sistema"),
-      })
-      .parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: chamado } = await supabase
-      .from("chamados")
-      .select("codigo, numero, titulo")
-      .eq("id", data.chamadoId)
-      .maybeSingle();
-
-    const label =
-      chamado?.codigo ?? (chamado ? `#TK-${String(chamado.numero).padStart(4, "0")}` : "Chamado");
-    const titles: Record<typeof data.tipo, string> = {
-      finalizacao: `✅ ${label} finalizado`,
-      relato: `💬 Novo relato em ${label}`,
-      status: `🔁 ${label} — status atualizado`,
-    };
-    const prefKey =
-      data.tipo === "finalizacao"
-        ? "notify_finalizacao"
-        : data.tipo === "relato"
-          ? "notify_relato"
-          : "notify_status";
-
-    const result = await fanOutPush(prefKey, {
-      title: titles[data.tipo],
-      body: `${data.autorNome}: ${data.descricao}${chamado?.titulo ? ` — ${chamado.titulo}` : ""}`,
-      url: `/chamados?open=${data.chamadoId}`,
-      tag: `chamado-${data.chamadoId}-${data.tipo}`,
-    });
-    return result;
   });

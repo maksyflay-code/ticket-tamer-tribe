@@ -1,4 +1,3 @@
-import webpush from "web-push";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const VAPID_PUBLIC =
@@ -6,11 +5,19 @@ const VAPID_PUBLIC =
 const VAPID_PRIVATE = "uzx_jtblYHlDKKymVY-gh_ySr4UFKOWmK654sKxo7MY";
 const VAPID_SUBJECT = "mailto:no-reply@ivitelecom.local";
 
+let webpushMod: typeof import("web-push") | null = null;
 let configured = false;
-function ensureConfigured() {
-  if (configured) return;
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
-  configured = true;
+async function getWebPush() {
+  if (webpushMod) return webpushMod;
+  // Lazy import so this Node-only lib does not run at module init time
+  // (it would crash the whole server-function module otherwise).
+  const mod = await import("web-push");
+  webpushMod = (mod as unknown as { default?: typeof import("web-push") }).default ?? mod;
+  if (!configured) {
+    webpushMod.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+    configured = true;
+  }
+  return webpushMod;
 }
 
 export type PushPayload = {
@@ -27,7 +34,13 @@ type PrefKey = "notify_finalizacao" | "notify_relato" | "notify_status";
  * preference key and that has at least one active push subscription.
  */
 export async function fanOutPush(prefKey: PrefKey, payload: PushPayload) {
-  ensureConfigured();
+  let webpush: typeof import("web-push");
+  try {
+    webpush = await getWebPush();
+  } catch (err) {
+    console.error("[push] web-push unavailable in this runtime", err);
+    return { sent: 0 };
+  }
 
   const { data: prefs, error: prefsErr } = await supabaseAdmin
     .from("notification_preferences")
