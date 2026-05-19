@@ -1,80 +1,103 @@
-## Visão geral
+# Plano de implementação
 
-4 entregas em sequência, compartilhando uma nova tabela `sla_config` que substitui o SLA hardcoded (hoje: urgente 4h / alta 8h / média 24h / baixa 72h).
-
----
-
-## 1. Configuração de SLA (admin)
-
-**Nova tabela `sla_config`** — uma linha por prioridade (`urgente`, `alta`, `media`, `baixa`) com:
-- `horas_resolucao` (int) — prazo para resolver
-- `horas_resposta` (int, opcional) — prazo para 1º atendimento
-- `updated_at`
-
-**RLS:** todos autenticados leem; só `admin` atualiza. Seed com os valores atuais.
-
-**Nova rota `/configuracoes/sla`** (visível só pra admin no menu lateral):
-- Tabela com 4 linhas (uma por prioridade) editáveis inline
-- Campos: horas pra resolver / horas pra primeira resposta
-- Botão "Salvar" por linha; toast de confirmação
-- Pré-visualização ("Urgente: até 4h após abertura")
-
-**Refator:** dashboard e chamados deixam de usar a constante `SLA_HORAS` e passam a buscar de `sla_config` (carregado uma vez em cache via React Query / estado global leve).
+Três frentes de trabalho em ordem de execução. Cada uma é independente — se quiser, posso entregar uma de cada vez.
 
 ---
 
-## 2. SLA visual no chamado
+## 1. SLA e Operação
 
-No detalhe do chamado e na lista:
-- **Contador regressivo** quando aberto/em_andamento — "Vence em 2h 13m" ou "Estourou há 1h 04m"
-- **Barra de progresso** colorida:
-  - verde (<60% do prazo)
-  - amarelo (60–90%)
-  - vermelho (>90% ou estourado)
-- **Badge "SLA OK / SLA estourado"** quando resolvido (compara `resolvido_at - created_at` com o prazo da prioridade)
-- Atualização a cada 60s via `setInterval`
+**Objetivo:** tornar o SLA visível no dia a dia e automatizar escalonamento.
 
----
+**Banco:**
+- Adicionar coluna `sla_pausado_at` e `sla_pausado_total_seg` em `chamados` (para pausar SLA quando status = "aguardando cliente").
+- Trigger que, ao mudar status para/de "aguardando cliente", acumula tempo pausado.
 
-## 4. Atribuição rápida e histórico
+**Frontend:**
+- Novo componente `<SlaBadge chamado={...} />` que calcula tempo restante usando `sla_config` + prioridade, descontando pausa.
+  - Verde: > 50% restante
+  - Amarelo: 20–50%
+  - Vermelho/pulsante: < 20% ou estourado
+- Mostrar o badge na lista de chamados (`src/routes/chamados.tsx`) e no detalhe.
+- Filtro rápido "SLA em risco" e "SLA estourado" no topo da lista.
 
-No detalhe do chamado:
-- Botão **"Pegar pra mim"** ao lado de "Responsável" (quando vazio ou diferente do usuário atual) — seta `responsavel_id` e `tecnico_responsavel` em uma ação
-- Botão **"Liberar"** para o responsável atual se desatribuir
-- Trigger já existente (`log_chamado_status_change`) registra a troca no histórico — nada a fazer no DB
-
-Na lista de chamados:
-- Coluna "Responsável" mostra avatar/iniciais + nome
-- Filtro rápido "Meus chamados" (chips no topo)
+**Operação:**
+- Coluna "Tempo aberto" formatada (2h 15min, 3d 4h).
+- Botão "Pausar SLA / Retomar" no detalhe do chamado (muda status para aguardando_cliente).
 
 ---
 
-## 7. Página do cliente
+## 2. Relatórios e Dashboards
 
-**Nova rota `/clientes/$id`** (clique no nome do cliente na listagem):
-- Cabeçalho: nome, documento, contato, status, plano contratado, data do contrato
-- Cards de métricas: total de chamados, abertos agora, tempo médio de resolução, % SLA cumprido
-- Tabela "Histórico de chamados" desse cliente (código, título, status, prioridade, abertura, resolução)
-- Botão "Abrir novo chamado" já pré-preenchendo o cliente
+**Objetivo:** dar visão analítica ao admin/operador.
+
+**Nova rota:** `src/routes/relatorios.tsx` já existe — vou expandir, não recriar.
+
+**Conteúdo:**
+- **Cards KPI:** chamados abertos, fechados no mês, MTTR (tempo médio de resolução), % SLA cumprido.
+- **Gráfico de barras:** chamados por dia (últimos 30 dias).
+- **Heatmap:** abertura por hora × dia da semana.
+- **Ranking de técnicos:** chamados resolvidos, MTTR, no período.
+- **Top clientes:** quem mais abre chamados.
+- **Filtros:** período (7/30/90 dias, customizado), cliente, prioridade.
+- **Exportar CSV** do recorte filtrado.
+
+**Tecnologia:** Recharts (já está no projeto via shadcn/chart).
+
+**Dados:** queries diretas em `chamados` + `chamado_historico` via Supabase client (RLS já cobre).
+
+---
+
+## 3. RFOs e Trânsitos Gerados
+
+**Objetivo:** persistir histórico dos PDFs gerados em `transito-vtal.tsx` e `rfo.tsx`, hoje só baixados localmente.
+
+**Banco — nova tabela `documentos_gerados`:**
+
+| coluna | tipo | obs |
+|---|---|---|
+| id | uuid PK | |
+| tipo | text | 'rfo' \| 'transito' |
+| titulo | text | nome amigável |
+| chamado_id | uuid null | link opcional |
+| cliente_id | uuid null | link opcional |
+| dados | jsonb | payload usado pra gerar (permite regerar/visualizar) |
+| storage_path | text null | caminho do PDF salvo no bucket |
+| criado_por | uuid | auth.uid() |
+| created_at | timestamptz | default now() |
+
+RLS: select para `can_read`, insert para `can_write`, delete só admin.
+
+**Storage:** bucket novo `documentos-gerados` (privado), upload do PDF gerado.
+
+**Fluxo:**
+- Ao clicar "Gerar PDF" em RFO ou Trânsito VTAL, depois de baixar:
+  - Upload do PDF no bucket
+  - Insert na tabela com `dados` (snapshot do form) e `storage_path`
+- Toast de confirmação.
+
+**Nova rota `src/routes/documentos.tsx`:**
+- Tabs: "RFOs Gerados" | "Trânsitos Gerados"
+- Tabela com: data, título, autor, cliente/chamado vinculado
+- Ações por linha: **Baixar** (signed URL do storage), **Regerar** (carrega `dados` no formulário original), **Excluir** (admin).
+- Filtros: período, autor, busca textual.
+
+**Menu lateral (`AppShell.tsx`):** novo item "Documentos" com ícone `FileArchive`.
 
 ---
 
 ## Detalhes técnicos
 
-- Migração SQL: cria `sla_config` + RLS + seed das 4 prioridades.
-- `src/lib/sla.functions.ts`: `getSlaConfig()` e `updateSlaConfig()` (admin-only via `requireSupabaseAuth` + checagem `has_role`).
-- `src/lib/sla.ts` (helper client): `calcSlaStatus(prioridade, created_at, resolvido_at?, config)` retorna `{ pct, label, color, estourado }`.
-- `src/routes/configuracoes.sla.tsx`: nova rota admin.
-- `src/routes/clientes.$id.tsx`: nova rota detalhe.
-- Edições em `chamados.tsx` (SLA visual + botão pegar pra mim + filtro "meus") e `dashboard.tsx` (usa config dinâmica).
-- Item no menu lateral "Config. SLA" só para `role === 'admin'`.
+- Migrations separadas por frente (3 arquivos).
+- SLA usa apenas `setInterval` no client pra atualizar o badge (sem polling de servidor).
+- Relatórios: agregar no client com `useMemo` em cima de `useQuery` (volumes pequenos).
+- Storage upload via `supabase.storage.from('documentos-gerados').upload(...)`; nome do arquivo `${tipo}/${id}.pdf`.
 
 ---
 
-## Ordem de execução
+## Ordem sugerida de entrega
 
-1. Migração `sla_config` + seed
-2. Server fns + rota `/configuracoes/sla`
-3. Helper SLA + integração no dashboard e lista de chamados (barra + contador)
-4. "Pegar pra mim" + filtro "Meus chamados"
-5. Página `/clientes/$id` com métricas e histórico
+1. **Documentos gerados** (mais isolado, valor imediato)
+2. **SLA visual + pausa**
+3. **Relatórios expandidos**
+
+Quer que eu siga essa ordem ou prefere outra? Posso também fazer tudo de uma vez se preferir.
