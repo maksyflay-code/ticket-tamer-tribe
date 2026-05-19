@@ -252,9 +252,13 @@ function RfoPage() {
           dados: { ...form, fotosCount: fotos.length },
         });
         if (res.ok) toast.success("RFO gerado e salvo no histórico");
-        else toast.success(`RFO gerado (não salvo: ${res.error ?? "erro"})`);
-      } catch {
-        toast.success("RFO gerado");
+        else {
+          console.error("[RFO] falha ao salvar:", res.error);
+          toast.error(`RFO gerado, mas NÃO salvo: ${res.error ?? "erro desconhecido"}`);
+        }
+      } catch (err) {
+        console.error("[RFO] exceção ao salvar:", err);
+        toast.error(`RFO gerado, mas falhou ao salvar: ${err instanceof Error ? err.message : "erro"}`);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF");
