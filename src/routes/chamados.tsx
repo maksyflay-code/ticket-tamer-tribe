@@ -447,7 +447,17 @@ function ChamadosPage() {
               const meu = !!c.responsavel_id && c.responsavel_id === user?.id;
               return (
               <tr key={c.id} className={`hover:bg-secondary/30 cursor-pointer ${sla?.estourado ? "bg-red-500/5" : ""}`} onClick={() => setDetail(c)}>
-                <td className="p-4 font-mono text-muted-foreground">{ticketLabel(c)}</td>
+                <td
+                  className="p-4 font-mono text-muted-foreground hover:text-primary cursor-copy"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const label = ticketLabel(c);
+                    navigator.clipboard.writeText(label)
+                      .then(() => toast.success(`Protocolo ${label} copiado`))
+                      .catch(() => toast.error("Falha ao copiar"));
+                  }}
+                  title="Clique para copiar"
+                >{ticketLabel(c)}</td>
                 <td className="p-4 font-medium">{c.clientes?.nome ?? "—"}</td>
                 <td className="p-4">{c.titulo}</td>
                 <td className="p-4 font-mono text-xs">
