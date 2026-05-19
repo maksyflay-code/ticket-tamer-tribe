@@ -9,7 +9,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 
 export const Route = createFileRoute("/relatorios")({
   beforeLoad: requireAuth,
@@ -234,19 +234,33 @@ function RelatoriosPage() {
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={dailySeries} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-              <XAxis dataKey="dia" tick={{ fontSize: 10, fontFamily: "monospace" }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tick={{ fontSize: 10, fontFamily: "monospace" }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
+              <defs>
+                <linearGradient id="gradAbertos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#60a5fa" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#2563eb" stopOpacity={0.9} />
+                </linearGradient>
+                <linearGradient id="gradResolvidos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#059669" stopOpacity={0.9} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff14" vertical={false} />
+              <XAxis dataKey="dia" tick={{ fontSize: 10, fontFamily: "monospace", fill: "#94a3b8" }} stroke="#475569" />
+              <YAxis tick={{ fontSize: 10, fontFamily: "monospace", fill: "#94a3b8" }} stroke="#475569" allowDecimals={false} />
               <Tooltip
+                cursor={{ fill: "#ffffff0a" }}
                 contentStyle={{
-                  background: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
+                  background: "#0f172a",
+                  border: "1px solid #1e293b",
+                  borderRadius: 6,
                   fontSize: 11,
                   fontFamily: "monospace",
+                  color: "#e2e8f0",
                 }}
               />
-              <Bar dataKey="abertos" name="Abertos" fill="hsl(var(--primary))" />
-              <Bar dataKey="resolvidos" name="Resolvidos" fill="hsl(var(--muted-foreground))" />
+              <Legend wrapperStyle={{ fontSize: 11, fontFamily: "monospace" }} />
+              <Bar dataKey="abertos" name="Abertos" fill="url(#gradAbertos)" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="resolvidos" name="Resolvidos" fill="url(#gradResolvidos)" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
