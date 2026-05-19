@@ -449,12 +449,36 @@ function ChamadosPage() {
               <tr key={c.id} className={`hover:bg-secondary/30 cursor-pointer ${sla?.estourado ? "bg-red-500/5" : ""}`} onClick={() => setDetail(c)}>
                 <td
                   className="p-4 font-mono text-muted-foreground hover:text-primary cursor-pointer group/copy transition-colors"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
+                    e.preventDefault();
                     const label = ticketLabel(c);
-                    navigator.clipboard.writeText(label)
-                      .then(() => toast.success(`Protocolo ${label} copiado`))
-                      .catch(() => toast.error("Falha ao copiar"));
+                    let ok = false;
+                    try {
+                      if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(label);
+                        ok = true;
+                      }
+                    } catch {
+                      ok = false;
+                    }
+                    if (!ok) {
+                      try {
+                        const ta = document.createElement("textarea");
+                        ta.value = label;
+                        ta.style.position = "fixed";
+                        ta.style.opacity = "0";
+                        document.body.appendChild(ta);
+                        ta.focus();
+                        ta.select();
+                        ok = document.execCommand("copy");
+                        ta.remove();
+                      } catch {
+                        ok = false;
+                      }
+                    }
+                    if (ok) toast.success(`Protocolo ${label} copiado`);
+                    else toast.error("Falha ao copiar");
                   }}
                   title="Clique para copiar"
                 >

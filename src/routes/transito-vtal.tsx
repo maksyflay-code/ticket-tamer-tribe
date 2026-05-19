@@ -162,9 +162,13 @@ function TransitoVtalPage() {
           dados: { asNumber, asName, asPath, prefixos: prefList },
         });
         if (res.ok) toast.success("PDF gerado e salvo no histórico");
-        else toast.success(`PDF gerado (não salvo: ${res.error ?? "erro"})`);
-      } catch {
-        toast.success("PDF gerado com sucesso.");
+        else {
+          console.error("[Trânsito] falha ao salvar:", res.error);
+          toast.error(`PDF gerado, mas NÃO salvo: ${res.error ?? "erro desconhecido"}`);
+        }
+      } catch (err) {
+        console.error("[Trânsito] exceção ao salvar:", err);
+        toast.error(`PDF gerado, mas falhou ao salvar: ${err instanceof Error ? err.message : "erro"}`);
       }
     } catch (e) {
       console.error(e);
