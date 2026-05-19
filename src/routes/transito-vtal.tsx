@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Loader2, Plus, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
+import { salvarDocumentoGerado } from "@/lib/documentos";
 
 export const Route = createFileRoute("/transito-vtal")({
   component: TransitoVtalPage,
@@ -153,7 +154,18 @@ function TransitoVtalPage() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success("PDF gerado com sucesso.");
+      try {
+        const res = await salvarDocumentoGerado({
+          tipo: "transito",
+          titulo: `Trânsito VTAL · AS${asNumber.trim()}${asName.trim() ? " " + asName.trim() : ""}`,
+          pdfBytes: out,
+          dados: { asNumber, asName, asPath, prefixos: prefList },
+        });
+        if (res.ok) toast.success("PDF gerado e salvo no histórico");
+        else toast.success(`PDF gerado (não salvo: ${res.error ?? "erro"})`);
+      } catch {
+        toast.success("PDF gerado com sucesso.");
+      }
     } catch (e) {
       console.error(e);
       toast.error("Erro ao gerar PDF.");

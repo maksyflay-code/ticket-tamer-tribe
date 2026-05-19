@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Download, ImagePlus, X, FileText } from "lucide-react";
 import jsPDF from "jspdf";
 import bgUrl from "@/assets/rfo-background.jpg";
+import { salvarDocumentoGerado } from "@/lib/documentos";
 
 export const Route = createFileRoute("/rfo")({
   beforeLoad: requireAuth,
@@ -241,7 +242,20 @@ function RfoPage() {
 
       const filename = `RFO_${(form.cliente || "cliente").replace(/\s+/g, "_")}_${form.data.replaceAll("-", "")}.pdf`;
       doc.save(filename);
-      toast.success("RFO gerado");
+      // Persistir no Lovable Cloud
+      try {
+        const pdfBytes = doc.output("arraybuffer");
+        const res = await salvarDocumentoGerado({
+          tipo: "rfo",
+          titulo: `RFO ${form.cliente || "—"} · ${formatDataBr(form.data)}`,
+          pdfBytes,
+          dados: { ...form, fotosCount: fotos.length },
+        });
+        if (res.ok) toast.success("RFO gerado e salvo no histórico");
+        else toast.success(`RFO gerado (não salvo: ${res.error ?? "erro"})`);
+      } catch {
+        toast.success("RFO gerado");
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF");
     } finally {

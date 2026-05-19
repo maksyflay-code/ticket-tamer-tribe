@@ -18,6 +18,7 @@ import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as NotificacoesRouteImport } from './routes/notificacoes'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EquipamentosRouteImport } from './routes/equipamentos'
+import { Route as DocumentosRouteImport } from './routes/documentos'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ChamadosRouteImport } from './routes/chamados'
@@ -72,6 +73,11 @@ const EquipamentosRoute = EquipamentosRouteImport.update({
   path: '/equipamentos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocumentosRoute = DocumentosRouteImport.update({
+  id: '/documentos',
+  path: '/documentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/chamados': typeof ChamadosRoute
   '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
+  '/documentos': typeof DocumentosRoute
   '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
   '/notificacoes': typeof NotificacoesRouteWithChildren
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/chamados': typeof ChamadosRoute
   '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
+  '/documentos': typeof DocumentosRoute
   '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
   '/notificacoes': typeof NotificacoesRouteWithChildren
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/chamados': typeof ChamadosRoute
   '/clientes': typeof ClientesRoute
   '/dashboard': typeof DashboardRoute
+  '/documentos': typeof DocumentosRoute
   '/equipamentos': typeof EquipamentosRoute
   '/login': typeof LoginRoute
   '/notificacoes': typeof NotificacoesRouteWithChildren
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/chamados'
     | '/clientes'
     | '/dashboard'
+    | '/documentos'
     | '/equipamentos'
     | '/login'
     | '/notificacoes'
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/chamados'
     | '/clientes'
     | '/dashboard'
+    | '/documentos'
     | '/equipamentos'
     | '/login'
     | '/notificacoes'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/chamados'
     | '/clientes'
     | '/dashboard'
+    | '/documentos'
     | '/equipamentos'
     | '/login'
     | '/notificacoes'
@@ -237,6 +249,7 @@ export interface RootRouteChildren {
   ChamadosRoute: typeof ChamadosRoute
   ClientesRoute: typeof ClientesRoute
   DashboardRoute: typeof DashboardRoute
+  DocumentosRoute: typeof DocumentosRoute
   EquipamentosRoute: typeof EquipamentosRoute
   LoginRoute: typeof LoginRoute
   NotificacoesRoute: typeof NotificacoesRouteWithChildren
@@ -316,6 +329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EquipamentosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/documentos': {
+      id: '/documentos'
+      path: '/documentos'
+      fullPath: '/documentos'
+      preLoaderRoute: typeof DocumentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -392,6 +412,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChamadosRoute: ChamadosRoute,
   ClientesRoute: ClientesRoute,
   DashboardRoute: DashboardRoute,
+  DocumentosRoute: DocumentosRoute,
   EquipamentosRoute: EquipamentosRoute,
   LoginRoute: LoginRoute,
   NotificacoesRoute: NotificacoesRouteWithChildren,

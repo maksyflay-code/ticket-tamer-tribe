@@ -9,6 +9,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 export const Route = createFileRoute("/relatorios")({
   beforeLoad: requireAuth,
@@ -108,6 +109,27 @@ function RelatoriosPage() {
     };
   }, [rows]);
 
+  const dailySeries = useMemo(() => {
+    const map = new Map<string, { abertos: number; resolvidos: number }>();
+    const start = new Date(dateFrom + "T00:00:00");
+    const end = new Date(dateTo + "T00:00:00");
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      map.set(d.toISOString().slice(0, 10), { abertos: 0, resolvidos: 0 });
+    }
+    for (const r of rows) {
+      const k = r.created_at.slice(0, 10);
+      if (map.has(k)) map.get(k)!.abertos++;
+      if (r.resolvido_at) {
+        const kr = r.resolvido_at.slice(0, 10);
+        if (map.has(kr)) map.get(kr)!.resolvidos++;
+      }
+    }
+    return Array.from(map.entries()).map(([dia, v]) => ({
+      dia: dia.slice(5),
+      ...v,
+    }));
+  }, [rows, dateFrom, dateTo]);
+
   const exportCsv = () => {
     const header = ["ID", "Cliente", "Titulo", "Status", "Prioridade", "Categoria", "Tecnico", "Aberto em", "Resolvido em"];
     const lines = rows.map((r) => [
@@ -205,6 +227,29 @@ function RelatoriosPage() {
         <KPI label="Resolvidos" value={stats.resolvidos} />
         <KPI label="Tempo Médio" value={`${stats.tempoMedioH.toFixed(1)}h`} />
         <KPI label="SLA Atingido" value={`${stats.slaPct.toFixed(0)}%`} />
+      </div>
+
+      <div className="border border-border bg-card p-5 mb-8">
+        <h3 className="font-display text-sm font-bold tracking-tight mb-4 uppercase">Chamados por dia</h3>
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={dailySeries} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="dia" tick={{ fontSize: 10, fontFamily: "monospace" }} stroke="hsl(var(--muted-foreground))" />
+              <YAxis tick={{ fontSize: 10, fontFamily: "monospace" }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
+              <Tooltip
+                contentStyle={{
+                  background: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  fontSize: 11,
+                  fontFamily: "monospace",
+                }}
+              />
+              <Bar dataKey="abertos" name="Abertos" fill="hsl(var(--primary))" />
+              <Bar dataKey="resolvidos" name="Resolvidos" fill="hsl(var(--muted-foreground))" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

@@ -107,6 +107,8 @@ export type Database = {
           prioridade: Database["public"]["Enums"]["chamado_prioridade"]
           resolvido_at: string | null
           responsavel_id: string | null
+          sla_pausado_at: string | null
+          sla_pausado_total_seg: number
           status: Database["public"]["Enums"]["chamado_status"]
           tecnico_responsavel: string | null
           tipo_problema: string | null
@@ -126,6 +128,8 @@ export type Database = {
           prioridade?: Database["public"]["Enums"]["chamado_prioridade"]
           resolvido_at?: string | null
           responsavel_id?: string | null
+          sla_pausado_at?: string | null
+          sla_pausado_total_seg?: number
           status?: Database["public"]["Enums"]["chamado_status"]
           tecnico_responsavel?: string | null
           tipo_problema?: string | null
@@ -145,6 +149,8 @@ export type Database = {
           prioridade?: Database["public"]["Enums"]["chamado_prioridade"]
           resolvido_at?: string | null
           responsavel_id?: string | null
+          sla_pausado_at?: string | null
+          sla_pausado_total_seg?: number
           status?: Database["public"]["Enums"]["chamado_status"]
           tecnico_responsavel?: string | null
           tipo_problema?: string | null
@@ -216,6 +222,60 @@ export type Database = {
             columns: ["plano_id"]
             isOneToOne: false
             referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos_gerados: {
+        Row: {
+          autor_email: string | null
+          chamado_id: string | null
+          cliente_id: string | null
+          created_at: string
+          criado_por: string | null
+          dados: Json
+          id: string
+          storage_path: string | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          autor_email?: string | null
+          chamado_id?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          dados?: Json
+          id?: string
+          storage_path?: string | null
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          autor_email?: string | null
+          chamado_id?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          dados?: Json
+          id?: string
+          storage_path?: string | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_gerados_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_gerados_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
         ]
