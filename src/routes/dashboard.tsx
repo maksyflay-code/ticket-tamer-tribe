@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
@@ -68,6 +68,7 @@ function DashboardPage() {
   const [prioridadeDist, setPrioridadeDist] = useState<{ name: string; value: number; color: string }[]>([]);
   const [dailySerie, setDailySerie] = useState<{ dia: string; abertos: number; resolvidos: number }[]>([]);
   const [ranking, setRanking] = useState<{ tecnico: string; resolvidos: number }[]>([]);
+  const [operators, setOperators] = useState<Array<{ email: string; name: string | null }>>([]);
 
   const load = async () => {
     const today = new Date();
@@ -163,7 +164,7 @@ function DashboardPage() {
       acc[k] = (acc[k] ?? 0) + 1; return acc;
     }, {});
     setRanking(Object.entries(rk).sort((a,b)=>b[1]-a[1]).slice(0, 6).map(([tecnico, resolvidos]) => ({
-      tecnico: tecnico.includes("@") ? tecnico.split("@")[0] : tecnico,
+      tecnico,
       resolvidos,
     })));
   };
@@ -179,9 +180,19 @@ function DashboardPage() {
       try {
         const ops = await listAssignableOperators({ headers: await authHeaders() });
         operatorsRef.current = ops as unknown as Array<{ email: string; name: string | null }>;
+        setOperators(ops as unknown as Array<{ email: string; name: string | null }>);
       } catch { /* visualizador: ignora */ }
     })();
   }, []);
+
+  const rankingDisplay = useMemo(() => {
+    return ranking.map((r) => {
+      const op = operators.find((o) => o.email === r.tecnico);
+      const name = op?.name?.trim();
+      if (name) return { ...r, tecnico: name };
+      return { ...r, tecnico: r.tecnico.includes("@") ? r.tecnico.split("@")[0] : r.tecnico };
+    });
+  }, [ranking, operators]);
   const nameOf = (email?: string | null) => {
     if (!email) return "sistema";
     const op = operatorsRef.current.find((o) => o.email === email);
@@ -341,15 +352,15 @@ function DashboardPage() {
           </ResponsiveContainer>
         </ChartCard>
         <ChartCard title="Ranking de técnicos (mês)">
-          <RankingList ranking={ranking} />
+          <RankingList ranking={rankingDisplay} />
         </ChartCard>
         <ChartCard title="Destaques do mês">
           <HighlightsPanel
-            totalResolvidos={ranking.reduce((s, r) => s + r.resolvidos, 0)}
-            topTecnico={ranking[0]}
+            totalResolvidos={rankingDisplay.reduce((s, r) => s + r.resolvidos, 0)}
+            topTecnico={rankingDisplay[0]}
             slaPct={stats.slaPct}
             tempoMedioH={stats.tempoMedioH}
-            tecnicosAtivos={ranking.length}
+            tecnicosAtivos={rankingDisplay.length}
           />
         </ChartCard>
       </section>
