@@ -1057,9 +1057,12 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
               <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-2">
                 <span>SLA · Prazo {sla.limite}h ({prioridade})</span>
                 <span className={
+                  sla.pausado ? "text-slate-300" :
                   sla.color === "red" ? "text-red-400" : sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
                 }>
-                  {!sla.ativo
+                  {sla.pausado
+                    ? "⏸ PAUSADO (aguardando cliente)"
+                    : !sla.ativo
                     ? (sla.cumprido ? "CUMPRIDO" : "ESTOURADO")
                     : sla.estourado
                       ? `Estourou há ${formatHorasRestantes(sla.restante)}`
@@ -1068,11 +1071,13 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
               </div>
               <div className="h-2 w-full bg-secondary overflow-hidden">
                 <div className={
-                  (sla.color === "red" ? "bg-red-400" : sla.color === "amber" ? "bg-amber-400" : "bg-emerald-400") + " h-full transition-all"
+                  (sla.pausado ? "bg-slate-400" :
+                   sla.color === "red" ? "bg-red-400" : sla.color === "amber" ? "bg-amber-400" : "bg-emerald-400") + " h-full transition-all"
                 } style={{ width: `${Math.min(100, sla.pct)}%` }} />
               </div>
               <div className="mt-1 text-[10px] font-mono text-muted-foreground">
                 {sla.decorrido.toFixed(1)}h decorridas de {sla.limite}h ({sla.pct.toFixed(0)}%)
+                {sla.pausado && " · cronômetro pausado"}
               </div>
             </section>
           )}
