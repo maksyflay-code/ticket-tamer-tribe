@@ -497,7 +497,11 @@ function ChamadosPage() {
                 <td className={`p-4 font-mono uppercase ${prioridadeColor(c.prioridade)}`}>{c.prioridade}</td>
                 <td className="p-4 font-mono text-[10px]">
                   {!sla ? <span className="text-muted-foreground">…</span> :
-                    !sla.ativo ? (
+                    sla.pausado ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 border border-slate-500/40 text-slate-300 bg-slate-500/10">
+                        ⏸ PAUSADO
+                      </span>
+                    ) : !sla.ativo ? (
                       <span className={sla.cumprido ? "text-emerald-400" : "text-red-400"}>
                         {sla.cumprido ? "CUMPRIDO" : "ESTOURADO"}
                       </span>
