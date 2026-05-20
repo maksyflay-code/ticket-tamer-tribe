@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
-import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
@@ -983,6 +983,230 @@ function EmptyState({ message }: { message: string }) {
         <Inbox className="h-5 w-5" />
       </div>
       <div className="text-xs font-mono">{message}</div>
+    </div>
+  );
+}
+
+type FeedItem = {
+  id: string;
+  tipo: string;
+  descricao: string;
+  status_anterior: string | null;
+  status_novo: string | null;
+  autor: string | null;
+  created_at: string;
+  chamado_id: string;
+  chamados: { titulo: string; codigo: string | null; numero: number } | null;
+};
+
+function formatRelative(date: string) {
+  const diff = Date.now() - new Date(date).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return "agora";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `há ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `há ${h}h`;
+  const d = Math.floor(h / 24);
+  return `há ${d}d`;
+}
+
+function feedMeta(it: FeedItem) {
+  const novo = it.status_novo;
+  const ant = it.status_anterior;
+  if (it.tipo === "criacao") {
+    return { icon: Flame, color: "text-red-400", bg: "bg-red-500/10 border-red-500/30", verb: "abriu" };
+  }
+  if (it.tipo === "mudanca_status") {
+    if (novo === "resolvido" || novo === "fechado") {
+      return { icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30", verb: "resolveu" };
+    }
+    if ((ant === "resolvido" || ant === "fechado") && novo === "aberto") {
+      return { icon: RotateCcw, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/30", verb: "reabriu" };
+    }
+    return { icon: Activity, color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/30", verb: "atualizou" };
+  }
+  if (it.tipo === "mudanca_responsavel") {
+    return { icon: UserCheck, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/30", verb: "assumiu" };
+  }
+  if (it.tipo === "comentario") {
+    return { icon: MessageSquare, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/30", verb: "comentou em" };
+  }
+  return { icon: Activity, color: "text-muted-foreground", bg: "bg-muted/30 border-border", verb: "atualizou" };
+}
+
+function shortAuthor(autor: string | null) {
+  if (!autor) return "Sistema";
+  const base = autor.includes("@") ? autor.split("@")[0] : autor;
+  return base.charAt(0).toUpperCase() + base.slice(1);
+}
+
+function FeedAtividadeCard({ onOpen }: { onOpen: (id: string) => void }) {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["feed-atividade"],
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("chamado_historico")
+        .select("id, tipo, descricao, status_anterior, status_novo, autor, created_at, chamado_id, chamados(titulo, codigo, numero)")
+        .order("created_at", { ascending: false })
+        .limit(8);
+      if (error) throw error;
+      return (data ?? []) as unknown as FeedItem[];
+    },
+  });
+  useEffect(() => {
+    const ch = supabase
+      .channel("feed-atividade-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "chamado_historico" },
+        () => qc.invalidateQueries({ queryKey: ["feed-atividade"] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
+  const items = data ?? [];
+  return (
+    <div className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 transition-all hover:border-primary/40 h-full flex flex-col">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-60" />
+      <div className="relative flex-1 flex flex-col min-h-0">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
+            <span className="relative inline-flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75 animate-ping" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            Atividade Recente
+          </h3>
+          <Zap className="h-4 w-4 text-emerald-400" />
+        </div>
+        {isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+          </div>
+        ) : items.length === 0 ? (
+          <EmptyState message="Sem atividade recente." />
+        ) : (
+          <ul className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
+            {items.map((it) => {
+              const meta = feedMeta(it);
+              const Icon = meta.icon;
+              const ref = it.chamados?.codigo || (it.chamados?.numero ? `#${it.chamados.numero}` : `#${it.chamado_id.slice(0, 6)}`);
+              const titulo = it.chamados?.titulo ?? "";
+              return (
+                <li key={it.id}>
+                  <button
+                    onClick={() => onOpen(it.chamado_id)}
+                    className="w-full text-left flex items-start gap-2.5 border border-transparent hover:border-primary/30 hover:bg-background/40 p-2 transition-colors"
+                  >
+                    <div className={`shrink-0 w-7 h-7 border ${meta.bg} flex items-center justify-center rounded-sm`}>
+                      <Icon className={`h-3.5 w-3.5 ${meta.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs truncate">
+                        <span className="font-medium">{shortAuthor(it.autor)}</span>
+                        <span className="text-muted-foreground"> {meta.verb} </span>
+                        <span className="font-mono text-primary">{ref}</span>
+                        {titulo && <span className="text-muted-foreground"> — {titulo}</span>}
+                      </div>
+                      <div className="text-[10px] font-mono text-muted-foreground mt-0.5">{formatRelative(it.created_at)}</div>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function initials(name: string) {
+  const base = name.includes("@") ? name.split("@")[0] : name;
+  const parts = base.replace(/[._-]+/g, " ").trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
+}
+
+function CargaAgentesCard() {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["carga-agentes"],
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("chamados")
+        .select("tecnico_responsavel, status")
+        .eq("status", "aberto");
+      if (error) throw error;
+      const map = new Map<string, number>();
+      for (const row of data ?? []) {
+        const n = (row.tecnico_responsavel ?? "").trim();
+        if (!n) continue;
+        map.set(n, (map.get(n) ?? 0) + 1);
+      }
+      return Array.from(map.entries()).map(([nome, count]) => ({ nome, count }));
+    },
+  });
+  useEffect(() => {
+    const ch = supabase
+      .channel("carga-agentes-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "chamados" },
+        () => qc.invalidateQueries({ queryKey: ["carga-agentes"] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
+  const agents = (data ?? []).slice().sort((a, b) => b.count - a.count);
+  const max = Math.max(1, ...agents.map(a => a.count));
+  return (
+    <div className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 transition-all hover:border-primary/40 h-full flex flex-col">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent opacity-60" />
+      <div className="relative flex-1 flex flex-col min-h-0">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
+            <span className="inline-block w-1 h-3 bg-amber-500/70" />
+            Carga dos Agentes
+          </h3>
+          <Users className="h-4 w-4 text-amber-400" />
+        </div>
+        {isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+          </div>
+        ) : agents.length === 0 ? (
+          <EmptyState message="Nenhum chamado aberto atribuído." />
+        ) : (
+          <ul className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+            {agents.map((a) => {
+              const tone = a.count > 10
+                ? { bar: "bg-red-500", text: "text-red-400", label: "Sobrecarregado" }
+                : a.count > 5
+                ? { bar: "bg-yellow-500", text: "text-yellow-400", label: "Ocupado" }
+                : { bar: "bg-emerald-500", text: "text-emerald-400", label: "Tranquilo" };
+              const pct = (a.count / max) * 100;
+              return (
+                <li key={a.nome} className="border border-border bg-background/40 p-2.5">
+                  <div className="flex items-center gap-2.5 mb-1.5">
+                    <div className="shrink-0 w-7 h-7 border border-border bg-secondary/60 flex items-center justify-center rounded-full text-[10px] font-mono font-bold">
+                      {initials(a.nome)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium truncate">{shortAuthor(a.nome)}</div>
+                      <div className={`text-[10px] font-mono ${tone.text}`}>{tone.label}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-display text-lg font-bold leading-none tabular-nums">{a.count}</div>
+                      <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">abertos</div>
+                    </div>
+                  </div>
+                  <div className="h-1 bg-border/60 w-full overflow-hidden rounded-full">
+                    <div className={`h-full ${tone.bar} transition-all`} style={{ width: `${pct}%` }} />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
