@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
-import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck, ArrowRight, GitBranch } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
@@ -487,7 +487,7 @@ function DashboardPage() {
           if (typeof window !== "undefined") sessionStorage.setItem("chamados:open-id", id);
           navigate({ to: "/chamados" });
         }} />
-        <CargaAgentesCard />
+        <FluxoStatusCard period={period} />
       </section>
 
       <section>
@@ -1205,6 +1205,146 @@ function CargaAgentesCard() {
               );
             })}
           </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+type StatusKey = "aberto" | "aguardando_cliente" | "resolvido" | "fechado";
+const FLUXO_STEPS: { key: StatusKey; label: string; bar: string; text: string; bg: string; border: string }[] = [
+  { key: "aberto",              label: "Aberto",     bar: "bg-amber-500",   text: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/30" },
+  { key: "aguardando_cliente",  label: "Aguardando", bar: "bg-purple-500",  text: "text-purple-400",  bg: "bg-purple-500/10",  border: "border-purple-500/30" },
+  { key: "resolvido",           label: "Resolvido",  bar: "bg-emerald-500", text: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
+  { key: "fechado",             label: "Fechado",    bar: "bg-slate-500",   text: "text-slate-300",   bg: "bg-slate-500/10",   border: "border-slate-500/30" },
+];
+
+function FluxoStatusCard({ period }: { period: Period }) {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["fluxo-status", period],
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const start = periodStart(period);
+      const [hist, atuais, stagn] = await Promise.all([
+        supabase
+          .from("chamado_historico")
+          .select("chamado_id, status_anterior, status_novo, created_at")
+          .eq("tipo", "mudanca_status")
+          .gte("created_at", start.toISOString()),
+        supabase.from("chamados").select("status"),
+        supabase.from("chamados").select("id", { count: "exact", head: true })
+          .eq("status", "aberto")
+          .lt("updated_at", new Date(Date.now() - 48 * 3_600_000).toISOString()),
+      ]);
+      if (hist.error) throw hist.error;
+      if (atuais.error) throw atuais.error;
+
+      const counts: Record<StatusKey, number> = { aberto: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 };
+      for (const row of atuais.data ?? []) {
+        const k = row.status as StatusKey;
+        if (k in counts) counts[k]++;
+      }
+
+      const transitions: Record<string, number> = {};
+      const firstMove: Record<string, { from: string; to: string }> = {};
+      let resolucoesTotais = 0;
+      let resolucoesDiretas = 0;
+      for (const row of hist.data ?? []) {
+        const from = row.status_anterior ?? "";
+        const to = row.status_novo ?? "";
+        if (from && to) {
+          const k = `${from}>${to}`;
+          transitions[k] = (transitions[k] ?? 0) + 1;
+        }
+        if (!firstMove[row.chamado_id]) firstMove[row.chamado_id] = { from, to };
+        if (to === "resolvido") {
+          resolucoesTotais++;
+          if (firstMove[row.chamado_id]?.from === "aberto" && firstMove[row.chamado_id]?.to === "resolvido") {
+            resolucoesDiretas++;
+          }
+        }
+      }
+
+      const fluxos: number[] = [];
+      for (let i = 0; i < FLUXO_STEPS.length - 1; i++) {
+        const a = FLUXO_STEPS[i].key, b = FLUXO_STEPS[i + 1].key;
+        fluxos.push(transitions[`${a}>${b}`] ?? 0);
+      }
+
+      const taxaDireta = resolucoesTotais > 0 ? Math.round((resolucoesDiretas / resolucoesTotais) * 100) : 0;
+
+      return { counts, fluxos, stagnados: stagn.count ?? 0, taxaDireta };
+    },
+  });
+  useEffect(() => {
+    const ch = supabase
+      .channel("fluxo-status-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "chamado_historico" },
+        () => qc.invalidateQueries({ queryKey: ["fluxo-status"] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "chamados" },
+        () => qc.invalidateQueries({ queryKey: ["fluxo-status"] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
+
+  return (
+    <div className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 transition-all hover:border-primary/40 h-full flex flex-col">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-60" />
+      <div className="relative flex-1 flex flex-col">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
+              <span className="inline-block w-1 h-3 bg-primary/70" />
+              Fluxo de Status
+            </h3>
+            <div className="text-[10px] font-mono text-muted-foreground mt-1 ml-3">Movimentação do período</div>
+          </div>
+          <GitBranch className="h-4 w-4 text-primary/70" />
+        </div>
+
+        {isLoading || !data ? (
+          <div className="space-y-2">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        ) : (
+          <>
+            <div className="flex items-stretch gap-1.5 mb-4">
+              {FLUXO_STEPS.map((step, i) => (
+                <Fragment key={step.key}>
+                  <div className={`flex-1 min-w-0 border ${step.border} ${step.bg} p-2.5 flex flex-col items-center justify-center text-center`}>
+                    <div className={`text-[9px] font-mono uppercase tracking-widest ${step.text}`}>● {step.label}</div>
+                    <div className="font-display text-2xl font-bold tabular-nums mt-1">{data.counts[step.key]}</div>
+                  </div>
+                  {i < FLUXO_STEPS.length - 1 && (
+                    <div className="shrink-0 flex flex-col items-center justify-center px-0.5">
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                      <div className="text-[9px] font-mono text-muted-foreground tabular-nums mt-0.5 whitespace-nowrap">
+                        {data.fluxos[i]} mov
+                      </div>
+                    </div>
+                  )}
+                </Fragment>
+              ))}
+            </div>
+
+            <div className="mt-auto grid grid-cols-2 gap-2 pt-3 border-t border-border">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                <div className="min-w-0">
+                  <div className="font-display text-base font-bold text-red-400 tabular-nums leading-none">{data.stagnados}</div>
+                  <div className="text-[10px] font-mono text-muted-foreground mt-0.5">estagnados (&gt;48h)</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                <div className="min-w-0">
+                  <div className="font-display text-base font-bold text-emerald-400 tabular-nums leading-none">{data.taxaDireta}%</div>
+                  <div className="text-[10px] font-mono text-muted-foreground mt-0.5">resolução direta</div>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>
