@@ -749,3 +749,110 @@ function HighlightsPanel({
     </div>
   );
 }
+
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  const series = data.map((v, i) => ({ i, v }));
+  const max = Math.max(...data, 1);
+  if (max === 0) return null;
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={series} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+        <Line type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+function SlaCard({ pct, loading, periodLabel }: { pct: number; loading: boolean; periodLabel: string }) {
+  const tone = pct >= 80 ? { bar: "from-emerald-400 to-emerald-500", text: "text-emerald-400", label: "Dentro da meta" }
+    : pct >= 60 ? { bar: "from-amber-400 to-amber-500", text: "text-amber-400", label: "Atenção" }
+    : { bar: "from-red-500 to-rose-500", text: "text-red-400", label: "Crítico" };
+  return (
+    <div className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 transition-all hover:border-primary/40">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-60" />
+      <div className="relative">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
+            <span className="inline-block w-1 h-3 bg-primary/70" />
+            SLA cumprido ({periodLabel})
+          </h3>
+          <Target className={`h-4 w-4 ${tone.text}`} />
+        </div>
+        {loading ? <Skeleton className="h-20 w-full" /> : (
+          <>
+            <div className="flex items-end gap-3 mb-3">
+              <div className={`font-display text-5xl font-bold tabular-nums tracking-tight ${tone.text}`}>{pct.toFixed(0)}%</div>
+              <div className="pb-2 text-[10px] uppercase tracking-widest font-mono text-muted-foreground">dentro do SLA</div>
+            </div>
+            <div className="h-2 bg-border/60 w-full overflow-hidden rounded-full mb-2">
+              <div className={`h-full bg-gradient-to-r ${tone.bar} transition-all`} style={{ width: `${Math.min(100, pct)}%` }} />
+            </div>
+            <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest">
+              <span className={tone.text}>● {tone.label}</span>
+              <span className="text-muted-foreground">meta: 80%</span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Heatmap({ data }: { data: number[][] }) {
+  const flat = data.flat();
+  const max = Math.max(...flat, 1);
+  const dias = ["D", "S", "T", "Q", "Q", "S", "S"];
+  const intensity = (v: number) => {
+    if (v === 0) return "bg-border/40";
+    const ratio = v / max;
+    if (ratio < 0.25) return "bg-primary/20";
+    if (ratio < 0.5) return "bg-primary/40";
+    if (ratio < 0.75) return "bg-primary/70";
+    return "bg-primary";
+  };
+  if (flat.every((v) => v === 0)) {
+    return <EmptyState message="Sem chamados nas últimas 4 semanas." />;
+  }
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-[auto_repeat(7,1fr)] gap-1.5 items-center">
+        <div />
+        {dias.map((d, i) => (
+          <div key={i} className="text-center text-[10px] font-mono text-muted-foreground uppercase">{d}</div>
+        ))}
+        {data.map((week, wi) => (
+          <Fragment key={wi}>
+            <div className="text-[10px] font-mono text-muted-foreground pr-1">S{wi + 1}</div>
+            {week.map((v, di) => (
+              <div
+                key={di}
+                title={`${v} chamado${v === 1 ? "" : "s"}`}
+                className={`aspect-square rounded-sm ${intensity(v)} hover:ring-1 hover:ring-primary/60 transition-all flex items-center justify-center text-[10px] font-mono ${v > 0 ? "text-foreground" : "text-transparent"}`}
+              >{v}</div>
+            ))}
+          </Fragment>
+        ))}
+      </div>
+      <div className="flex items-center justify-end gap-2 pt-2">
+        <span className="text-[10px] font-mono text-muted-foreground uppercase">menos</span>
+        <div className="w-3 h-3 rounded-sm bg-border/40" />
+        <div className="w-3 h-3 rounded-sm bg-primary/20" />
+        <div className="w-3 h-3 rounded-sm bg-primary/40" />
+        <div className="w-3 h-3 rounded-sm bg-primary/70" />
+        <div className="w-3 h-3 rounded-sm bg-primary" />
+        <span className="text-[10px] font-mono text-muted-foreground uppercase">mais</span>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 py-8 text-muted-foreground">
+      <div className="w-10 h-10 border border-border bg-background flex items-center justify-center">
+        <Inbox className="h-5 w-5" />
+      </div>
+      <div className="text-xs font-mono">{message}</div>
+    </div>
+  );
+}
