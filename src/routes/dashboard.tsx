@@ -411,9 +411,16 @@ const legendStyle = { fontSize: 11, fontFamily: "monospace" } as const;
 
 function ChartCard({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`border border-border bg-card p-3 md:p-5 ${className}`}>
-      <h3 className="font-display text-sm font-bold tracking-tight mb-3">{title}</h3>
-      <div className="w-full">{children}</div>
+    <div className={`group relative overflow-hidden border border-border bg-card p-3 md:p-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 ${className}`}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-60" />
+      <div className="pointer-events-none absolute -top-24 -right-24 w-56 h-56 rounded-full bg-primary/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="relative">
+        <h3 className="font-display text-sm font-bold tracking-tight mb-3 flex items-center gap-2">
+          <span className="inline-block w-1 h-3 bg-primary/70" />
+          {title}
+        </h3>
+        <div className="w-full">{children}</div>
+      </div>
     </div>
   );
 }
