@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
-import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
@@ -427,7 +427,13 @@ function DashboardPage() {
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-        <SlaCard pct={stats.slaPct} loading={isLoading && !data} periodLabel={PERIOD_LABEL[period]} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FilaCriticaCard onOpen={(id) => {
+            if (typeof window !== "undefined") sessionStorage.setItem("chamados:open-id", id);
+            navigate({ to: "/chamados" });
+          }} />
+          <PlacarDoDiaCard />
+        </div>
         <ChartCard title="Heatmap semanal (últimas 4 semanas)">
           {isLoading && !data ? <Skeleton className="h-[180px] w-full" /> : <Heatmap data={heat} />}
         </ChartCard>
@@ -760,33 +766,167 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   );
 }
 
-function SlaCard({ pct, loading, periodLabel }: { pct: number; loading: boolean; periodLabel: string }) {
-  const tone = pct >= 80 ? { bar: "from-emerald-400 to-emerald-500", text: "text-emerald-400", label: "Dentro da meta" }
-    : pct >= 60 ? { bar: "from-amber-400 to-amber-500", text: "text-amber-400", label: "Atenção" }
-    : { bar: "from-red-500 to-rose-500", text: "text-red-400", label: "Crítico" };
+function formatElapsed(ms: number) {
+  const h = Math.floor(ms / 3_600_000);
+  if (h < 1) {
+    const m = Math.max(0, Math.floor(ms / 60_000));
+    return `${m}min`;
+  }
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d ${h % 24}h`;
+}
+
+function FilaCriticaCard({ onOpen }: { onOpen: (id: string) => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["fila-critica"],
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("chamados")
+        .select("id, numero, codigo, titulo, prioridade, status, created_at, updated_at")
+        .in("prioridade", ["urgente", "alta"])
+        .eq("status", "aberto")
+        .order("prioridade", { ascending: true })
+        .order("created_at", { ascending: true })
+        .limit(5);
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string; numero: number; codigo: string | null; titulo: string;
+        prioridade: string; status: string; created_at: string; updated_at: string;
+      }>;
+    },
+  });
+  const items = (data ?? []).slice().sort((a, b) => {
+    const rank: Record<string, number> = { urgente: 0, alta: 1 };
+    const pa = rank[a.prioridade] ?? 9, pb = rank[b.prioridade] ?? 9;
+    if (pa !== pb) return pa - pb;
+    return new Date(a.updated_at ?? a.created_at).getTime() - new Date(b.updated_at ?? b.created_at).getTime();
+  });
+  const now = Date.now();
   return (
-    <div className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 transition-all hover:border-primary/40">
+    <div className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 transition-all hover:border-primary/40 h-full flex flex-col">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent opacity-60" />
+      <div className="relative flex-1 flex flex-col">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
+            <span className="relative inline-flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-ping" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+            </span>
+            Fila Crítica
+          </h3>
+          <Flame className="h-4 w-4 text-red-400" />
+        </div>
+        {isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 py-6 text-center">
+            <div className="w-10 h-10 border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-center rounded-full">
+              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+            </div>
+            <div className="text-xs font-mono text-muted-foreground">Nenhum ticket crítico no momento 🎉</div>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {items.map((t) => {
+              const ref = new Date(t.updated_at ?? t.created_at).getTime();
+              const elapsedMs = Math.max(0, now - ref);
+              const h = elapsedMs / 3_600_000;
+              const tone = h > 8 ? { bar: "bg-red-500", text: "text-red-400" }
+                : h >= 4 ? { bar: "bg-amber-500", text: "text-amber-400" }
+                : { bar: "bg-emerald-500", text: "text-emerald-400" };
+              const pct = Math.min(100, (h / 12) * 100);
+              const isUrg = t.prioridade === "urgente";
+              const badge = isUrg
+                ? "border-red-500/40 bg-red-500/10 text-red-400"
+                : "border-orange-500/40 bg-orange-500/10 text-orange-400";
+              return (
+                <li key={t.id}>
+                  <button
+                    onClick={() => onOpen(t.id)}
+                    className="w-full text-left border border-border hover:border-primary/40 bg-background/40 p-2.5 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className={`text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 border ${badge}`}>
+                        {isUrg ? "Crítica" : "Alta"}
+                      </span>
+                      <span className="text-xs font-medium truncate flex-1">{t.titulo}</span>
+                      <span className={`text-[10px] font-mono tabular-nums shrink-0 ${tone.text}`}>
+                        {formatElapsed(elapsedMs)} sem resposta
+                      </span>
+                    </div>
+                    <div className="h-1 bg-border/60 w-full overflow-hidden rounded-full">
+                      <div className={`h-full ${tone.bar} transition-all`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PlacarDoDiaCard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["placar-do-dia"],
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+      const iso = hoje.toISOString();
+      const [abertos, resolvidos] = await Promise.all([
+        supabase.from("chamados").select("id", { count: "exact", head: true }).gte("created_at", iso),
+        supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "resolvido").gte("resolvido_at", iso),
+      ]);
+      return { abertos: abertos.count ?? 0, resolvidos: resolvidos.count ?? 0 };
+    },
+  });
+  const abertos = data?.abertos ?? 0;
+  const resolvidos = data?.resolvidos ?? 0;
+  const total = abertos + resolvidos;
+  const pct = total > 0 ? (resolvidos / total) * 100 : 0;
+  const noAzul = resolvidos >= abertos && total > 0;
+  const diff = Math.max(0, abertos - resolvidos);
+  return (
+    <div className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 transition-all hover:border-primary/40 h-full flex flex-col">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-60" />
-      <div className="relative">
+      <div className="relative flex-1 flex flex-col">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
             <span className="inline-block w-1 h-3 bg-primary/70" />
-            SLA cumprido ({periodLabel})
+            Placar do Dia
           </h3>
-          <Target className={`h-4 w-4 ${tone.text}`} />
+          <Target className="h-4 w-4 text-primary/80" />
         </div>
-        {loading ? <Skeleton className="h-20 w-full" /> : (
+        {isLoading ? <Skeleton className="h-24 w-full" /> : (
           <>
-            <div className="flex items-end gap-3 mb-3">
-              <div className={`font-display text-5xl font-bold tabular-nums tracking-tight ${tone.text}`}>{pct.toFixed(0)}%</div>
-              <div className="pb-2 text-[10px] uppercase tracking-widest font-mono text-muted-foreground">dentro do SLA</div>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="text-center border border-border bg-background/40 p-3">
+                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-1">Abertos hoje</div>
+                <div className="font-display text-4xl font-bold tabular-nums text-amber-400">{abertos}</div>
+              </div>
+              <div className="text-center border border-border bg-background/40 p-3">
+                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-1">Resolvidos hoje</div>
+                <div className="font-display text-4xl font-bold tabular-nums text-emerald-400">{resolvidos}</div>
+              </div>
             </div>
             <div className="h-2 bg-border/60 w-full overflow-hidden rounded-full mb-2">
-              <div className={`h-full bg-gradient-to-r ${tone.bar} transition-all`} style={{ width: `${Math.min(100, pct)}%` }} />
+              <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all" style={{ width: `${pct}%` }} />
             </div>
-            <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest">
-              <span className={tone.text}>● {tone.label}</span>
-              <span className="text-muted-foreground">meta: 80%</span>
+            <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest mt-auto">
+              {total === 0 ? (
+                <span className="text-muted-foreground">Sem movimentação hoje</span>
+              ) : noAzul ? (
+                <span className="text-emerald-400">● Equipe no azul! ✅</span>
+              ) : (
+                <span className="text-amber-400">● Faltam {diff} para zerar a fila</span>
+              )}
+              <span className="text-muted-foreground tabular-nums">{pct.toFixed(0)}%</span>
             </div>
           </>
         )}
