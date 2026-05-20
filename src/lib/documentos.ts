@@ -31,7 +31,7 @@ export async function salvarDocumentoGerado(params: {
   const user = userData.user;
   if (!user) return { ok: false, error: "Sem sessão" };
 
-  const id = crypto.randomUUID();
+  const id = safeUuid();
   const path = `${params.tipo}/${id}.pdf`;
 
   const bytes =
