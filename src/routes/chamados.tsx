@@ -16,7 +16,7 @@ export const Route = createFileRoute("/chamados")({
   component: ChamadosPage,
 });
 
-type Status = "aberto" | "em_andamento" | "resolvido" | "fechado";
+type Status = "aberto" | "em_andamento" | "aguardando_cliente" | "resolvido" | "fechado";
 type Prioridade = "baixa" | "media" | "alta" | "urgente";
 type TipoProblema = "ROMPIMENTO" | "ATENUACAO" | "OUTROS";
 
@@ -59,6 +59,7 @@ const ticketLabel = (c: Pick<Chamado, "codigo" | "numero">) =>
 const statusBadge = (s: Status) => ({
   aberto: "border-amber-500/30 bg-amber-500/10 text-amber-400",
   em_andamento: "border-primary/30 bg-primary/10 text-primary",
+  aguardando_cliente: "border-slate-400/30 bg-slate-400/10 text-slate-300",
   resolvido: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
   fechado: "border-white/10 bg-white/5 text-muted-foreground",
 })[s];
@@ -107,7 +108,7 @@ function ChamadosPage() {
     if (typeof window === "undefined") return "todos";
     const s = sessionStorage.getItem("chamados:initial-status");
     if (s) sessionStorage.removeItem("chamados:initial-status");
-    return s && ["aberto", "em_andamento", "resolvido", "fechado"].includes(s) ? s : "todos";
+    return s && ["aberto", "em_andamento", "aguardando_cliente", "resolvido", "fechado"].includes(s) ? s : "todos";
   });
   const [prioridadeFilter, setPrioridadeFilter] = useState<string>("todos");
   const [responsavelFilter, setResponsavelFilter] = useState<string>("todos");
@@ -396,6 +397,7 @@ function ChamadosPage() {
             <option value="todos">Todos os status</option>
             <option value="aberto">Aberto</option>
             <option value="em_andamento">Em andamento</option>
+            <option value="aguardando_cliente">Aguardando cliente</option>
             <option value="resolvido">Resolvido</option>
             <option value="fechado">Fechado</option>
           </select>
