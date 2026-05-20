@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
-import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
@@ -427,7 +427,13 @@ function DashboardPage() {
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-        <SlaCard pct={stats.slaPct} loading={isLoading && !data} periodLabel={PERIOD_LABEL[period]} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FilaCriticaCard onOpen={(id) => {
+            if (typeof window !== "undefined") sessionStorage.setItem("chamados:open-id", id);
+            navigate({ to: "/chamados" });
+          }} />
+          <PlacarDoDiaCard />
+        </div>
         <ChartCard title="Heatmap semanal (últimas 4 semanas)">
           {isLoading && !data ? <Skeleton className="h-[180px] w-full" /> : <Heatmap data={heat} />}
         </ChartCard>
