@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { useAuth } from "@/lib/auth";
-import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X, UserCheck, AlertTriangle, ChevronLeft, ChevronRight, Hand, UserMinus, RotateCcw, Copy } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X, UserCheck, AlertTriangle, ChevronLeft, ChevronRight, Hand, UserMinus, RotateCcw, Copy, Pause, Play } from "lucide-react";
 import { toast } from "sonner";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
@@ -368,6 +368,17 @@ function ChamadosPage() {
       .eq("id", c.id);
     if (error) return toast.error(error.message);
     toast.success("Chamado reaberto");
+    load();
+  };
+
+  const togglePausa = async (c: Chamado) => {
+    if (!canWrite) return toast.error("Sem permissão.");
+    const novo = c.status === "aguardando_cliente" ? "em_andamento" : "aguardando_cliente";
+    const { error } = await supabase.from("chamados")
+      .update({ status: novo } as never)
+      .eq("id", c.id);
+    if (error) return toast.error(error.message);
+    toast.success(novo === "aguardando_cliente" ? "SLA pausado · aguardando cliente" : "SLA retomado");
     load();
   };
 
