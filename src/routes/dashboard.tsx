@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
-import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck, ArrowRight, GitBranch } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
