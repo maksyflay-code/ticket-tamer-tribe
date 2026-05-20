@@ -554,7 +554,12 @@ export type Database = {
     Enums: {
       app_role: "admin" | "operador" | "visualizador"
       chamado_prioridade: "baixa" | "media" | "alta" | "urgente"
-      chamado_status: "aberto" | "em_andamento" | "resolvido" | "fechado"
+      chamado_status:
+        | "aberto"
+        | "em_andamento"
+        | "aguardando_cliente"
+        | "resolvido"
+        | "fechado"
       cliente_status: "ativo" | "inativo" | "suspenso"
     }
     CompositeTypes: {
@@ -685,7 +690,13 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "operador", "visualizador"],
       chamado_prioridade: ["baixa", "media", "alta", "urgente"],
-      chamado_status: ["aberto", "em_andamento", "resolvido", "fechado"],
+      chamado_status: [
+        "aberto",
+        "em_andamento",
+        "aguardando_cliente",
+        "resolvido",
+        "fechado",
+      ],
       cliente_status: ["ativo", "inativo", "suspenso"],
     },
   },
