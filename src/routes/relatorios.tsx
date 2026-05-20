@@ -198,8 +198,10 @@ function RelatoriosPage() {
           <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Status</label>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
             className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono">
-            <option value="todos">Todos</option><option value="aberto">Aberto</option>
-            <option value="em_andamento">Em andamento</option><option value="resolvido">Resolvido</option>
+            <option value="todos">Todos</option>
+            <option value="aberto">Aberto</option>
+            <option value="aguardando_cliente">Aguardando cliente</option>
+            <option value="resolvido">Resolvido</option>
             <option value="fechado">Fechado</option>
           </select>
         </div>
