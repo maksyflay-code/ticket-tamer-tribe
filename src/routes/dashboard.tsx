@@ -355,20 +355,48 @@ function DashboardPage() {
   }, [navigate, queryClient]);
 
   const cards = [
-    { label: "Chamados Abertos", value: stats.abertos, icon: AlertTriangle, accent: "from-amber-500/20 via-amber-500/5", bar: "from-amber-500 to-orange-500", icColor: "text-amber-400", w: "65%", to: "/chamados", status: "aberto" as const },
-    { label: "Aguardando Cliente", value: stats.aguardandoCliente, icon: Clock, accent: "from-slate-400/20 via-slate-400/5", bar: "from-slate-300 to-slate-500", icColor: "text-slate-300", w: "45%", to: "/chamados", status: "aguardando_cliente" as const },
-    { label: "Resolvidos Hoje", value: stats.resolvidosHoje, icon: CheckCircle2, accent: "from-emerald-500/20 via-emerald-500/5", bar: "from-emerald-400 to-teal-500", icColor: "text-emerald-400", w: "80%", to: "/chamados", status: "resolvido" as const },
-    { label: "Total de Clientes", value: stats.totalClientes, icon: Users, accent: "from-blue-500/20 via-blue-500/5", bar: "from-blue-400 to-indigo-500", icColor: "text-blue-400", w: "72%", to: "/clientes", status: null },
-    { label: "SLA (30d)", value: `${stats.slaPct.toFixed(0)}%`, icon: Target, accent: "from-violet-500/20 via-violet-500/5", bar: "from-violet-400 to-fuchsia-500", icColor: "text-violet-400", w: `${stats.slaPct.toFixed(0)}%`, to: "/chamados", status: null },
-    { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, accent: "from-cyan-500/20 via-cyan-500/5", bar: "from-cyan-400 to-sky-500", icColor: "text-cyan-400", w: "55%", to: "/chamados", status: null },
-    { label: "Novos Clientes (30d)", value: stats.novosClientes30d, icon: UserPlus, accent: "from-pink-500/20 via-pink-500/5", bar: "from-pink-400 to-rose-500", icColor: "text-pink-400", w: "60%", to: "/clientes", status: null },
-    { label: "Chamados no mês", value: stats.chamadosMes, icon: Activity, accent: "from-teal-500/20 via-teal-500/5", bar: "from-teal-400 to-emerald-500", icColor: "text-teal-400", w: "70%", to: "/chamados", status: null },
+    { label: "Chamados Abertos", value: stats.abertos, icon: AlertTriangle, accent: "from-amber-500/20 via-amber-500/5", bar: "from-amber-500 to-orange-500", icColor: "text-amber-400", w: "65%", to: "/chamados", status: "aberto" as const, spark: sparkNew, sparkColor: "#f59e0b" },
+    { label: "Aguardando Cliente", value: stats.aguardandoCliente, icon: Clock, accent: "from-slate-400/20 via-slate-400/5", bar: "from-slate-300 to-slate-500", icColor: "text-slate-300", w: "45%", to: "/chamados", status: "aguardando_cliente" as const, spark: sparkNew, sparkColor: "#94a3b8" },
+    { label: "Resolvidos Hoje", value: stats.resolvidosHoje, icon: CheckCircle2, accent: "from-emerald-500/20 via-emerald-500/5", bar: "from-emerald-400 to-teal-500", icColor: "text-emerald-400", w: "80%", to: "/chamados", status: "resolvido" as const, spark: sparkResolved, sparkColor: "#10b981" },
+    { label: "Total de Clientes", value: stats.totalClientes, icon: Users, accent: "from-blue-500/20 via-blue-500/5", bar: "from-blue-400 to-indigo-500", icColor: "text-blue-400", w: "72%", to: "/clientes", status: null, spark: sparkNew, sparkColor: "#60a5fa" },
+    { label: `Reaberturas (${PERIOD_LABEL[period]})`, value: stats.reaberturas, icon: RotateCcw, accent: "from-red-500/20 via-red-500/5", bar: "from-red-500 to-orange-500", icColor: "text-red-400", w: `${Math.min(100, stats.reaberturas * 10)}%`, to: "/chamados", status: null, spark: sparkResolved, sparkColor: "#ef4444" },
+    { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, accent: "from-cyan-500/20 via-cyan-500/5", bar: "from-cyan-400 to-sky-500", icColor: "text-cyan-400", w: "55%", to: "/chamados", status: null, spark: sparkResolved, sparkColor: "#22d3ee" },
+    { label: `Novos Clientes (${PERIOD_LABEL[period]})`, value: stats.novosClientes30d, icon: UserPlus, accent: "from-pink-500/20 via-pink-500/5", bar: "from-pink-400 to-rose-500", icColor: "text-pink-400", w: "60%", to: "/clientes", status: null, spark: sparkNew, sparkColor: "#f472b6" },
+    { label: `Chamados (${PERIOD_LABEL[period]})`, value: stats.chamadosMes, icon: Activity, accent: "from-teal-500/20 via-teal-500/5", bar: "from-teal-400 to-emerald-500", icColor: "text-teal-400", w: "70%", to: "/chamados", status: null, spark: sparkNew, sparkColor: "#2dd4bf" },
   ];
+
+  const pageSize = 5;
+  const totalPages = Math.max(1, Math.ceil(recentes.length / pageSize));
+  const pageItems = recentes.slice(page * pageSize, page * pageSize + pageSize);
 
   return (
     <AppShell title="Painel de Controle">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div>
+          <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">Período</div>
+          <div className="text-xs font-mono text-muted-foreground mt-0.5">Dados filtrados para os últimos {PERIOD_LABEL[period]}</div>
+        </div>
+        <div className="inline-flex border border-border bg-card overflow-hidden">
+          {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-colors ${period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary/50"}`}
+            >
+              {PERIOD_LABEL[p]}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <section className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-8">
-        {cards.map((c) => {
+        {isLoading && !data ? Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="border border-border bg-card p-3 md:p-5">
+            <Skeleton className="h-3 w-24 mb-3" />
+            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-1 w-full mt-4" />
+          </div>
+        )) : cards.map((c) => {
           const Icon = c.icon;
           return (
             <Link key={c.label}
@@ -381,6 +409,9 @@ function DashboardPage() {
               }}
               className={`group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5`}>
               <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${c.accent} to-transparent opacity-60 group-hover:opacity-100 transition-opacity`} />
+              <div className="pointer-events-none absolute bottom-2 right-2 w-16 h-8 opacity-70">
+                <Sparkline data={c.spark} color={c.sparkColor} />
+              </div>
               <div className="relative">
                 <div className="flex items-start justify-between mb-3">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
@@ -398,6 +429,13 @@ function DashboardPage() {
         })}
       </section>
 
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        <SlaCard pct={stats.slaPct} loading={isLoading && !data} periodLabel={PERIOD_LABEL[period]} />
+        <ChartCard title="Heatmap semanal (últimas 4 semanas)">
+          {isLoading && !data ? <Skeleton className="h-[180px] w-full" /> : <Heatmap data={heat} />}
+        </ChartCard>
+      </section>
+
       <section className="mb-8">
         <h2 className="font-display text-lg font-bold tracking-tight mb-4">Chamados Ativos por Prioridade</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
@@ -412,13 +450,15 @@ function DashboardPage() {
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
         <ChartCard title="Distribuição por status">
-          <DonutChart data={statusDist} />
+          {isLoading && !data ? <Skeleton className="h-[200px] w-full" /> : <DonutChart data={statusDist} />}
         </ChartCard>
         <ChartCard title="Distribuição por prioridade">
-          <DonutChart data={prioridadeDist} />
+          {isLoading && !data ? <Skeleton className="h-[200px] w-full" /> : <DonutChart data={prioridadeDist} />}
         </ChartCard>
-        <ChartCard title="Volume diário no mês" className="lg:col-span-2">
-          <ResponsiveContainer width="100%" height={260}>
+        <ChartCard title={`Volume diário (${PERIOD_LABEL[period]})`} className="lg:col-span-2">
+          {isLoading && !data ? <Skeleton className="h-[260px] w-full" /> : dailySerie.every(d => d.abertos === 0 && d.resolvidos === 0) ? (
+            <EmptyState message="Sem chamados no período selecionado." />
+          ) : <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={dailySerie} margin={{ top: 8, right: 16, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradAbertos" x1="0" y1="0" x2="0" y2="1">
@@ -438,10 +478,10 @@ function DashboardPage() {
               <Area type="monotone" dataKey="abertos" stroke="#f59e0b" strokeWidth={2} fill="url(#gradAbertos)" />
               <Area type="monotone" dataKey="resolvidos" stroke="#10b981" strokeWidth={2} fill="url(#gradResolvidos)" />
             </AreaChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer>}
         </ChartCard>
         <ChartCard title="Ranking de técnicos (mês)">
-          <RankingList ranking={rankingDisplay} />
+          {isLoading && !data ? <Skeleton className="h-[260px] w-full" /> : <RankingList ranking={rankingDisplay} />}
         </ChartCard>
         <ChartCard title="Destaques do mês">
           <HighlightsPanel
@@ -473,14 +513,19 @@ function DashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {recentes.length === 0 && (
+              {isLoading && !data && Array.from({length: 5}).map((_, i) => (
+                <tr key={`sk-${i}`}>
+                  <td colSpan={5} className="p-3"><Skeleton className="h-4 w-full" /></td>
+                </tr>
+              ))}
+              {!isLoading && recentes.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground font-mono">
-                    Nenhum chamado registrado ainda.
+                  <td colSpan={5} className="p-8">
+                    <EmptyState message="Nenhum chamado registrado ainda." />
                   </td>
                 </tr>
               )}
-              {recentes.map((c) => (
+              {pageItems.map((c) => (
                 <tr key={c.id} className="hover:bg-secondary/30 transition-colors">
                   <td className="p-4 text-muted-foreground font-mono">{c.codigo ?? `#TK-${String(c.numero).padStart(4, "0")}`}</td>
                   <td className="p-4 font-medium">{c.clientes?.nome ?? "—"}</td>
@@ -495,6 +540,23 @@ function DashboardPage() {
               ))}
             </tbody>
           </table>
+          {recentes.length > 0 && (
+            <div className="flex items-center justify-between border-t border-border px-4 py-2 text-xs font-mono text-muted-foreground">
+              <span>Página {page + 1} de {totalPages} • {recentes.length} chamados</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="p-1 border border-border hover:bg-secondary/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                ><ChevronLeft className="h-3 w-3" /></button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="p-1 border border-border hover:bg-secondary/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                ><ChevronRight className="h-3 w-3" /></button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
     </AppShell>
