@@ -196,11 +196,12 @@ function RfoPage() {
         doc.setTextColor(20);
         doc.text("FOTOS DO EVENTO:", margin, y);
         y += 14;
-        const cols = fotos.length >= 3 ? 3 : 2;
+        const cols = fotos.length === 1 ? 1 : fotos.length === 2 ? 2 : 3;
         const gap = 8;
         const colW = (pageW - margin * 2 - gap * (cols - 1)) / cols;
         const available = respTop - y - 8;
-        const imgH = Math.max(70, Math.min(120, available / Math.ceil(fotos.length / cols) - 14));
+        const rows = Math.ceil(fotos.length / cols);
+        const imgH = Math.max(120, Math.min(260, available / rows - 14));
         let col = 0;
         for (const foto of fotos) {
           if (y + imgH > respTop - 4) break;
@@ -221,7 +222,7 @@ function RfoPage() {
             const dy = y + (imgH - drawH) / 2;
             doc.addImage(foto.dataUrl, ext, dx, dy, drawW, drawH, undefined, "FAST");
             doc.setDrawColor(220);
-            doc.rect(x, y, colW, imgH);
+            doc.rect(dx, dy, drawW, drawH);
           } catch {
             // ignore
           }
