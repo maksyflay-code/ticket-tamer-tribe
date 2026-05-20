@@ -684,6 +684,7 @@ function ChamadosPage() {
                 <select value={form.status ?? "aberto"} onChange={(e) => setForm({ ...form, status: e.target.value as Status })}
                   className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary">
                   <option value="aberto">Aberto</option><option value="em_andamento">Em andamento</option>
+                  <option value="aguardando_cliente">Aguardando cliente</option>
                   <option value="resolvido">Resolvido</option><option value="fechado">Fechado</option>
                 </select>
               </div>
@@ -1007,6 +1008,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                 <select value={status} onChange={(e) => setStatus(e.target.value as Status)}
                   className="mt-1 w-full bg-card border border-border px-2 py-1.5 text-xs font-mono">
                   <option value="aberto">Aberto</option><option value="em_andamento">Em andamento</option>
+                  <option value="aguardando_cliente">Aguardando cliente</option>
                   <option value="resolvido">Resolvido</option><option value="fechado">Fechado</option>
                 </select>
               </div>
