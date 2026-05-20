@@ -483,7 +483,10 @@ function DashboardPage() {
             </AreaChart>
           </ResponsiveContainer>}
         </ChartCard>
-        <FeedAtividadeCard onOpen={(id) => navigate({ to: "/chamados", search: { open: id } as any })} />
+        <FeedAtividadeCard onOpen={(id) => {
+          if (typeof window !== "undefined") sessionStorage.setItem("chamados:open-id", id);
+          navigate({ to: "/chamados" });
+        }} />
         <CargaAgentesCard />
       </section>
 
