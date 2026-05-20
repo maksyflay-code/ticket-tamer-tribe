@@ -1210,12 +1210,11 @@ function CargaAgentesCard() {
     </div>
   );
 }
-type StatusKey = "aberto" | "aguardando_cliente" | "resolvido" | "fechado";
+type StatusKey = "aberto" | "aguardando_cliente" | "resolvido";
 const FLUXO_STEPS: { key: StatusKey; label: string; bar: string; text: string; bg: string; border: string }[] = [
   { key: "aberto",              label: "Aberto",     bar: "bg-amber-500",   text: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/30" },
   { key: "aguardando_cliente",  label: "Aguardando", bar: "bg-purple-500",  text: "text-purple-400",  bg: "bg-purple-500/10",  border: "border-purple-500/30" },
   { key: "resolvido",           label: "Resolvido",  bar: "bg-emerald-500", text: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
-  { key: "fechado",             label: "Fechado",    bar: "bg-slate-500",   text: "text-slate-300",   bg: "bg-slate-500/10",   border: "border-slate-500/30" },
 ];
 
 function FluxoStatusCard({ period }: { period: Period }) {
@@ -1239,7 +1238,7 @@ function FluxoStatusCard({ period }: { period: Period }) {
       if (hist.error) throw hist.error;
       if (atuais.error) throw atuais.error;
 
-      const counts: Record<StatusKey, number> = { aberto: 0, aguardando_cliente: 0, resolvido: 0, fechado: 0 };
+      const counts: Record<StatusKey, number> = { aberto: 0, aguardando_cliente: 0, resolvido: 0 };
       for (const row of atuais.data ?? []) {
         const k = row.status as StatusKey;
         if (k in counts) counts[k]++;
