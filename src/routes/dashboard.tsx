@@ -352,15 +352,15 @@ function DashboardPage() {
           </ResponsiveContainer>
         </ChartCard>
         <ChartCard title="Ranking de técnicos (mês)">
-          <RankingList ranking={ranking} />
+          <RankingList ranking={rankingDisplay} />
         </ChartCard>
         <ChartCard title="Destaques do mês">
           <HighlightsPanel
-            totalResolvidos={ranking.reduce((s, r) => s + r.resolvidos, 0)}
-            topTecnico={ranking[0]}
+            totalResolvidos={rankingDisplay.reduce((s, r) => s + r.resolvidos, 0)}
+            topTecnico={rankingDisplay[0]}
             slaPct={stats.slaPct}
             tempoMedioH={stats.tempoMedioH}
-            tecnicosAtivos={ranking.length}
+            tecnicosAtivos={rankingDisplay.length}
           />
         </ChartCard>
       </section>
