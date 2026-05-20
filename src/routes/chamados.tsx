@@ -497,7 +497,11 @@ function ChamadosPage() {
                 <td className={`p-4 font-mono uppercase ${prioridadeColor(c.prioridade)}`}>{c.prioridade}</td>
                 <td className="p-4 font-mono text-[10px]">
                   {!sla ? <span className="text-muted-foreground">…</span> :
-                    !sla.ativo ? (
+                    sla.pausado ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 border border-slate-500/40 text-slate-300 bg-slate-500/10">
+                        ⏸ PAUSADO
+                      </span>
+                    ) : !sla.ativo ? (
                       <span className={sla.cumprido ? "text-emerald-400" : "text-red-400"}>
                         {sla.cumprido ? "CUMPRIDO" : "ESTOURADO"}
                       </span>
@@ -581,9 +585,10 @@ function ChamadosPage() {
                       ? <span className="text-primary">{(opEmailById.get(c.responsavel_id) ?? c.tecnico_responsavel ?? "—").split("@")[0]}</span>
                       : <span className="text-muted-foreground">não atribuído</span>}
                     {sla?.ativo && <span className={`ml-2 ${
+                      sla.pausado ? "text-slate-300" :
                       sla.color === "red" ? "text-red-400" : sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
                     }`}>
-                      · {sla.estourado ? `${formatHorasRestantes(sla.restante)} atrasado` : formatHorasRestantes(sla.restante)}
+                      · {sla.pausado ? "⏸ pausado" : sla.estourado ? `${formatHorasRestantes(sla.restante)} atrasado` : formatHorasRestantes(sla.restante)}
                     </span>}
                   </div>
                 </div>
@@ -1052,9 +1057,12 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
               <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-2">
                 <span>SLA · Prazo {sla.limite}h ({prioridade})</span>
                 <span className={
+                  sla.pausado ? "text-slate-300" :
                   sla.color === "red" ? "text-red-400" : sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
                 }>
-                  {!sla.ativo
+                  {sla.pausado
+                    ? "⏸ PAUSADO (aguardando cliente)"
+                    : !sla.ativo
                     ? (sla.cumprido ? "CUMPRIDO" : "ESTOURADO")
                     : sla.estourado
                       ? `Estourou há ${formatHorasRestantes(sla.restante)}`
@@ -1063,11 +1071,13 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
               </div>
               <div className="h-2 w-full bg-secondary overflow-hidden">
                 <div className={
-                  (sla.color === "red" ? "bg-red-400" : sla.color === "amber" ? "bg-amber-400" : "bg-emerald-400") + " h-full transition-all"
+                  (sla.pausado ? "bg-slate-400" :
+                   sla.color === "red" ? "bg-red-400" : sla.color === "amber" ? "bg-amber-400" : "bg-emerald-400") + " h-full transition-all"
                 } style={{ width: `${Math.min(100, sla.pct)}%` }} />
               </div>
               <div className="mt-1 text-[10px] font-mono text-muted-foreground">
                 {sla.decorrido.toFixed(1)}h decorridas de {sla.limite}h ({sla.pct.toFixed(0)}%)
+                {sla.pausado && " · cronômetro pausado"}
               </div>
             </section>
           )}

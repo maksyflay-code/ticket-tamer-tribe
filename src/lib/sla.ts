@@ -47,33 +47,49 @@ export function invalidateSlaCache() {
 
 export type SlaInfo = {
   ativo: boolean;
+  pausado: boolean;
   estourado: boolean;
   limite: number;        // horas
   decorrido: number;     // horas
   restante: number;      // horas (negativo se estourado)
   pct: number;           // 0..100+ (% do prazo consumido)
-  color: "emerald" | "amber" | "red";
+  color: "emerald" | "amber" | "red" | "slate";
   cumprido: boolean | null; // só faz sentido quando resolvido
 };
 
 export function calcSla(
-  c: { status: string; prioridade: string; created_at: string; resolvido_at: string | null },
+  c: {
+    status: string;
+    prioridade: string;
+    created_at: string;
+    resolvido_at: string | null;
+    sla_pausado_at?: string | null;
+    sla_pausado_total_seg?: number | null;
+  },
   map: SlaMap,
 ): SlaInfo {
   const rule = map[c.prioridade as Prioridade] ?? FALLBACK.media;
   const limite = rule.horas_resolucao;
   const ativo = c.status !== "resolvido" && c.status !== "fechado";
+  const pausado = ativo && c.status === "aguardando_cliente";
   const fim = c.resolvido_at ? new Date(c.resolvido_at).getTime() : Date.now();
-  const decorrido = Math.max(0, (fim - new Date(c.created_at).getTime()) / 3_600_000);
+  const pausadoAcumuladoH = (c.sla_pausado_total_seg ?? 0) / 3600;
+  const pausadoAtualH = pausado && c.sla_pausado_at
+    ? Math.max(0, (Date.now() - new Date(c.sla_pausado_at).getTime()) / 3_600_000)
+    : 0;
+  const brutoH = Math.max(0, (fim - new Date(c.created_at).getTime()) / 3_600_000);
+  const decorrido = Math.max(0, brutoH - pausadoAcumuladoH - pausadoAtualH);
   const restante = limite - decorrido;
   const pct = Math.min(999, (decorrido / limite) * 100);
-  const estourado = ativo && decorrido > limite;
+  const estourado = ativo && !pausado && decorrido > limite;
   const cumprido = ativo ? null : decorrido <= limite;
   const color: SlaInfo["color"] =
-    !ativo
+    pausado
+      ? "slate"
+      : !ativo
       ? cumprido ? "emerald" : "red"
       : pct >= 100 ? "red" : pct >= 75 ? "amber" : "emerald";
-  return { ativo, estourado, limite, decorrido, restante, pct, color, cumprido };
+  return { ativo, pausado, estourado, limite, decorrido, restante, pct, color, cumprido };
 }
 
 export function formatHorasRestantes(h: number): string {
