@@ -483,18 +483,8 @@ function DashboardPage() {
             </AreaChart>
           </ResponsiveContainer>}
         </ChartCard>
-        <ChartCard title="Ranking de técnicos (mês)">
-          {isLoading && !data ? <Skeleton className="h-[260px] w-full" /> : <RankingList ranking={rankingDisplay} />}
-        </ChartCard>
-        <ChartCard title="Destaques do mês">
-          <HighlightsPanel
-            totalResolvidos={rankingDisplay.reduce((s, r) => s + r.resolvidos, 0)}
-            topTecnico={rankingDisplay[0]}
-            slaPct={stats.slaPct}
-            tempoMedioH={stats.tempoMedioH}
-            tecnicosAtivos={rankingDisplay.length}
-          />
-        </ChartCard>
+        <FeedAtividadeCard onOpen={(id) => navigate({ to: "/chamados", search: { open: id } as any })} />
+        <CargaAgentesCard />
       </section>
 
       <section>
