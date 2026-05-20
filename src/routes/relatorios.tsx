@@ -202,7 +202,6 @@ function RelatoriosPage() {
             <option value="aberto">Aberto</option>
             <option value="aguardando_cliente">Aguardando cliente</option>
             <option value="resolvido">Resolvido</option>
-            <option value="fechado">Fechado</option>
           </select>
         </div>
         <div>
