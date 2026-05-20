@@ -1087,18 +1087,39 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
             <section className="border border-border bg-background p-3">
               <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-2">
                 <span>SLA · Prazo {sla.limite}h ({prioridade})</span>
-                <span className={
-                  sla.pausado ? "text-slate-300" :
-                  sla.color === "red" ? "text-red-400" : sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
-                }>
-                  {sla.pausado
-                    ? "⏸ PAUSADO (aguardando cliente)"
-                    : !sla.ativo
-                    ? (sla.cumprido ? "CUMPRIDO" : "ESTOURADO")
-                    : sla.estourado
-                      ? `Estourou há ${formatHorasRestantes(sla.restante)}`
-                      : `Vence em ${formatHorasRestantes(sla.restante)}`}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={
+                    sla.pausado ? "text-slate-300" :
+                    sla.color === "red" ? "text-red-400" : sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
+                  }>
+                    {sla.pausado
+                      ? "⏸ PAUSADO (aguardando cliente)"
+                      : !sla.ativo
+                      ? (sla.cumprido ? "CUMPRIDO" : "ESTOURADO")
+                      : sla.estourado
+                        ? `Estourou há ${formatHorasRestantes(sla.restante)}`
+                        : `Vence em ${formatHorasRestantes(sla.restante)}`}
+                  </span>
+                  {canWrite && sla.ativo && (
+                    <button
+                      type="button"
+                      title={sla.pausado ? "Retomar SLA" : "Pausar SLA · retorno do cliente"}
+                      onClick={async () => {
+                        const novo = sla.pausado ? "em_andamento" : "aguardando_cliente";
+                        const { error } = await supabase.from("chamados")
+                          .update({ status: novo } as never).eq("id", chamado.id);
+                        if (error) return toast.error(error.message);
+                        setStatus(novo as Status);
+                        toast.success(novo === "aguardando_cliente" ? "SLA pausado · aguardando cliente" : "SLA retomado");
+                      }}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 border text-[10px] uppercase tracking-widest ${sla.pausado
+                        ? "border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
+                        : "border-slate-500/40 text-slate-300 hover:bg-slate-500/10"}`}
+                    >
+                      {sla.pausado ? <><Play className="h-3 w-3" /> Retomar</> : <><Pause className="h-3 w-3" /> Pausar</>}
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="h-2 w-full bg-secondary overflow-hidden">
                 <div className={
