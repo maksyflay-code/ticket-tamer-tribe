@@ -307,6 +307,7 @@ function DashboardPage() {
       anexo: "Anexo enviado",
       criacao: "Chamado criado",
     };
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     const channel = supabase
       .channel("dashboard-realtime")
       .on(
@@ -318,18 +319,18 @@ function DashboardPage() {
             description: n.titulo ?? undefined,
             action: actionFor(n.id),
           });
-          load();
+          invalidate();
         },
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "chamados" },
-        () => { load(); },
+        () => { invalidate(); },
       )
       .on(
         "postgres_changes",
         { event: "DELETE", schema: "public", table: "chamados" },
-        () => { load(); },
+        () => { invalidate(); },
       )
       .on(
         "postgres_changes",
@@ -346,12 +347,12 @@ function DashboardPage() {
           if (isFinal) toast.success(head, opts);
           else if (h.tipo === "relato") toast.info(head, opts);
           else toast.message(head, opts);
-          load();
+          invalidate();
         },
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [navigate]);
+  }, [navigate, queryClient]);
 
   const cards = [
     { label: "Chamados Abertos", value: stats.abertos, icon: AlertTriangle, accent: "from-amber-500/20 via-amber-500/5", bar: "from-amber-500 to-orange-500", icColor: "text-amber-400", w: "65%", to: "/chamados", status: "aberto" as const },
