@@ -409,9 +409,6 @@ function DashboardPage() {
               }}
               className={`group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5`}>
               <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${c.accent} to-transparent opacity-60 group-hover:opacity-100 transition-opacity`} />
-              <div className="pointer-events-none absolute bottom-2 right-2 w-16 h-8 opacity-70">
-                <Sparkline data={c.spark} color={c.sparkColor} />
-              </div>
               <div className="relative">
                 <div className="flex items-start justify-between mb-3">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
