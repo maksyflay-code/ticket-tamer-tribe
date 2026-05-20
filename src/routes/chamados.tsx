@@ -509,32 +509,48 @@ function ChamadosPage() {
                 </td>
                 <td className={`p-4 font-mono uppercase ${prioridadeColor(c.prioridade)}`}>{c.prioridade}</td>
                 <td className="p-4 font-mono text-[10px]">
-                  {!sla ? <span className="text-muted-foreground">…</span> :
-                    sla.pausado ? (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 border border-slate-500/40 text-slate-300 bg-slate-500/10">
-                        ⏸ PAUSADO
-                      </span>
-                    ) : !sla.ativo ? (
-                      <span className={sla.cumprido ? "text-emerald-400" : "text-red-400"}>
-                        {sla.cumprido ? "CUMPRIDO" : "ESTOURADO"}
-                      </span>
-                    ) : sla.estourado ? (
-                      <span className="inline-flex items-center gap-1 text-red-400">
-                        <AlertTriangle className="h-3 w-3" /> {formatHorasRestantes(sla.restante)} atrasado
-                      </span>
-                    ) : (
-                      <div className="space-y-1">
-                        <div className={
-                          sla.color === "red" ? "text-red-400" :
-                          sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
-                        }>{formatHorasRestantes(sla.restante)} restantes</div>
-                        <div className="h-1 w-full bg-secondary overflow-hidden">
-                          <div className={
-                            (sla.color === "red" ? "bg-red-400" : sla.color === "amber" ? "bg-amber-400" : "bg-emerald-400") + " h-full"
-                          } style={{ width: `${Math.min(100, sla.pct)}%` }} />
-                        </div>
+                  {!sla ? <span className="text-muted-foreground">…</span> : (
+                    <div className="flex items-start gap-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex-1 min-w-0">
+                        {sla.pausado ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 border border-slate-500/40 text-slate-300 bg-slate-500/10">
+                            ⏸ PAUSADO
+                          </span>
+                        ) : !sla.ativo ? (
+                          <span className={sla.cumprido ? "text-emerald-400" : "text-red-400"}>
+                            {sla.cumprido ? "CUMPRIDO" : "ESTOURADO"}
+                          </span>
+                        ) : sla.estourado ? (
+                          <span className="inline-flex items-center gap-1 text-red-400">
+                            <AlertTriangle className="h-3 w-3" /> {formatHorasRestantes(sla.restante)} atrasado
+                          </span>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className={
+                              sla.color === "red" ? "text-red-400" :
+                              sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
+                            }>{formatHorasRestantes(sla.restante)} restantes</div>
+                            <div className="h-1 w-full bg-secondary overflow-hidden">
+                              <div className={
+                                (sla.color === "red" ? "bg-red-400" : sla.color === "amber" ? "bg-amber-400" : "bg-emerald-400") + " h-full"
+                              } style={{ width: `${Math.min(100, sla.pct)}%` }} />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
+                      {canWrite && sla.ativo && (
+                        <button
+                          title={sla.pausado ? "Retomar SLA" : "Pausar SLA · retorno do cliente"}
+                          onClick={() => togglePausa(c)}
+                          className={`shrink-0 p-1 border ${sla.pausado
+                            ? "border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
+                            : "border-slate-500/40 text-slate-300 hover:bg-slate-500/10"}`}
+                        >
+                          {sla.pausado ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </td>
                 <td className="p-4">
                   <span className={`px-2 py-0.5 border font-mono uppercase ${statusBadge(c.status)}`}>
