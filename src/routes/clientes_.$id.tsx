@@ -31,7 +31,7 @@ type ChamadoRow = {
   numero: number;
   codigo: string | null;
   titulo: string;
-  status: "aberto" | "em_andamento" | "resolvido" | "fechado";
+  status: "aberto" | "aguardando_cliente" | "resolvido" | "fechado";
   prioridade: "baixa" | "media" | "alta" | "urgente";
   created_at: string;
   resolvido_at: string | null;
@@ -40,7 +40,7 @@ type ChamadoRow = {
 
 const statusBadge = (s: string) => ({
   aberto: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-  em_andamento: "border-primary/30 bg-primary/10 text-primary",
+  aguardando_cliente: "border-slate-400/30 bg-slate-400/10 text-slate-300",
   resolvido: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
   fechado: "border-white/10 bg-white/5 text-muted-foreground",
 }[s] ?? "");
@@ -81,7 +81,7 @@ function ClienteDetailPage() {
 
   const metrics = useMemo(() => {
     const total = chamados.length;
-    const abertos = chamados.filter((c) => c.status === "aberto" || c.status === "em_andamento").length;
+    const abertos = chamados.filter((c) => c.status === "aberto" || c.status === "aguardando_cliente").length;
     const resolvidos = chamados.filter((c) => c.resolvido_at);
     const tempoMedioH = resolvidos.length === 0 ? 0 :
       resolvidos.reduce((acc, c) =>

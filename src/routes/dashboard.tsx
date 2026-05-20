@@ -20,7 +20,7 @@ export const Route = createFileRoute("/dashboard")({
 
 type Stats = {
   abertos: number;
-  emAndamento: number;
+  aguardandoCliente: number;
   resolvidosHoje: number;
   totalClientes: number;
   novosClientes30d: number;
@@ -43,7 +43,7 @@ type Chamado = {
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
     aberto: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-    em_andamento: "border-primary/30 bg-primary/10 text-primary",
+    aguardando_cliente: "border-slate-400/30 bg-slate-400/10 text-slate-300",
     resolvido: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
     fechado: "border-white/10 bg-white/5 text-muted-foreground",
   };
@@ -61,7 +61,7 @@ const prioridadeColor = (p: string) => {
 
 function DashboardPage() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<Stats>({ abertos: 0, emAndamento: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0, porPrioridade: {} });
+  const [stats, setStats] = useState<Stats>({ abertos: 0, aguardandoCliente: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0, porPrioridade: {} });
   const [recentes, setRecentes] = useState<Chamado[]>([]);
   const [statusDist, setStatusDist] = useState<{ name: string; value: number; color: string }[]>([]);
   const [prioridadeDist, setPrioridadeDist] = useState<{ name: string; value: number; color: string }[]>([]);
@@ -77,7 +77,7 @@ function DashboardPage() {
     startMonth.setDate(1); startMonth.setHours(0, 0, 0, 0);
     const [a, e, r, c, novos, resolvidos30, rec, abertosPri, todosStatus, todosPri, mensal, resolvidosMes] = await Promise.all([
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aberto"),
-      supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "em_andamento"),
+      supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aguardando_cliente"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "resolvido").gte("resolvido_at", today.toISOString()),
       supabase.from("clientes").select("id", { count: "exact", head: true }),
       supabase.from("clientes").select("id", { count: "exact", head: true }).gte("created_at", since30.toISOString()),
@@ -87,7 +87,7 @@ function DashboardPage() {
         .select("id, numero, codigo, titulo, status, prioridade, created_at, clientes(nome)")
         .order("created_at", { ascending: false })
         .limit(8),
-      supabase.from("chamados").select("prioridade").in("status", ["aberto", "em_andamento"]),
+      supabase.from("chamados").select("prioridade").in("status", ["aberto", "aguardando_cliente"]),
       supabase.from("chamados").select("status"),
       supabase.from("chamados").select("prioridade"),
       supabase.from("chamados").select("created_at,resolvido_at").gte("created_at", startMonth.toISOString()),
@@ -110,7 +110,7 @@ function DashboardPage() {
     });
     setStats({
       abertos: a.count ?? 0,
-      emAndamento: e.count ?? 0,
+      aguardandoCliente: e.count ?? 0,
       resolvidosHoje: r.count ?? 0,
       totalClientes: c.count ?? 0,
       novosClientes30d: novos.count ?? 0,
@@ -124,7 +124,7 @@ function DashboardPage() {
 
     // distribuições
     const statusColors: Record<string, string> = {
-      aberto: "#f59e0b", em_andamento: "#3b82f6", resolvido: "#10b981", fechado: "#6b7280",
+      aberto: "#f59e0b", aguardando_cliente: "#94a3b8", resolvido: "#10b981", fechado: "#6b7280",
     };
     const prioridadeColors: Record<string, string> = {
       urgente: "#ef4444", alta: "#f97316", media: "#eab308", baixa: "#9ca3af",
@@ -253,13 +253,13 @@ function DashboardPage() {
   }, [navigate]);
 
   const cards = [
-    { label: "Chamados Abertos", value: stats.abertos, icon: AlertTriangle, color: "bg-amber-500", w: "65%", to: "/chamados", status: "aberto" as const },
-    { label: "Em Andamento", value: stats.emAndamento, icon: Clock, color: "bg-primary", w: "45%", to: "/chamados", status: "em_andamento" as const },
-    { label: "Resolvidos Hoje", value: stats.resolvidosHoje, icon: CheckCircle2, color: "bg-emerald-500", w: "80%", to: "/chamados", status: "resolvido" as const },
-    { label: "Total de Clientes", value: stats.totalClientes, icon: Users, color: "bg-blue-500", w: "72%", to: "/clientes", status: null },
-    { label: "SLA (30d)", value: `${stats.slaPct.toFixed(0)}%`, icon: Target, color: "bg-violet-500", w: `${stats.slaPct.toFixed(0)}%`, to: "/chamados", status: null },
-    { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, color: "bg-cyan-500", w: "55%", to: "/chamados", status: null },
-    { label: "Novos Clientes (30d)", value: stats.novosClientes30d, icon: UserPlus, color: "bg-pink-500", w: "60%", to: "/clientes", status: null },
+    { label: "Chamados Abertos", value: stats.abertos, icon: AlertTriangle, accent: "from-amber-500/20 via-amber-500/5", bar: "from-amber-500 to-orange-500", icColor: "text-amber-400", w: "65%", to: "/chamados", status: "aberto" as const },
+    { label: "Aguardando Cliente", value: stats.aguardandoCliente, icon: Clock, accent: "from-slate-400/20 via-slate-400/5", bar: "from-slate-300 to-slate-500", icColor: "text-slate-300", w: "45%", to: "/chamados", status: "aguardando_cliente" as const },
+    { label: "Resolvidos Hoje", value: stats.resolvidosHoje, icon: CheckCircle2, accent: "from-emerald-500/20 via-emerald-500/5", bar: "from-emerald-400 to-teal-500", icColor: "text-emerald-400", w: "80%", to: "/chamados", status: "resolvido" as const },
+    { label: "Total de Clientes", value: stats.totalClientes, icon: Users, accent: "from-blue-500/20 via-blue-500/5", bar: "from-blue-400 to-indigo-500", icColor: "text-blue-400", w: "72%", to: "/clientes", status: null },
+    { label: "SLA (30d)", value: `${stats.slaPct.toFixed(0)}%`, icon: Target, accent: "from-violet-500/20 via-violet-500/5", bar: "from-violet-400 to-fuchsia-500", icColor: "text-violet-400", w: `${stats.slaPct.toFixed(0)}%`, to: "/chamados", status: null },
+    { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, accent: "from-cyan-500/20 via-cyan-500/5", bar: "from-cyan-400 to-sky-500", icColor: "text-cyan-400", w: "55%", to: "/chamados", status: null },
+    { label: "Novos Clientes (30d)", value: stats.novosClientes30d, icon: UserPlus, accent: "from-pink-500/20 via-pink-500/5", bar: "from-pink-400 to-rose-500", icColor: "text-pink-400", w: "60%", to: "/clientes", status: null },
   ];
 
   return (
@@ -276,16 +276,19 @@ function DashboardPage() {
                   else sessionStorage.removeItem("chamados:initial-status");
                 }
               }}
-              className="border border-border bg-card p-3 md:p-5 block hover:border-primary/60 hover:bg-secondary/30 transition-colors">
-              <div className="flex items-start justify-between mb-3">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
-                  {c.label}
-                </span>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="font-display text-2xl md:text-3xl font-bold tracking-tight">{c.value}</div>
-              <div className="mt-4 h-1 bg-border w-full">
-                <div className={`${c.color} h-full`} style={{ width: c.w }} />
+              className={`group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5`}>
+              <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${c.accent} to-transparent opacity-60 group-hover:opacity-100 transition-opacity`} />
+              <div className="relative">
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
+                    {c.label}
+                  </span>
+                  <Icon className={`h-4 w-4 ${c.icColor}`} />
+                </div>
+                <div className="font-display text-2xl md:text-3xl font-bold tracking-tight tabular-nums">{c.value}</div>
+                <div className="mt-4 h-1 bg-border/50 w-full overflow-hidden rounded-full">
+                  <div className={`h-full bg-gradient-to-r ${c.bar} transition-all`} style={{ width: c.w }} />
+                </div>
               </div>
             </Link>
           );

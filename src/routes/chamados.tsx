@@ -16,7 +16,7 @@ export const Route = createFileRoute("/chamados")({
   component: ChamadosPage,
 });
 
-type Status = "aberto" | "em_andamento" | "aguardando_cliente" | "resolvido" | "fechado";
+type Status = "aberto" | "aguardando_cliente" | "resolvido" | "fechado";
 type Prioridade = "baixa" | "media" | "alta" | "urgente";
 type TipoProblema = "ROMPIMENTO" | "ATENUACAO" | "OUTROS";
 
@@ -58,7 +58,6 @@ const ticketLabel = (c: Pick<Chamado, "codigo" | "numero">) =>
 
 const statusBadge = (s: Status) => ({
   aberto: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-  em_andamento: "border-primary/30 bg-primary/10 text-primary",
   aguardando_cliente: "border-slate-400/30 bg-slate-400/10 text-slate-300",
   resolvido: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
   fechado: "border-white/10 bg-white/5 text-muted-foreground",
@@ -108,7 +107,7 @@ function ChamadosPage() {
     if (typeof window === "undefined") return "todos";
     const s = sessionStorage.getItem("chamados:initial-status");
     if (s) sessionStorage.removeItem("chamados:initial-status");
-    return s && ["aberto", "em_andamento", "aguardando_cliente", "resolvido", "fechado"].includes(s) ? s : "todos";
+    return s && ["aberto", "aguardando_cliente", "resolvido", "fechado"].includes(s) ? s : "todos";
   });
   const [prioridadeFilter, setPrioridadeFilter] = useState<string>("todos");
   const [responsavelFilter, setResponsavelFilter] = useState<string>("todos");
@@ -284,8 +283,8 @@ function ChamadosPage() {
     if (payload.status !== "resolvido" && payload.status !== "fechado") {
       payload.resolvido_at = null;
     }
-    // Auto: ao iniciar atendimento, registra iniciado_at; ao resolver, finalizado_at
-    if (payload.status === "em_andamento" && !payload.iniciado_at) {
+    // Auto: ao abrir o chamado, registra iniciado_at; ao resolver, finalizado_at
+    if (payload.status === "aberto" && !payload.iniciado_at) {
       payload.iniciado_at = new Date().toISOString();
     }
     if (payload.status === "resolvido" && !payload.finalizado_at) {
@@ -364,7 +363,7 @@ function ChamadosPage() {
     if (!isAdmin) return toast.error("Apenas administradores podem reabrir.");
     if (!confirm(`Reabrir o chamado ${ticketLabel(c)}?`)) return;
     const { error } = await supabase.from("chamados")
-      .update({ status: "em_andamento", resolvido_at: null, finalizado_at: null } as never)
+      .update({ status: "aberto", resolvido_at: null, finalizado_at: null } as never)
       .eq("id", c.id);
     if (error) return toast.error(error.message);
     toast.success("Chamado reaberto");
@@ -373,7 +372,7 @@ function ChamadosPage() {
 
   const togglePausa = async (c: Chamado) => {
     if (!canWrite) return toast.error("Sem permissão.");
-    const novo = c.status === "aguardando_cliente" ? "em_andamento" : "aguardando_cliente";
+    const novo = c.status === "aguardando_cliente" ? "aberto" : "aguardando_cliente";
     const { error } = await supabase.from("chamados")
       .update({ status: novo } as never)
       .eq("id", c.id);
@@ -407,7 +406,6 @@ function ChamadosPage() {
             className="bg-card border border-border px-2 md:px-3 py-2 text-xs md:text-sm font-mono">
             <option value="todos">Todos os status</option>
             <option value="aberto">Aberto</option>
-            <option value="em_andamento">Em andamento</option>
             <option value="aguardando_cliente">Aguardando cliente</option>
             <option value="resolvido">Resolvido</option>
             <option value="fechado">Fechado</option>
@@ -710,7 +708,7 @@ function ChamadosPage() {
                 <Lbl>Status</Lbl>
                 <select value={form.status ?? "aberto"} onChange={(e) => setForm({ ...form, status: e.target.value as Status })}
                   className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary">
-                  <option value="aberto">Aberto</option><option value="em_andamento">Em andamento</option>
+                  <option value="aberto">Aberto</option>
                   <option value="aguardando_cliente">Aguardando cliente</option>
                   <option value="resolvido">Resolvido</option><option value="fechado">Fechado</option>
                 </select>
@@ -858,7 +856,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
     };
     if (status === "resolvido" && !chamado.resolvido_at) payload.resolvido_at = new Date().toISOString();
     if (status !== "resolvido" && status !== "fechado") payload.resolvido_at = null;
-    if (status === "em_andamento" && !chamado.iniciado_at) payload.iniciado_at = new Date().toISOString();
+    if (status === "aberto" && !chamado.iniciado_at) payload.iniciado_at = new Date().toISOString();
     if (status === "resolvido" && !chamado.finalizado_at) payload.finalizado_at = new Date().toISOString();
     // Se houver texto no relato, grava junto (ideal no fechamento)
     if (comentario.trim()) {
@@ -1034,7 +1032,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                 <Lbl>Status</Lbl>
                 <select value={status} onChange={(e) => setStatus(e.target.value as Status)}
                   className="mt-1 w-full bg-card border border-border px-2 py-1.5 text-xs font-mono">
-                  <option value="aberto">Aberto</option><option value="em_andamento">Em andamento</option>
+                  <option value="aberto">Aberto</option>
                   <option value="aguardando_cliente">Aguardando cliente</option>
                   <option value="resolvido">Resolvido</option><option value="fechado">Fechado</option>
                 </select>
@@ -1105,7 +1103,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                       type="button"
                       title={sla.pausado ? "Retomar SLA" : "Pausar SLA · retorno do cliente"}
                       onClick={async () => {
-                        const novo = sla.pausado ? "em_andamento" : "aguardando_cliente";
+                        const novo = sla.pausado ? "aberto" : "aguardando_cliente";
                         const { error } = await supabase.from("chamados")
                           .update({ status: novo } as never).eq("id", chamado.id);
                         if (error) return toast.error(error.message);
