@@ -317,7 +317,7 @@ function DashboardPage() {
         <ChartCard title="Distribuição por prioridade">
           <DonutChart data={prioridadeDist} />
         </ChartCard>
-        <ChartCard title="Volume diário no mês">
+        <ChartCard title="Volume diário no mês" className="lg:col-span-2">
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={dailySerie} margin={{ top: 8, right: 16, left: -10, bottom: 0 }}>
               <defs>
