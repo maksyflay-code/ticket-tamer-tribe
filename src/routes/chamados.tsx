@@ -408,7 +408,6 @@ function ChamadosPage() {
             <option value="aberto">Aberto</option>
             <option value="aguardando_cliente">Aguardando cliente</option>
             <option value="resolvido">Resolvido</option>
-            <option value="fechado">Fechado</option>
           </select>
           <select value={prioridadeFilter} onChange={(e) => setPrioridadeFilter(e.target.value)}
             className="bg-card border border-border px-2 md:px-3 py-2 text-xs md:text-sm font-mono">
@@ -710,7 +709,7 @@ function ChamadosPage() {
                   className="mt-1 w-full bg-background border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary">
                   <option value="aberto">Aberto</option>
                   <option value="aguardando_cliente">Aguardando cliente</option>
-                  <option value="resolvido">Resolvido</option><option value="fechado">Fechado</option>
+                  <option value="resolvido">Resolvido</option>
                 </select>
               </div>
               <div className="md:col-span-2">
@@ -1034,7 +1033,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                   className="mt-1 w-full bg-card border border-border px-2 py-1.5 text-xs font-mono">
                   <option value="aberto">Aberto</option>
                   <option value="aguardando_cliente">Aguardando cliente</option>
-                  <option value="resolvido">Resolvido</option><option value="fechado">Fechado</option>
+                  <option value="resolvido">Resolvido</option>
                 </select>
               </div>
               <div>
