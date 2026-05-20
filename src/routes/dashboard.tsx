@@ -1,22 +1,45 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
-import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
-  XAxis, YAxis, CartesianGrid, AreaChart, Area,
+  XAxis, YAxis, CartesianGrid, AreaChart, Area, LineChart, Line,
 } from "recharts";
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: requireAuth,
-  component: DashboardPage,
+  component: DashboardRoute,
 });
+
+function DashboardRoute() {
+  const [client] = useState(() => new QueryClient({
+    defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+  }));
+  return (
+    <QueryClientProvider client={client}>
+      <DashboardPage />
+    </QueryClientProvider>
+  );
+}
+
+type Period = "7d" | "30d" | "90d" | "year";
+const PERIOD_LABEL: Record<Period, string> = { "7d": "7d", "30d": "30d", "90d": "90d", year: "Este ano" };
+function periodStart(p: Period): Date {
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  if (p === "year") { d.setMonth(0, 1); return d; }
+  const days = p === "7d" ? 7 : p === "30d" ? 30 : 90;
+  d.setDate(d.getDate() - (days - 1));
+  return d;
+}
 
 type Stats = {
   abertos: number;
