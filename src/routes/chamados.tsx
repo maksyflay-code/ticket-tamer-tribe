@@ -585,9 +585,10 @@ function ChamadosPage() {
                       ? <span className="text-primary">{(opEmailById.get(c.responsavel_id) ?? c.tecnico_responsavel ?? "—").split("@")[0]}</span>
                       : <span className="text-muted-foreground">não atribuído</span>}
                     {sla?.ativo && <span className={`ml-2 ${
+                      sla.pausado ? "text-slate-300" :
                       sla.color === "red" ? "text-red-400" : sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
                     }`}>
-                      · {sla.estourado ? `${formatHorasRestantes(sla.restante)} atrasado` : formatHorasRestantes(sla.restante)}
+                      · {sla.pausado ? "⏸ pausado" : sla.estourado ? `${formatHorasRestantes(sla.restante)} atrasado` : formatHorasRestantes(sla.restante)}
                     </span>}
                   </div>
                 </div>
