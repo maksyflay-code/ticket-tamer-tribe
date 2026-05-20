@@ -487,7 +487,7 @@ function DashboardPage() {
           if (typeof window !== "undefined") sessionStorage.setItem("chamados:open-id", id);
           navigate({ to: "/chamados" });
         }} />
-        <CargaAgentesCard />
+        <FluxoStatusCard period={period} />
       </section>
 
       <section>
