@@ -50,6 +50,7 @@ type Stats = {
   slaPct: number;
   tempoMedioH: number;
   chamadosMes: number;
+  reaberturas: number;
   porPrioridade: Record<string, number>;
 };
 
@@ -85,39 +86,39 @@ const prioridadeColor = (p: string) => {
 
 function DashboardPage() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<Stats>({ abertos: 0, aguardandoCliente: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0, chamadosMes: 0, porPrioridade: {} });
-  const [recentes, setRecentes] = useState<Chamado[]>([]);
-  const [statusDist, setStatusDist] = useState<{ name: string; value: number; color: string }[]>([]);
-  const [prioridadeDist, setPrioridadeDist] = useState<{ name: string; value: number; color: string }[]>([]);
-  const [dailySerie, setDailySerie] = useState<{ dia: string; abertos: number; resolvidos: number }[]>([]);
-  const [ranking, setRanking] = useState<{ tecnico: string; resolvidos: number }[]>([]);
+  const [period, setPeriod] = useState<Period>("30d");
+  const [page, setPage] = useState(0);
   const [operators, setOperators] = useState<Array<{ email: string; name: string | null }>>([]);
+  const queryClient = useQueryClient();
 
-  const load = async () => {
+  const fetchAll = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const since30 = new Date(); since30.setDate(since30.getDate() - 30);
-    // início do mês corrente para gráficos
-    const startMonth = new Date();
-    startMonth.setDate(1); startMonth.setHours(0, 0, 0, 0);
-    const [a, e, r, c, novos, resolvidos30, rec, abertosPri, todosStatus, todosPri, mensal, resolvidosMes] = await Promise.all([
+    const start = periodStart(period);
+    const startMonth = new Date(); startMonth.setDate(1); startMonth.setHours(0, 0, 0, 0);
+    const startSpark = new Date(); startSpark.setHours(0,0,0,0); startSpark.setDate(startSpark.getDate() - 6);
+
+    const [a, e, r, c, novos, resolvidosPer, rec, abertosPri, todosStatus, todosPri, periodoSerie, resolvidosMes, reabertHist, sparkData] = await Promise.all([
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aberto"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aguardando_cliente"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "resolvido").gte("resolvido_at", today.toISOString()),
       supabase.from("clientes").select("id", { count: "exact", head: true }),
-      supabase.from("clientes").select("id", { count: "exact", head: true }).gte("created_at", since30.toISOString()),
-      supabase.from("chamados").select("created_at,resolvido_at,prioridade").not("resolvido_at", "is", null).gte("resolvido_at", since30.toISOString()),
+      supabase.from("clientes").select("id", { count: "exact", head: true }).gte("created_at", start.toISOString()),
+      supabase.from("chamados").select("created_at,resolvido_at,prioridade").not("resolvido_at", "is", null).gte("resolvido_at", start.toISOString()),
       supabase
         .from("chamados")
         .select("id, numero, codigo, titulo, status, prioridade, created_at, clientes(nome)")
         .order("created_at", { ascending: false })
-        .limit(8),
+        .limit(50),
       supabase.from("chamados").select("prioridade").in("status", ["aberto", "aguardando_cliente"]),
       supabase.from("chamados").select("status"),
       supabase.from("chamados").select("prioridade"),
-      supabase.from("chamados").select("created_at,resolvido_at").gte("created_at", startMonth.toISOString()),
+      supabase.from("chamados").select("created_at,resolvido_at").gte("created_at", start.toISOString()),
       supabase.from("chamados").select("tecnico_responsavel,resolvido_at").not("resolvido_at", "is", null).gte("resolvido_at", startMonth.toISOString()),
+      supabase.from("chamado_historico").select("chamado_id,status_anterior,status_novo,created_at,tipo").eq("tipo","mudanca_status").gte("created_at", start.toISOString()),
+      supabase.from("chamados").select("created_at,resolvido_at").gte("created_at", startSpark.toISOString()),
     ]);
+
     const { getSlaMap } = await import("@/lib/sla");
     const slaMap = await getSlaMap();
     const SLA: Record<string, number> = {
@@ -126,14 +127,25 @@ function DashboardPage() {
       media: slaMap.media.horas_resolucao,
       baixa: slaMap.baixa.horas_resolucao,
     };
-    const list = (resolvidos30.data ?? []) as { created_at: string; resolvido_at: string; prioridade: string }[];
+    const list = (resolvidosPer.data ?? []) as { created_at: string; resolvido_at: string; prioridade: string }[];
     let okSla = 0, totalH = 0;
     list.forEach((x) => {
       const h = (new Date(x.resolvido_at).getTime() - new Date(x.created_at).getTime()) / 3_600_000;
       totalH += h;
       if (h <= (SLA[x.prioridade] ?? 24)) okSla++;
     });
-    setStats({
+
+    // Reaberturas: distinct chamado_id where transição saiu de resolvido/fechado
+    const reabertSet = new Set<string>();
+    ((reabertHist.data ?? []) as { chamado_id: string; status_anterior: string | null; status_novo: string | null }[])
+      .forEach((h) => {
+        if ((h.status_anterior === "resolvido" || h.status_anterior === "fechado") &&
+            h.status_novo && h.status_novo !== "resolvido" && h.status_novo !== "fechado") {
+          reabertSet.add(h.chamado_id);
+        }
+      });
+
+    const stats: Stats = {
       abertos: a.count ?? 0,
       aguardandoCliente: e.count ?? 0,
       resolvidosHoje: r.count ?? 0,
@@ -141,14 +153,13 @@ function DashboardPage() {
       novosClientes30d: novos.count ?? 0,
       slaPct: list.length > 0 ? (okSla / list.length) * 100 : 0,
       tempoMedioH: list.length > 0 ? totalH / list.length : 0,
-      chamadosMes: ((mensal.data ?? []) as unknown[]).length,
+      chamadosMes: ((periodoSerie.data ?? []) as unknown[]).length,
+      reaberturas: reabertSet.size,
       porPrioridade: ((abertosPri.data ?? []) as { prioridade: string }[]).reduce((acc, x) => {
         acc[x.prioridade] = (acc[x.prioridade] ?? 0) + 1; return acc;
       }, {} as Record<string, number>),
-    });
-    setRecentes((rec.data as unknown as Chamado[]) ?? []);
+    };
 
-    // distribuições
     const statusColors: Record<string, string> = {
       aberto: "#f59e0b", aguardando_cliente: "#94a3b8", resolvido: "#10b981", fechado: "#6b7280",
     };
@@ -158,43 +169,97 @@ function DashboardPage() {
     const sCount = ((todosStatus.data ?? []) as { status: string }[]).reduce<Record<string, number>>((acc, x) => {
       acc[x.status] = (acc[x.status] ?? 0) + 1; return acc;
     }, {});
-    setStatusDist(Object.entries(sCount).map(([k, v]) => ({ name: k.replace("_", " "), value: v, color: statusColors[k] ?? "#888" })));
+    const statusDist = Object.entries(sCount).map(([k, v]) => ({ name: k.replace("_", " "), value: v, color: statusColors[k] ?? "#888" }));
     const pCount = ((todosPri.data ?? []) as { prioridade: string }[]).reduce<Record<string, number>>((acc, x) => {
       acc[x.prioridade] = (acc[x.prioridade] ?? 0) + 1; return acc;
     }, {});
-    setPrioridadeDist(Object.entries(pCount).map(([k, v]) => ({ name: k, value: v, color: prioridadeColors[k] ?? "#888" })));
+    const prioridadeDist = Object.entries(pCount).map(([k, v]) => ({ name: k, value: v, color: prioridadeColors[k] ?? "#888" }));
 
-    // série diária do mês
-    const dias = new Date(startMonth.getFullYear(), startMonth.getMonth() + 1, 0).getDate();
-    const serie: { dia: string; abertos: number; resolvidos: number }[] = [];
-    for (let d = 1; d <= dias; d++) serie.push({ dia: String(d).padStart(2, "0"), abertos: 0, resolvidos: 0 });
-    ((mensal.data ?? []) as { created_at: string; resolvido_at: string | null }[]).forEach((x) => {
-      const d = new Date(x.created_at).getDate();
-      if (serie[d - 1]) serie[d - 1].abertos++;
+    // Série diária no período
+    const dayMs = 86_400_000;
+    const totalDays = Math.max(1, Math.round((today.getTime() - start.getTime()) / dayMs) + 1);
+    const fmtDay = (d: Date) => `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
+    const dailySerie: { dia: string; abertos: number; resolvidos: number }[] = [];
+    for (let i = 0; i < totalDays; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i);
+      dailySerie.push({ dia: fmtDay(d), abertos: 0, resolvidos: 0 });
+    }
+    ((periodoSerie.data ?? []) as { created_at: string; resolvido_at: string | null }[]).forEach((x) => {
+      const dc = new Date(x.created_at); dc.setHours(0,0,0,0);
+      const idx = Math.round((dc.getTime() - start.getTime()) / dayMs);
+      if (dailySerie[idx]) dailySerie[idx].abertos++;
       if (x.resolvido_at) {
-        const dr = new Date(x.resolvido_at);
-        if (dr >= startMonth) {
-          const di = dr.getDate();
-          if (serie[di - 1]) serie[di - 1].resolvidos++;
-        }
+        const dr = new Date(x.resolvido_at); dr.setHours(0,0,0,0);
+        const ir = Math.round((dr.getTime() - start.getTime()) / dayMs);
+        if (dailySerie[ir]) dailySerie[ir].resolvidos++;
       }
     });
-    setDailySerie(serie);
 
-    // ranking de técnicos no mês
+    // Sparkline últimos 7 dias
+    const sparkNew = Array(7).fill(0) as number[];
+    const sparkResolved = Array(7).fill(0) as number[];
+    ((sparkData.data ?? []) as { created_at: string; resolvido_at: string | null }[]).forEach((x) => {
+      const dc = new Date(x.created_at); dc.setHours(0,0,0,0);
+      const i = Math.round((dc.getTime() - startSpark.getTime()) / dayMs);
+      if (i >= 0 && i < 7) sparkNew[i]++;
+      if (x.resolvido_at) {
+        const dr = new Date(x.resolvido_at); dr.setHours(0,0,0,0);
+        const ir = Math.round((dr.getTime() - startSpark.getTime()) / dayMs);
+        if (ir >= 0 && ir < 7) sparkResolved[ir]++;
+      }
+    });
+
+    // Heatmap 7x4 (últimas 4 semanas, dia 0=Dom...6=Sab) — usa periodoSerie quando period >=30d, senão sparkData
+    const heatStart = new Date(); heatStart.setHours(0,0,0,0); heatStart.setDate(heatStart.getDate() - 27);
+    const heatSource = period === "7d"
+      ? await supabase.from("chamados").select("created_at").gte("created_at", heatStart.toISOString())
+      : { data: ((periodoSerie.data ?? []) as { created_at: string }[]).filter(x => new Date(x.created_at) >= heatStart) };
+    const heat: number[][] = Array.from({ length: 4 }, () => Array(7).fill(0));
+    ((heatSource.data ?? []) as { created_at: string }[]).forEach((x) => {
+      const d = new Date(x.created_at); d.setHours(0,0,0,0);
+      const idx = Math.round((d.getTime() - heatStart.getTime()) / dayMs);
+      if (idx < 0 || idx > 27) return;
+      const week = Math.floor(idx / 7);
+      const day = idx % 7;
+      if (heat[week] && heat[week][day] !== undefined) heat[week][day]++;
+    });
+
+    // Ranking
     const rk = ((resolvidosMes.data ?? []) as { tecnico_responsavel: string | null }[]).reduce<Record<string, number>>((acc, x) => {
       const k = x.tecnico_responsavel || "Sem responsável";
       acc[k] = (acc[k] ?? 0) + 1; return acc;
     }, {});
-    setRanking(Object.entries(rk).sort((a,b)=>b[1]-a[1]).slice(0, 6).map(([tecnico, resolvidos]) => ({
-      tecnico,
-      resolvidos,
-    })));
+    const ranking = Object.entries(rk).sort((a,b)=>b[1]-a[1]).slice(0, 6).map(([tecnico, resolvidos]) => ({ tecnico, resolvidos }));
+
+    return {
+      stats,
+      recentes: (rec.data as unknown as Chamado[]) ?? [],
+      statusDist,
+      prioridadeDist,
+      dailySerie,
+      ranking,
+      sparkNew,
+      sparkResolved,
+      heat,
+    };
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  const { data, isLoading } = useQuery({
+    queryKey: ["dashboard", period],
+    queryFn: fetchAll,
+  });
+
+  const stats: Stats = data?.stats ?? { abertos: 0, aguardandoCliente: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0, chamadosMes: 0, reaberturas: 0, porPrioridade: {} };
+  const recentes = data?.recentes ?? [];
+  const statusDist = data?.statusDist ?? [];
+  const prioridadeDist = data?.prioridadeDist ?? [];
+  const dailySerie = data?.dailySerie ?? [];
+  const ranking = data?.ranking ?? [];
+  const sparkNew = data?.sparkNew ?? [0,0,0,0,0,0,0];
+  const sparkResolved = data?.sparkResolved ?? [0,0,0,0,0,0,0];
+  const heat = data?.heat ?? [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]];
+
+  useEffect(() => { setPage(0); }, [period, recentes.length]);
 
   // Mapa email -> nome dos operadores para mostrar nas notificações
   const operatorsRef = useRef<Array<{ email: string; name: string | null }>>([]);
