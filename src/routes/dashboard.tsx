@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
-import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
@@ -26,6 +26,7 @@ type Stats = {
   novosClientes30d: number;
   slaPct: number;
   tempoMedioH: number;
+  chamadosMes: number;
   porPrioridade: Record<string, number>;
 };
 
@@ -61,7 +62,7 @@ const prioridadeColor = (p: string) => {
 
 function DashboardPage() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<Stats>({ abertos: 0, aguardandoCliente: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0, porPrioridade: {} });
+  const [stats, setStats] = useState<Stats>({ abertos: 0, aguardandoCliente: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0, chamadosMes: 0, porPrioridade: {} });
   const [recentes, setRecentes] = useState<Chamado[]>([]);
   const [statusDist, setStatusDist] = useState<{ name: string; value: number; color: string }[]>([]);
   const [prioridadeDist, setPrioridadeDist] = useState<{ name: string; value: number; color: string }[]>([]);
@@ -116,6 +117,7 @@ function DashboardPage() {
       novosClientes30d: novos.count ?? 0,
       slaPct: list.length > 0 ? (okSla / list.length) * 100 : 0,
       tempoMedioH: list.length > 0 ? totalH / list.length : 0,
+      chamadosMes: ((mensal.data ?? []) as unknown[]).length,
       porPrioridade: ((abertosPri.data ?? []) as { prioridade: string }[]).reduce((acc, x) => {
         acc[x.prioridade] = (acc[x.prioridade] ?? 0) + 1; return acc;
       }, {} as Record<string, number>),
@@ -260,6 +262,7 @@ function DashboardPage() {
     { label: "SLA (30d)", value: `${stats.slaPct.toFixed(0)}%`, icon: Target, accent: "from-violet-500/20 via-violet-500/5", bar: "from-violet-400 to-fuchsia-500", icColor: "text-violet-400", w: `${stats.slaPct.toFixed(0)}%`, to: "/chamados", status: null },
     { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, accent: "from-cyan-500/20 via-cyan-500/5", bar: "from-cyan-400 to-sky-500", icColor: "text-cyan-400", w: "55%", to: "/chamados", status: null },
     { label: "Novos Clientes (30d)", value: stats.novosClientes30d, icon: UserPlus, accent: "from-pink-500/20 via-pink-500/5", bar: "from-pink-400 to-rose-500", icColor: "text-pink-400", w: "60%", to: "/clientes", status: null },
+    { label: "Chamados no mês", value: stats.chamadosMes, icon: Activity, accent: "from-teal-500/20 via-teal-500/5", bar: "from-teal-400 to-emerald-500", icColor: "text-teal-400", w: "70%", to: "/chamados", status: null },
   ];
 
   return (
@@ -314,7 +317,7 @@ function DashboardPage() {
         <ChartCard title="Distribuição por prioridade">
           <DonutChart data={prioridadeDist} />
         </ChartCard>
-        <ChartCard title="Volume diário no mês">
+        <ChartCard title="Volume diário no mês" className="lg:col-span-2">
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={dailySerie} margin={{ top: 8, right: 16, left: -10, bottom: 0 }}>
               <defs>
@@ -408,9 +411,16 @@ const legendStyle = { fontSize: 11, fontFamily: "monospace" } as const;
 
 function ChartCard({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`border border-border bg-card p-3 md:p-5 ${className}`}>
-      <h3 className="font-display text-sm font-bold tracking-tight mb-3">{title}</h3>
-      <div className="w-full">{children}</div>
+    <div className={`group relative overflow-hidden border border-border bg-card p-3 md:p-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 ${className}`}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-60" />
+      <div className="pointer-events-none absolute -top-24 -right-24 w-56 h-56 rounded-full bg-primary/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="relative">
+        <h3 className="font-display text-sm font-bold tracking-tight mb-3 flex items-center gap-2">
+          <span className="inline-block w-1 h-3 bg-primary/70" />
+          {title}
+        </h3>
+        <div className="w-full">{children}</div>
+      </div>
     </div>
   );
 }
