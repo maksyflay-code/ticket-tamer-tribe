@@ -29,7 +29,7 @@ type RfoForm = {
   responsavelEmail: string;
 };
 
-type FotoItem = { name: string; dataUrl: string };
+type FotoItem = { name: string; dataUrl: string; w: number; h: number };
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -37,6 +37,15 @@ function fileToDataUrl(file: File): Promise<string> {
     r.onload = () => resolve(r.result as string);
     r.onerror = reject;
     r.readAsDataURL(file);
+  });
+}
+
+function loadImageSize(dataUrl: string): Promise<{ w: number; h: number }> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth || 1, h: img.naturalHeight || 1 });
+    img.onerror = () => resolve({ w: 1, h: 1 });
+    img.src = dataUrl;
   });
 }
 
@@ -87,7 +96,9 @@ function RfoPage() {
     const items: FotoItem[] = [];
     for (const f of arr) {
       try {
-        items.push({ name: f.name, dataUrl: await fileToDataUrl(f) });
+        const dataUrl = await fileToDataUrl(f);
+        const { w, h } = await loadImageSize(dataUrl);
+        items.push({ name: f.name, dataUrl, w, h });
       } catch {
         toast.error(`Falha ao ler ${f.name}`);
       }
@@ -196,7 +207,19 @@ function RfoPage() {
           const x = margin + col * (colW + gap);
           try {
             const ext = foto.dataUrl.startsWith("data:image/png") ? "PNG" : "JPEG";
-            doc.addImage(foto.dataUrl, ext, x, y, colW, imgH, undefined, "FAST");
+            // Preserva proporção: caixa colW x imgH, imagem centralizada
+            const ratio = foto.w / foto.h;
+            const boxRatio = colW / imgH;
+            let drawW = colW;
+            let drawH = imgH;
+            if (ratio > boxRatio) {
+              drawH = colW / ratio;
+            } else {
+              drawW = imgH * ratio;
+            }
+            const dx = x + (colW - drawW) / 2;
+            const dy = y + (imgH - drawH) / 2;
+            doc.addImage(foto.dataUrl, ext, dx, dy, drawW, drawH, undefined, "FAST");
             doc.setDrawColor(220);
             doc.rect(x, y, colW, imgH);
           } catch {
