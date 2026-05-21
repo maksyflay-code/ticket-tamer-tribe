@@ -846,7 +846,7 @@ function FilaCriticaCard({ onOpen }: { onOpen: (id: string) => void }) {
                       <span className={`text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 border ${badge}`}>
                         {isUrg ? "Crítica" : "Alta"}
                       </span>
-                      <span className="text-xs font-medium truncate flex-1">{t.titulo}</span>
+                      <span className="text-xs font-mono font-medium truncate flex-1">{t.codigo ?? `#${t.numero}`}</span>
                       <span className={`text-[10px] font-mono tabular-nums shrink-0 ${tone.text}`}>
                         {formatElapsed(elapsedMs)} sem resposta
                       </span>
