@@ -1014,25 +1014,36 @@ function formatRelative(date: string) {
 function feedMeta(it: FeedItem) {
   const novo = it.status_novo;
   const ant = it.status_anterior;
+  const statusLabel: Record<string, string> = {
+    aberto: "Aberto",
+    em_andamento: "Em andamento",
+    aguardando_cliente: "Aguardando cliente",
+    resolvido: "Resolvido",
+    fechado: "Fechado",
+  };
+  const fmt = (s: string | null) => (s ? statusLabel[s] ?? s : "—");
   if (it.tipo === "criacao") {
-    return { icon: Flame, color: "text-red-400", bg: "bg-red-500/10 border-red-500/30", verb: "abriu" };
+    return { icon: Flame, color: "text-red-400", bg: "bg-red-500/10 border-red-500/30", verb: "abriu chamado" };
   }
   if (it.tipo === "mudanca_status") {
     if (novo === "resolvido" || novo === "fechado") {
-      return { icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30", verb: "resolveu" };
+      return { icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30", verb: `marcou como ${fmt(novo).toLowerCase()}` };
     }
     if ((ant === "resolvido" || ant === "fechado") && novo === "aberto") {
       return { icon: RotateCcw, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/30", verb: "reabriu" };
     }
-    return { icon: Activity, color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/30", verb: "atualizou" };
+    return { icon: Activity, color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/30", verb: `mudou status: ${fmt(ant)} → ${fmt(novo)}` };
   }
   if (it.tipo === "mudanca_responsavel") {
-    return { icon: UserCheck, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/30", verb: "assumiu" };
+    return { icon: UserCheck, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/30", verb: "alterou responsável" };
+  }
+  if (it.tipo === "mudanca_prioridade") {
+    return { icon: Flame, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/30", verb: "alterou prioridade" };
   }
   if (it.tipo === "comentario") {
     return { icon: MessageSquare, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/30", verb: "comentou em" };
   }
-  return { icon: Activity, color: "text-muted-foreground", bg: "bg-muted/30 border-border", verb: "atualizou" };
+  return { icon: Activity, color: "text-muted-foreground", bg: "bg-muted/30 border-border", verb: it.descricao || "atualizou" };
 }
 
 function shortAuthor(autor: string | null) {
