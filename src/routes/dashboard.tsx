@@ -847,9 +847,6 @@ function FilaCriticaCard({ onOpen }: { onOpen: (id: string) => void }) {
                         {isUrg ? "Crítica" : "Alta"}
                       </span>
                       <span className="text-xs font-mono font-medium truncate flex-1">{t.codigo ?? `#${t.numero}`}</span>
-                      <span className={`text-[10px] font-mono tabular-nums shrink-0 ${tone.text}`}>
-                        {formatElapsed(elapsedMs)} sem resposta
-                      </span>
                     </div>
                     <div className="h-1 bg-border/60 w-full overflow-hidden rounded-full">
                       <div className={`h-full ${tone.bar} transition-all`} style={{ width: `${pct}%` }} />
