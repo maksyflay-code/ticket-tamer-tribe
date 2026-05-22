@@ -589,6 +589,10 @@ function ChamadosPage() {
                       <button onClick={() => { setForm(c); setOpen(true); }}
                         className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
                     )}
+                    {canWrite && !finalizado && (
+                      <button title="Adicionar relato" onClick={() => addRelatoRapido(c)}
+                        className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-emerald-400"><MessageSquare className="h-3.5 w-3.5" /></button>
+                    )}
                     {isAdmin && (
                       <button onClick={() => remove(c.id)}
                         className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -648,6 +652,9 @@ function ChamadosPage() {
                 )}
                 {canWrite && (
                   <button onClick={() => { setForm(c); setOpen(true); }} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
+                )}
+                {canWrite && !finalizado && (
+                  <button title="Adicionar relato" onClick={() => addRelatoRapido(c)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-emerald-400"><MessageSquare className="h-3.5 w-3.5" /></button>
                 )}
                 {isAdmin && (
                   <button onClick={() => remove(c.id)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
