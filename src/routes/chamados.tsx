@@ -381,6 +381,23 @@ function ChamadosPage() {
     load();
   };
 
+  const addRelatoRapido = async (c: Chamado) => {
+    if (!canWrite) return toast.error("Sem permissão.");
+    const texto = window.prompt(`Adicionar relato em ${ticketLabel(c)}:`);
+    if (!texto || !texto.trim()) return;
+    const autor = user?.email ?? "operador";
+    const { error } = await supabase.from("chamado_historico").insert({
+      chamado_id: c.id, tipo: "relato", descricao: texto.trim(), autor,
+    } as never);
+    if (error) return toast.error(error.message);
+    const autorNome = operatorsRef.current.find((o) => o.email === autor)?.name?.trim() || autor;
+    void triggerPushForChamado({
+      headers: await authHeaders(),
+      data: { chamadoId: c.id, tipo: "relato", descricao: texto.trim(), autorNome },
+    }).catch(() => {});
+    toast.success("Relato adicionado");
+  };
+
   const filtered = items.filter((c) => {
     // Refino client-side por nome do cliente (server-side já filtrou o resto)
     if (!searchDebounced.trim()) return true;
@@ -572,6 +589,10 @@ function ChamadosPage() {
                       <button onClick={() => { setForm(c); setOpen(true); }}
                         className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
                     )}
+                    {canWrite && !finalizado && (
+                      <button title="Adicionar relato" onClick={() => addRelatoRapido(c)}
+                        className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-emerald-400"><MessageSquare className="h-3.5 w-3.5" /></button>
+                    )}
                     {isAdmin && (
                       <button onClick={() => remove(c.id)}
                         className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -631,6 +652,9 @@ function ChamadosPage() {
                 )}
                 {canWrite && (
                   <button onClick={() => { setForm(c); setOpen(true); }} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
+                )}
+                {canWrite && !finalizado && (
+                  <button title="Adicionar relato" onClick={() => addRelatoRapido(c)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-emerald-400"><MessageSquare className="h-3.5 w-3.5" /></button>
                 )}
                 {isAdmin && (
                   <button onClick={() => remove(c.id)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
