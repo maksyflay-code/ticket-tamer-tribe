@@ -436,9 +436,6 @@ function DashboardPage() {
                   <Icon className={`h-4 w-4 ${c.icColor}`} />
                 </div>
                 <div className="font-display text-2xl md:text-3xl font-bold tracking-tight tabular-nums">{c.value}</div>
-                {"hint" in c && c.hint ? (
-                  <div className="mt-1 text-[10px] font-mono text-muted-foreground">{c.hint}</div>
-                ) : null}
                 <div className="mt-4 h-1 bg-border/50 w-full overflow-hidden rounded-full">
                   <div className={`h-full bg-gradient-to-r ${c.bar} transition-all`} style={{ width: c.w }} />
                 </div>
