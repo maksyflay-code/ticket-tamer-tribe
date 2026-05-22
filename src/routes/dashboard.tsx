@@ -376,11 +376,9 @@ function DashboardPage() {
     { label: "Aguardando Cliente", value: stats.aguardandoCliente, icon: Clock, accent: "from-slate-400/20 via-slate-400/5", bar: "from-slate-300 to-slate-500", icColor: "text-slate-300", w: "45%", to: "/chamados", status: "aguardando_cliente" as const, spark: sparkNew, sparkColor: "#94a3b8" },
     { label: "Resolvidos Hoje", value: stats.resolvidosHoje, icon: CheckCircle2, accent: "from-emerald-500/20 via-emerald-500/5", bar: "from-emerald-400 to-teal-500", icColor: "text-emerald-400", w: "80%", to: "/chamados", status: "resolvido" as const, spark: sparkResolved, sparkColor: "#10b981" },
     { label: "Total de Clientes", value: stats.totalClientes, icon: Users, accent: "from-blue-500/20 via-blue-500/5", bar: "from-blue-400 to-indigo-500", icColor: "text-blue-400", w: "72%", to: "/clientes", status: null, spark: sparkNew, sparkColor: "#60a5fa" },
-    { label: `Reaberturas (${PERIOD_LABEL[period]})`, value: stats.reaberturas, icon: RotateCcw, accent: "from-red-500/20 via-red-500/5", bar: "from-red-500 to-orange-500", icColor: "text-red-400", w: `${Math.min(100, stats.reaberturas * 10)}%`, to: "/chamados", status: null, spark: sparkResolved, sparkColor: "#ef4444" },
     { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, accent: "from-cyan-500/20 via-cyan-500/5", bar: "from-cyan-400 to-sky-500", icColor: "text-cyan-400", w: "55%", to: "/chamados", status: null, spark: sparkResolved, sparkColor: "#22d3ee" },
     { label: `Novos Clientes (${PERIOD_LABEL[period]})`, value: stats.novosClientes30d, icon: UserPlus, accent: "from-pink-500/20 via-pink-500/5", bar: "from-pink-400 to-rose-500", icColor: "text-pink-400", w: "60%", to: "/clientes", status: null, spark: sparkNew, sparkColor: "#f472b6" },
     { label: `Chamados (${PERIOD_LABEL[period]})`, value: stats.chamadosMes, icon: Activity, accent: "from-teal-500/20 via-teal-500/5", bar: "from-teal-400 to-emerald-500", icColor: "text-teal-400", w: "70%", to: "/chamados", status: null, spark: sparkNew, sparkColor: "#2dd4bf" },
-    { label: "Uptime (mês)", value: fmtUptime(stats.uptimePctMes), icon: Wifi, accent: "from-emerald-500/20 via-emerald-500/5", bar: "from-emerald-400 to-green-500", icColor: "text-emerald-400", w: `${stats.uptimePctMes.toFixed(2)}%`, to: "/chamados", status: null, spark: sparkResolved, sparkColor: "#10b981" },
   ];
 
   const pageSize = 5;
@@ -408,7 +406,7 @@ function DashboardPage() {
       </div>
 
       <section className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-8">
-        {isLoading && !data ? Array.from({ length: 10 }).map((_, i) => (
+        {isLoading && !data ? Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="border border-border bg-card p-3 md:p-5">
             <Skeleton className="h-3 w-24 mb-3" />
             <Skeleton className="h-8 w-16" />
