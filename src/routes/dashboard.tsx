@@ -5,7 +5,8 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
-import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck, ArrowRight, GitBranch } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck, ArrowRight, GitBranch, Wifi } from "lucide-react";
+import { monthWindow, totalDowntime, uptimePct, fmtUptime, fmtDowntime, type ChamadoUptime } from "@/lib/uptime";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
@@ -52,6 +53,8 @@ type Stats = {
   chamadosMes: number;
   reaberturas: number;
   porPrioridade: Record<string, number>;
+  uptimePctMes: number;
+  downtimeMesH: number;
 };
 
 type Chamado = {
@@ -98,7 +101,8 @@ function DashboardPage() {
     const startMonth = new Date(); startMonth.setDate(1); startMonth.setHours(0, 0, 0, 0);
     const startSpark = new Date(); startSpark.setHours(0,0,0,0); startSpark.setDate(startSpark.getDate() - 6);
 
-    const [a, e, r, c, novos, resolvidosPer, rec, abertosPri, todosStatus, todosPri, periodoSerie, resolvidosMes, reabertHist, sparkData] = await Promise.all([
+    const mw = monthWindow();
+    const [a, e, r, c, novos, resolvidosPer, rec, abertosPri, todosStatus, todosPri, periodoSerie, resolvidosMes, reabertHist, sparkData, chamadosMesUp, clientesAtivosRes] = await Promise.all([
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aberto"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aguardando_cliente"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "resolvido").gte("resolvido_at", today.toISOString()),
@@ -117,6 +121,10 @@ function DashboardPage() {
       supabase.from("chamados").select("tecnico_responsavel,resolvido_at").not("resolvido_at", "is", null).gte("resolvido_at", startMonth.toISOString()),
       supabase.from("chamado_historico").select("chamado_id,status_anterior,status_novo,created_at,tipo").eq("tipo","mudanca_status").gte("created_at", start.toISOString()),
       supabase.from("chamados").select("created_at,resolvido_at").gte("created_at", startSpark.toISOString()),
+      // Para uptime do mês: pega chamados que se sobrepõem ao mês corrente
+      supabase.from("chamados").select("cliente_id,created_at,resolvido_at")
+        .or(`resolvido_at.is.null,resolvido_at.gte.${mw.start.toISOString()}`),
+      supabase.from("clientes").select("id", { count: "exact", head: true }).eq("status", "ativo"),
     ]);
 
     const { getSlaMap } = await import("@/lib/sla");
@@ -158,7 +166,16 @@ function DashboardPage() {
       porPrioridade: ((abertosPri.data ?? []) as { prioridade: string }[]).reduce((acc, x) => {
         acc[x.prioridade] = (acc[x.prioridade] ?? 0) + 1; return acc;
       }, {} as Record<string, number>),
+      uptimePctMes: 100,
+      downtimeMesH: 0,
     };
+
+    // Uptime do mês corrente
+    const upChamados = ((chamadosMesUp.data ?? []) as ChamadoUptime[]);
+    const downH = totalDowntime(upChamados, mw.start, mw.end);
+    const clientesAtivos = clientesAtivosRes.count ?? 0;
+    stats.downtimeMesH = downH;
+    stats.uptimePctMes = uptimePct(downH, mw.hours, clientesAtivos);
 
     const statusColors: Record<string, string> = {
       aberto: "#f59e0b", aguardando_cliente: "#94a3b8", resolvido: "#10b981", fechado: "#6b7280",
