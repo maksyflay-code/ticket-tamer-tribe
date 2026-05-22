@@ -381,6 +381,23 @@ function ChamadosPage() {
     load();
   };
 
+  const addRelatoRapido = async (c: Chamado) => {
+    if (!canWrite) return toast.error("Sem permissão.");
+    const texto = window.prompt(`Adicionar relato em ${ticketLabel(c)}:`);
+    if (!texto || !texto.trim()) return;
+    const autor = user?.email ?? "operador";
+    const { error } = await supabase.from("chamado_historico").insert({
+      chamado_id: c.id, tipo: "relato", descricao: texto.trim(), autor,
+    } as never);
+    if (error) return toast.error(error.message);
+    const autorNome = operatorsRef.current.find((o) => o.email === autor)?.name?.trim() || autor;
+    void triggerPushForChamado({
+      headers: await authHeaders(),
+      data: { chamadoId: c.id, tipo: "relato", descricao: texto.trim(), autorNome },
+    }).catch(() => {});
+    toast.success("Relato adicionado");
+  };
+
   const filtered = items.filter((c) => {
     // Refino client-side por nome do cliente (server-side já filtrou o resto)
     if (!searchDebounced.trim()) return true;
