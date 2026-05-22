@@ -381,7 +381,6 @@ function DashboardPage() {
     { label: `Novos Clientes (${PERIOD_LABEL[period]})`, value: stats.novosClientes30d, icon: UserPlus, accent: "from-pink-500/20 via-pink-500/5", bar: "from-pink-400 to-rose-500", icColor: "text-pink-400", w: "60%", to: "/clientes", status: null, spark: sparkNew, sparkColor: "#f472b6" },
     { label: `Chamados (${PERIOD_LABEL[period]})`, value: stats.chamadosMes, icon: Activity, accent: "from-teal-500/20 via-teal-500/5", bar: "from-teal-400 to-emerald-500", icColor: "text-teal-400", w: "70%", to: "/chamados", status: null, spark: sparkNew, sparkColor: "#2dd4bf" },
     { label: "Uptime (mês)", value: fmtUptime(stats.uptimePctMes), icon: Wifi, accent: "from-emerald-500/20 via-emerald-500/5", bar: "from-emerald-400 to-green-500", icColor: "text-emerald-400", w: `${stats.uptimePctMes.toFixed(2)}%`, to: "/chamados", status: null, spark: sparkResolved, sparkColor: "#10b981" },
-    { label: "Downtime (mês)", value: `${(100 - stats.uptimePctMes).toFixed(2)}%`, icon: AlertTriangle, accent: "from-red-500/20 via-red-500/5", bar: "from-red-500 to-rose-500", icColor: "text-red-400", w: `${Math.min(100, (100 - stats.uptimePctMes) * 10).toFixed(2)}%`, to: "/chamados", status: null, spark: sparkNew, sparkColor: "#ef4444" },
   ];
 
   const pageSize = 5;
@@ -443,6 +442,45 @@ function DashboardPage() {
             </Link>
           );
         })}
+        {!(isLoading && !data) && (
+          <Link
+            to="/chamados"
+            className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5"
+          >
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-500/20 via-red-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
+                  Uptime × Downtime (mês)
+                </span>
+                <AlertTriangle className="h-4 w-4 text-red-400" />
+              </div>
+              <div className="flex items-baseline gap-3">
+                <div className="font-display text-2xl md:text-3xl font-bold tracking-tight tabular-nums text-emerald-400">
+                  {fmtUptime(stats.uptimePctMes)}
+                </div>
+                <div className="text-muted-foreground font-mono text-sm">×</div>
+                <div className="font-display text-2xl md:text-3xl font-bold tracking-tight tabular-nums text-red-400">
+                  {(100 - stats.uptimePctMes).toFixed(2)}%
+                </div>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[10px] font-mono uppercase tracking-widest">
+                <span className="text-emerald-400/80">up</span>
+                <span className="text-muted-foreground">down: {fmtDowntime(stats.downtimeMesH)}</span>
+              </div>
+              <div className="mt-3 h-1.5 bg-border/50 w-full overflow-hidden rounded-full flex">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all"
+                  style={{ width: `${stats.uptimePctMes}%` }}
+                />
+                <div
+                  className="h-full bg-gradient-to-r from-red-500 to-rose-500 transition-all"
+                  style={{ width: `${100 - stats.uptimePctMes}%` }}
+                />
+              </div>
+            </div>
+          </Link>
+        )}
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
