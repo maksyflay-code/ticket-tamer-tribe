@@ -464,11 +464,7 @@ function DashboardPage() {
                   {(100 - stats.uptimePctMes).toFixed(2)}%
                 </div>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[10px] font-mono uppercase tracking-widest">
-                <span className="text-emerald-400/80">up</span>
-                <span className="text-muted-foreground">down: {fmtDowntime(stats.downtimeMesH)}</span>
-              </div>
-              <div className="mt-3 h-1.5 bg-border/50 w-full overflow-hidden rounded-full flex">
+              <div className="mt-4 h-1.5 bg-border/50 w-full overflow-hidden rounded-full flex">
                 <div
                   className="h-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all"
                   style={{ width: `${stats.uptimePctMes}%` }}
