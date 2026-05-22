@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { Plus, Search, Trash2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { monthWindow, downtimeByCliente, uptimePct, fmtUptime, type ChamadoUptime } from "@/lib/uptime";
 
 export const Route = createFileRoute("/clientes")({
   beforeLoad: requireAuth,
@@ -41,6 +42,8 @@ function ClientesPage() {
   const [searchDebounced, setSearchDebounced] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Cliente>>(empty);
+  const [uptimeMap, setUptimeMap] = useState<Map<string, number>>(new Map());
+  const [mwHours, setMwHours] = useState<number>(1);
 
   useEffect(() => {
     const t = setTimeout(() => setSearchDebounced(search), 300);
@@ -67,6 +70,26 @@ function ClientesPage() {
     setPlanos((pl as PlanoOpt[]) ?? []);
   };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [page, searchDebounced]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const mw = monthWindow();
+      const { data } = await supabase
+        .from("chamados")
+        .select("cliente_id,created_at,resolvido_at")
+        .or(`resolvido_at.is.null,resolvido_at.gte.${mw.start.toISOString()}`);
+      if (!active) return;
+      const map = downtimeByCliente((data ?? []) as ChamadoUptime[], mw.start, mw.end);
+      setUptimeMap(map);
+      setMwHours(mw.hours);
+    })();
+    return () => { active = false; };
+  }, []);
+
+  const uptimeFor = (id: string): number => uptimePct(uptimeMap.get(id) ?? 0, mwHours, 1);
+  const uptimeColor = (pct: number) =>
+    pct >= 99.5 ? "text-emerald-400" : pct >= 98 ? "text-amber-400" : "text-red-400";
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,6 +155,7 @@ function ClientesPage() {
               <th className="p-4 font-medium font-mono">CONTATO</th>
               <th className="p-4 font-medium font-mono">PLANO</th>
               <th className="p-4 font-medium font-mono">CONTRATO</th>
+              <th className="p-4 font-medium font-mono">UPTIME (MÊS)</th>
               <th className="p-4 font-medium font-mono">STATUS</th>
               <th className="p-4 font-medium font-mono text-right">AÇÕES</th>
             </tr>
@@ -139,7 +163,7 @@ function ClientesPage() {
           <tbody className="divide-y divide-border">
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-muted-foreground font-mono">
+                <td colSpan={8} className="p-8 text-center text-muted-foreground font-mono">
                   Nenhum cliente encontrado.
                 </td>
               </tr>
@@ -161,6 +185,12 @@ function ClientesPage() {
                   {c.planos && <div className="text-[10px] text-muted-foreground">R$ {Number(c.planos.preco).toFixed(2)}</div>}
                 </td>
                 <td className="p-4 font-mono text-muted-foreground">{c.data_contrato ?? "—"}</td>
+                <td className="p-4 font-mono">
+                  {(() => {
+                    const pct = uptimeFor(c.id);
+                    return <span className={uptimeColor(pct)}>{fmtUptime(pct)}</span>;
+                  })()}
+                </td>
                 <td className="p-4">
                   <span className={`px-2 py-0.5 border font-mono uppercase ${statusBadge(c.status)}`}>{c.status}</span>
                 </td>

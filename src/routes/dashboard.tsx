@@ -5,7 +5,8 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
-import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck, ArrowRight, GitBranch } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck, ArrowRight, GitBranch, Wifi } from "lucide-react";
+import { monthWindow, totalDowntime, uptimePct, fmtUptime, fmtDowntime, type ChamadoUptime } from "@/lib/uptime";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
@@ -52,6 +53,8 @@ type Stats = {
   chamadosMes: number;
   reaberturas: number;
   porPrioridade: Record<string, number>;
+  uptimePctMes: number;
+  downtimeMesH: number;
 };
 
 type Chamado = {
@@ -98,7 +101,8 @@ function DashboardPage() {
     const startMonth = new Date(); startMonth.setDate(1); startMonth.setHours(0, 0, 0, 0);
     const startSpark = new Date(); startSpark.setHours(0,0,0,0); startSpark.setDate(startSpark.getDate() - 6);
 
-    const [a, e, r, c, novos, resolvidosPer, rec, abertosPri, todosStatus, todosPri, periodoSerie, resolvidosMes, reabertHist, sparkData] = await Promise.all([
+    const mw = monthWindow();
+    const [a, e, r, c, novos, resolvidosPer, rec, abertosPri, todosStatus, todosPri, periodoSerie, resolvidosMes, reabertHist, sparkData, chamadosMesUp, clientesAtivosRes] = await Promise.all([
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aberto"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aguardando_cliente"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "resolvido").gte("resolvido_at", today.toISOString()),
@@ -117,6 +121,10 @@ function DashboardPage() {
       supabase.from("chamados").select("tecnico_responsavel,resolvido_at").not("resolvido_at", "is", null).gte("resolvido_at", startMonth.toISOString()),
       supabase.from("chamado_historico").select("chamado_id,status_anterior,status_novo,created_at,tipo").eq("tipo","mudanca_status").gte("created_at", start.toISOString()),
       supabase.from("chamados").select("created_at,resolvido_at").gte("created_at", startSpark.toISOString()),
+      // Para uptime do mês: pega chamados que se sobrepõem ao mês corrente
+      supabase.from("chamados").select("cliente_id,created_at,resolvido_at")
+        .or(`resolvido_at.is.null,resolvido_at.gte.${mw.start.toISOString()}`),
+      supabase.from("clientes").select("id", { count: "exact", head: true }).eq("status", "ativo"),
     ]);
 
     const { getSlaMap } = await import("@/lib/sla");
@@ -158,7 +166,16 @@ function DashboardPage() {
       porPrioridade: ((abertosPri.data ?? []) as { prioridade: string }[]).reduce((acc, x) => {
         acc[x.prioridade] = (acc[x.prioridade] ?? 0) + 1; return acc;
       }, {} as Record<string, number>),
+      uptimePctMes: 100,
+      downtimeMesH: 0,
     };
+
+    // Uptime do mês corrente
+    const upChamados = ((chamadosMesUp.data ?? []) as ChamadoUptime[]);
+    const downH = totalDowntime(upChamados, mw.start, mw.end);
+    const clientesAtivos = clientesAtivosRes.count ?? 0;
+    stats.downtimeMesH = downH;
+    stats.uptimePctMes = uptimePct(downH, mw.hours, clientesAtivos);
 
     const statusColors: Record<string, string> = {
       aberto: "#f59e0b", aguardando_cliente: "#94a3b8", resolvido: "#10b981", fechado: "#6b7280",
@@ -249,7 +266,7 @@ function DashboardPage() {
     queryFn: fetchAll,
   });
 
-  const stats: Stats = data?.stats ?? { abertos: 0, aguardandoCliente: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0, chamadosMes: 0, reaberturas: 0, porPrioridade: {} };
+  const stats: Stats = data?.stats ?? { abertos: 0, aguardandoCliente: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0, chamadosMes: 0, reaberturas: 0, porPrioridade: {}, uptimePctMes: 100, downtimeMesH: 0 };
   const recentes = data?.recentes ?? [];
   const statusDist = data?.statusDist ?? [];
   const prioridadeDist = data?.prioridadeDist ?? [];
@@ -363,6 +380,7 @@ function DashboardPage() {
     { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, accent: "from-cyan-500/20 via-cyan-500/5", bar: "from-cyan-400 to-sky-500", icColor: "text-cyan-400", w: "55%", to: "/chamados", status: null, spark: sparkResolved, sparkColor: "#22d3ee" },
     { label: `Novos Clientes (${PERIOD_LABEL[period]})`, value: stats.novosClientes30d, icon: UserPlus, accent: "from-pink-500/20 via-pink-500/5", bar: "from-pink-400 to-rose-500", icColor: "text-pink-400", w: "60%", to: "/clientes", status: null, spark: sparkNew, sparkColor: "#f472b6" },
     { label: `Chamados (${PERIOD_LABEL[period]})`, value: stats.chamadosMes, icon: Activity, accent: "from-teal-500/20 via-teal-500/5", bar: "from-teal-400 to-emerald-500", icColor: "text-teal-400", w: "70%", to: "/chamados", status: null, spark: sparkNew, sparkColor: "#2dd4bf" },
+    { label: "Uptime (mês)", value: fmtUptime(stats.uptimePctMes), icon: Wifi, accent: "from-emerald-500/20 via-emerald-500/5", bar: "from-emerald-400 to-green-500", icColor: "text-emerald-400", w: `${stats.uptimePctMes.toFixed(2)}%`, to: "/chamados", status: null, spark: sparkResolved, sparkColor: "#10b981", hint: `Downtime: ${fmtDowntime(stats.downtimeMesH)}` },
   ];
 
   const pageSize = 5;
@@ -390,7 +408,7 @@ function DashboardPage() {
       </div>
 
       <section className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-8">
-        {isLoading && !data ? Array.from({ length: 8 }).map((_, i) => (
+        {isLoading && !data ? Array.from({ length: 9 }).map((_, i) => (
           <div key={i} className="border border-border bg-card p-3 md:p-5">
             <Skeleton className="h-3 w-24 mb-3" />
             <Skeleton className="h-8 w-16" />
@@ -417,6 +435,9 @@ function DashboardPage() {
                   <Icon className={`h-4 w-4 ${c.icColor}`} />
                 </div>
                 <div className="font-display text-2xl md:text-3xl font-bold tracking-tight tabular-nums">{c.value}</div>
+                {"hint" in c && c.hint ? (
+                  <div className="mt-1 text-[10px] font-mono text-muted-foreground">{c.hint}</div>
+                ) : null}
                 <div className="mt-4 h-1 bg-border/50 w-full overflow-hidden rounded-full">
                   <div className={`h-full bg-gradient-to-r ${c.bar} transition-all`} style={{ width: c.w }} />
                 </div>
