@@ -409,7 +409,7 @@ function DashboardPage() {
       </div>
 
       <section className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-8">
-        {isLoading && !data ? Array.from({ length: 9 }).map((_, i) => (
+        {isLoading && !data ? Array.from({ length: 10 }).map((_, i) => (
           <div key={i} className="border border-border bg-card p-3 md:p-5">
             <Skeleton className="h-3 w-24 mb-3" />
             <Skeleton className="h-8 w-16" />
