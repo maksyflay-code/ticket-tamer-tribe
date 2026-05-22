@@ -380,7 +380,7 @@ function DashboardPage() {
     { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, accent: "from-cyan-500/20 via-cyan-500/5", bar: "from-cyan-400 to-sky-500", icColor: "text-cyan-400", w: "55%", to: "/chamados", status: null, spark: sparkResolved, sparkColor: "#22d3ee" },
     { label: `Novos Clientes (${PERIOD_LABEL[period]})`, value: stats.novosClientes30d, icon: UserPlus, accent: "from-pink-500/20 via-pink-500/5", bar: "from-pink-400 to-rose-500", icColor: "text-pink-400", w: "60%", to: "/clientes", status: null, spark: sparkNew, sparkColor: "#f472b6" },
     { label: `Chamados (${PERIOD_LABEL[period]})`, value: stats.chamadosMes, icon: Activity, accent: "from-teal-500/20 via-teal-500/5", bar: "from-teal-400 to-emerald-500", icColor: "text-teal-400", w: "70%", to: "/chamados", status: null, spark: sparkNew, sparkColor: "#2dd4bf" },
-    { label: "Uptime (mês)", value: fmtUptime(stats.uptimePctMes), icon: Wifi, accent: "from-emerald-500/20 via-emerald-500/5", bar: "from-emerald-400 to-green-500", icColor: "text-emerald-400", w: `${stats.uptimePctMes.toFixed(2)}%`, to: "/chamados", status: null, spark: sparkResolved, sparkColor: "#10b981", hint: `Downtime: ${fmtDowntime(stats.downtimeMesH)}` },
+    { label: "Uptime (mês)", value: fmtUptime(stats.uptimePctMes), icon: Wifi, accent: "from-emerald-500/20 via-emerald-500/5", bar: "from-emerald-400 to-green-500", icColor: "text-emerald-400", w: `${stats.uptimePctMes.toFixed(2)}%`, to: "/chamados", status: null, spark: sparkResolved, sparkColor: "#10b981" },
     { label: "Downtime (mês)", value: `${(100 - stats.uptimePctMes).toFixed(2)}%`, icon: AlertTriangle, accent: "from-red-500/20 via-red-500/5", bar: "from-red-500 to-rose-500", icColor: "text-red-400", w: `${Math.min(100, (100 - stats.uptimePctMes) * 10).toFixed(2)}%`, to: "/chamados", status: null, spark: sparkNew, sparkColor: "#ef4444" },
   ];
 
@@ -436,9 +436,6 @@ function DashboardPage() {
                   <Icon className={`h-4 w-4 ${c.icColor}`} />
                 </div>
                 <div className="font-display text-2xl md:text-3xl font-bold tracking-tight tabular-nums">{c.value}</div>
-                {"hint" in c && c.hint ? (
-                  <div className="mt-1 text-[10px] font-mono text-muted-foreground">{c.hint}</div>
-                ) : null}
                 <div className="mt-4 h-1 bg-border/50 w-full overflow-hidden rounded-full">
                   <div className={`h-full bg-gradient-to-r ${c.bar} transition-all`} style={{ width: c.w }} />
                 </div>
