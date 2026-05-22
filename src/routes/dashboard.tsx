@@ -266,7 +266,7 @@ function DashboardPage() {
     queryFn: fetchAll,
   });
 
-  const stats: Stats = data?.stats ?? { abertos: 0, aguardandoCliente: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0, chamadosMes: 0, reaberturas: 0, porPrioridade: {} };
+  const stats: Stats = data?.stats ?? { abertos: 0, aguardandoCliente: 0, resolvidosHoje: 0, totalClientes: 0, novosClientes30d: 0, slaPct: 0, tempoMedioH: 0, chamadosMes: 0, reaberturas: 0, porPrioridade: {}, uptimePctMes: 100, downtimeMesH: 0 };
   const recentes = data?.recentes ?? [];
   const statusDist = data?.statusDist ?? [];
   const prioridadeDist = data?.prioridadeDist ?? [];
