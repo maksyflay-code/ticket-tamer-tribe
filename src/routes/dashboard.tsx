@@ -408,7 +408,7 @@ function DashboardPage() {
       </div>
 
       <section className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-8">
-        {isLoading && !data ? Array.from({ length: 8 }).map((_, i) => (
+        {isLoading && !data ? Array.from({ length: 9 }).map((_, i) => (
           <div key={i} className="border border-border bg-card p-3 md:p-5">
             <Skeleton className="h-3 w-24 mb-3" />
             <Skeleton className="h-8 w-16" />
@@ -435,6 +435,9 @@ function DashboardPage() {
                   <Icon className={`h-4 w-4 ${c.icColor}`} />
                 </div>
                 <div className="font-display text-2xl md:text-3xl font-bold tracking-tight tabular-nums">{c.value}</div>
+                {"hint" in c && c.hint ? (
+                  <div className="mt-1 text-[10px] font-mono text-muted-foreground">{c.hint}</div>
+                ) : null}
                 <div className="mt-4 h-1 bg-border/50 w-full overflow-hidden rounded-full">
                   <div className={`h-full bg-gradient-to-r ${c.bar} transition-all`} style={{ width: c.w }} />
                 </div>
