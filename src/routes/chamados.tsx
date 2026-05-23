@@ -831,6 +831,56 @@ function ChamadosPage() {
       )}
 
       {detail && <DetailDrawer chamado={detail} operators={operators} canWrite={canWrite} onClose={() => { setDetail(null); load(); }} autor={user?.email ?? "operador"} />}
+
+      <Dialog open={!!relatoModal} onOpenChange={(o) => { if (!o && !relatoSubmitting) setRelatoModal(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-mono uppercase tracking-wider text-sm">
+              <MessageSquare className="h-4 w-4 text-emerald-400" />
+              Novo relato
+            </DialogTitle>
+            <DialogDescription className="font-mono text-xs">
+              {relatoModal ? `Chamado ${ticketLabel(relatoModal.chamado)} · ${relatoModal.chamado.titulo}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Textarea
+              autoFocus
+              value={relatoModal?.texto ?? ""}
+              onChange={(e) => setRelatoModal((m) => (m ? { ...m, texto: e.target.value } : m))}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); void submitRelato(); }
+              }}
+              placeholder="Descreva o andamento, ação executada ou observação…"
+              maxLength={2000}
+              rows={6}
+              className="resize-none"
+            />
+            <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+              <span>Ctrl+Enter para enviar</span>
+              <span>{(relatoModal?.texto ?? "").length}/2000</span>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <button
+              type="button"
+              onClick={() => setRelatoModal(null)}
+              disabled={relatoSubmitting}
+              className="px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => void submitRelato()}
+              disabled={relatoSubmitting || (relatoModal?.texto.trim().length ?? 0) < 3}
+              className="bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold uppercase tracking-wider hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {relatoSubmitting ? "Enviando…" : "Adicionar relato"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
