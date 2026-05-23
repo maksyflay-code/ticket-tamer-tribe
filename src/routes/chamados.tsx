@@ -10,6 +10,8 @@ import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
 import { getSlaMap, calcSla, formatHorasRestantes, type SlaMap } from "@/lib/sla";
 import { triggerPushForChamado } from "@/lib/push.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/chamados")({
   beforeLoad: requireAuth,
@@ -383,19 +385,33 @@ function ChamadosPage() {
 
   const addRelatoRapido = async (c: Chamado) => {
     if (!canWrite) return toast.error("Sem permissão.");
-    const texto = window.prompt(`Adicionar relato em ${ticketLabel(c)}:`);
-    if (!texto || !texto.trim()) return;
+    setRelatoModal({ chamado: c, texto: "" });
+  };
+
+  const [relatoModal, setRelatoModal] = useState<{ chamado: Chamado; texto: string } | null>(null);
+  const [relatoSubmitting, setRelatoSubmitting] = useState(false);
+
+  const submitRelato = async () => {
+    if (!relatoModal) return;
+    const texto = relatoModal.texto.trim();
+    if (texto.length < 3) return toast.error("Mínimo de 3 caracteres.");
+    if (texto.length > 2000) return toast.error("Máximo de 2000 caracteres.");
+    if (!canWrite) return toast.error("Sem permissão.");
+    setRelatoSubmitting(true);
+    const c = relatoModal.chamado;
     const autor = user?.email ?? "operador";
     const { error } = await supabase.from("chamado_historico").insert({
-      chamado_id: c.id, tipo: "relato", descricao: texto.trim(), autor,
+      chamado_id: c.id, tipo: "relato", descricao: texto, autor,
     } as never);
+    setRelatoSubmitting(false);
     if (error) return toast.error(error.message);
     const autorNome = operatorsRef.current.find((o) => o.email === autor)?.name?.trim() || autor;
     void triggerPushForChamado({
       headers: await authHeaders(),
-      data: { chamadoId: c.id, tipo: "relato", descricao: texto.trim(), autorNome },
+      data: { chamadoId: c.id, tipo: "relato", descricao: texto, autorNome },
     }).catch(() => {});
     toast.success("Relato adicionado");
+    setRelatoModal(null);
   };
 
   const filtered = items.filter((c) => {
