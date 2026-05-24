@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { useAuth } from "@/lib/auth";
-import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X, UserCheck, AlertTriangle, ChevronLeft, ChevronRight, Hand, UserMinus, RotateCcw, Copy, Pause, Play } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X, UserCheck, AlertTriangle, ChevronLeft, ChevronRight, Hand, UserMinus, RotateCcw, Copy, Pause, Play, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
@@ -391,6 +391,59 @@ function ChamadosPage() {
   const [relatoModal, setRelatoModal] = useState<{ chamado: Chamado; texto: string } | null>(null);
   const [relatoSubmitting, setRelatoSubmitting] = useState(false);
 
+  const [finalizarModal, setFinalizarModal] = useState<{ chamado: Chamado; texto: string } | null>(null);
+  const [finalizarSubmitting, setFinalizarSubmitting] = useState(false);
+
+  const openFinalizar = (c: Chamado) => {
+    if (!canWrite) return toast.error("Sem permissão.");
+    setFinalizarModal({ chamado: c, texto: "" });
+  };
+
+  const submitFinalizar = async () => {
+    if (!finalizarModal) return;
+    const texto = finalizarModal.texto.trim();
+    if (texto.length > 2000) return toast.error("Máximo de 2000 caracteres.");
+    if (!canWrite) return toast.error("Sem permissão.");
+    setFinalizarSubmitting(true);
+    const c = finalizarModal.chamado;
+    const autor = user?.email ?? "operador";
+    const autorNome = operatorsRef.current.find((o) => o.email === autor)?.name?.trim() || autor;
+    const now = new Date().toISOString();
+    const effectiveRespId = c.responsavel_id ?? user?.id ?? null;
+    const effectiveTecnico = c.tecnico_responsavel ?? autor;
+    const payload: Record<string, unknown> = {
+      status: "resolvido",
+      resolvido_at: now,
+      finalizado_at: now,
+      responsavel_id: effectiveRespId,
+      tecnico_responsavel: effectiveTecnico,
+    };
+    if (texto.length >= 3) {
+      await supabase.from("chamado_historico").insert({
+        chamado_id: c.id, tipo: "relato", descricao: texto, autor,
+      } as never);
+      void triggerPushForChamado({
+        headers: await authHeaders(),
+        data: { chamadoId: c.id, tipo: "relato", descricao: texto, autorNome },
+      }).catch(() => {});
+    }
+    const { error } = await supabase.from("chamados").update(payload as never).eq("id", c.id);
+    setFinalizarSubmitting(false);
+    if (error) return toast.error(error.message);
+    void triggerPushForChamado({
+      headers: await authHeaders(),
+      data: {
+        chamadoId: c.id,
+        tipo: "finalizacao",
+        descricao: `Status alterado de ${c.status} para resolvido`,
+        autorNome,
+      },
+    }).catch(() => {});
+    toast.success("Chamado finalizado");
+    setFinalizarModal(null);
+    load();
+  };
+
   const submitRelato = async () => {
     if (!relatoModal) return;
     const texto = relatoModal.texto.trim();
@@ -609,6 +662,10 @@ function ChamadosPage() {
                       <button title="Adicionar relato" onClick={() => addRelatoRapido(c)}
                         className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-emerald-400"><MessageSquare className="h-3.5 w-3.5" /></button>
                     )}
+                    {canWrite && !finalizado && (
+                      <button title="Finalizar atendimento" onClick={() => openFinalizar(c)}
+                        className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-emerald-400"><CheckCircle2 className="h-3.5 w-3.5" /></button>
+                    )}
                     {isAdmin && (
                       <button onClick={() => remove(c.id)}
                         className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -671,6 +728,9 @@ function ChamadosPage() {
                 )}
                 {canWrite && !finalizado && (
                   <button title="Adicionar relato" onClick={() => addRelatoRapido(c)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-emerald-400"><MessageSquare className="h-3.5 w-3.5" /></button>
+                )}
+                {canWrite && !finalizado && (
+                  <button title="Finalizar atendimento" onClick={() => openFinalizar(c)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-emerald-400"><CheckCircle2 className="h-3.5 w-3.5" /></button>
                 )}
                 {isAdmin && (
                   <button onClick={() => remove(c.id)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -877,6 +937,56 @@ function ChamadosPage() {
               className="bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold uppercase tracking-wider hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {relatoSubmitting ? "Enviando…" : "Adicionar relato"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!finalizarModal} onOpenChange={(o) => { if (!o && !finalizarSubmitting) setFinalizarModal(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-mono uppercase tracking-wider text-sm">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              Finalizar atendimento
+            </DialogTitle>
+            <DialogDescription className="font-mono text-xs">
+              {finalizarModal ? `Chamado ${ticketLabel(finalizarModal.chamado)} · ${finalizarModal.chamado.titulo}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Textarea
+              autoFocus
+              value={finalizarModal?.texto ?? ""}
+              onChange={(e) => setFinalizarModal((m) => (m ? { ...m, texto: e.target.value } : m))}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); void submitFinalizar(); }
+              }}
+              placeholder="Relato de encerramento (opcional): solução aplicada, validações realizadas…"
+              maxLength={2000}
+              rows={6}
+              className="resize-none"
+            />
+            <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+              <span>Ctrl+Enter para finalizar</span>
+              <span>{(finalizarModal?.texto ?? "").length}/2000</span>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <button
+              type="button"
+              onClick={() => setFinalizarModal(null)}
+              disabled={finalizarSubmitting}
+              className="px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => void submitFinalizar()}
+              disabled={finalizarSubmitting}
+              className="bg-emerald-500 text-white px-4 py-2 text-sm font-semibold uppercase tracking-wider hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {finalizarSubmitting ? "Finalizando…" : "Finalizar"}
             </button>
           </DialogFooter>
         </DialogContent>
