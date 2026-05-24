@@ -941,6 +941,56 @@ function ChamadosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!finalizarModal} onOpenChange={(o) => { if (!o && !finalizarSubmitting) setFinalizarModal(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-mono uppercase tracking-wider text-sm">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              Finalizar atendimento
+            </DialogTitle>
+            <DialogDescription className="font-mono text-xs">
+              {finalizarModal ? `Chamado ${ticketLabel(finalizarModal.chamado)} · ${finalizarModal.chamado.titulo}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Textarea
+              autoFocus
+              value={finalizarModal?.texto ?? ""}
+              onChange={(e) => setFinalizarModal((m) => (m ? { ...m, texto: e.target.value } : m))}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); void submitFinalizar(); }
+              }}
+              placeholder="Relato de encerramento (opcional): solução aplicada, validações realizadas…"
+              maxLength={2000}
+              rows={6}
+              className="resize-none"
+            />
+            <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+              <span>Ctrl+Enter para finalizar</span>
+              <span>{(finalizarModal?.texto ?? "").length}/2000</span>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <button
+              type="button"
+              onClick={() => setFinalizarModal(null)}
+              disabled={finalizarSubmitting}
+              className="px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => void submitFinalizar()}
+              disabled={finalizarSubmitting}
+              className="bg-emerald-500 text-white px-4 py-2 text-sm font-semibold uppercase tracking-wider hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {finalizarSubmitting ? "Finalizando…" : "Finalizar"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
