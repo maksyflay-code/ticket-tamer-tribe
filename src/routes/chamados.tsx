@@ -391,6 +391,59 @@ function ChamadosPage() {
   const [relatoModal, setRelatoModal] = useState<{ chamado: Chamado; texto: string } | null>(null);
   const [relatoSubmitting, setRelatoSubmitting] = useState(false);
 
+  const [finalizarModal, setFinalizarModal] = useState<{ chamado: Chamado; texto: string } | null>(null);
+  const [finalizarSubmitting, setFinalizarSubmitting] = useState(false);
+
+  const openFinalizar = (c: Chamado) => {
+    if (!canWrite) return toast.error("Sem permissão.");
+    setFinalizarModal({ chamado: c, texto: "" });
+  };
+
+  const submitFinalizar = async () => {
+    if (!finalizarModal) return;
+    const texto = finalizarModal.texto.trim();
+    if (texto.length > 2000) return toast.error("Máximo de 2000 caracteres.");
+    if (!canWrite) return toast.error("Sem permissão.");
+    setFinalizarSubmitting(true);
+    const c = finalizarModal.chamado;
+    const autor = user?.email ?? "operador";
+    const autorNome = operatorsRef.current.find((o) => o.email === autor)?.name?.trim() || autor;
+    const now = new Date().toISOString();
+    const effectiveRespId = c.responsavel_id ?? user?.id ?? null;
+    const effectiveTecnico = c.tecnico_responsavel ?? autor;
+    const payload: Record<string, unknown> = {
+      status: "resolvido",
+      resolvido_at: now,
+      finalizado_at: now,
+      responsavel_id: effectiveRespId,
+      tecnico_responsavel: effectiveTecnico,
+    };
+    if (texto.length >= 3) {
+      await supabase.from("chamado_historico").insert({
+        chamado_id: c.id, tipo: "relato", descricao: texto, autor,
+      } as never);
+      void triggerPushForChamado({
+        headers: await authHeaders(),
+        data: { chamadoId: c.id, tipo: "relato", descricao: texto, autorNome },
+      }).catch(() => {});
+    }
+    const { error } = await supabase.from("chamados").update(payload as never).eq("id", c.id);
+    setFinalizarSubmitting(false);
+    if (error) return toast.error(error.message);
+    void triggerPushForChamado({
+      headers: await authHeaders(),
+      data: {
+        chamadoId: c.id,
+        tipo: "finalizacao",
+        descricao: `Status alterado de ${c.status} para resolvido`,
+        autorNome,
+      },
+    }).catch(() => {});
+    toast.success("Chamado finalizado");
+    setFinalizarModal(null);
+    load();
+  };
+
   const submitRelato = async () => {
     if (!relatoModal) return;
     const texto = relatoModal.texto.trim();
