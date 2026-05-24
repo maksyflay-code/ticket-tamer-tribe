@@ -662,6 +662,10 @@ function ChamadosPage() {
                       <button title="Adicionar relato" onClick={() => addRelatoRapido(c)}
                         className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-emerald-400"><MessageSquare className="h-3.5 w-3.5" /></button>
                     )}
+                    {canWrite && !finalizado && (
+                      <button title="Finalizar atendimento" onClick={() => openFinalizar(c)}
+                        className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-emerald-400"><CheckCircle2 className="h-3.5 w-3.5" /></button>
+                    )}
                     {isAdmin && (
                       <button onClick={() => remove(c.id)}
                         className="p-1.5 hover:bg-secondary text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -724,6 +728,9 @@ function ChamadosPage() {
                 )}
                 {canWrite && !finalizado && (
                   <button title="Adicionar relato" onClick={() => addRelatoRapido(c)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-emerald-400"><MessageSquare className="h-3.5 w-3.5" /></button>
+                )}
+                {canWrite && !finalizado && (
+                  <button title="Finalizar atendimento" onClick={() => openFinalizar(c)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-emerald-400"><CheckCircle2 className="h-3.5 w-3.5" /></button>
                 )}
                 {isAdmin && (
                   <button onClick={() => remove(c.id)} className="p-1.5 border border-border hover:bg-secondary text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
