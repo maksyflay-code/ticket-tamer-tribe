@@ -396,6 +396,9 @@ function ChamadosPage() {
 
   const openFinalizar = (c: Chamado) => {
     if (!canWrite) return toast.error("Sem permissão.");
+    if (c.status === "resolvido" || c.status === "fechado") {
+      return toast.error("Este chamado já está finalizado.");
+    }
     setFinalizarModal({ chamado: c, texto: "" });
   };
 
@@ -404,8 +407,30 @@ function ChamadosPage() {
     const texto = finalizarModal.texto.trim();
     if (texto.length > 2000) return toast.error("Máximo de 2000 caracteres.");
     if (!canWrite) return toast.error("Sem permissão.");
+    const c0 = finalizarModal.chamado;
+    if (c0.status === "resolvido" || c0.status === "fechado") {
+      setFinalizarModal(null);
+      return toast.error("Este chamado já está finalizado.");
+    }
     setFinalizarSubmitting(true);
-    const c = finalizarModal.chamado;
+    // Re-checa no banco para evitar finalizar algo já finalizado por outro operador
+    const { data: atual, error: checkErr } = await supabase
+      .from("chamados")
+      .select("status")
+      .eq("id", c0.id)
+      .maybeSingle();
+    if (checkErr) {
+      setFinalizarSubmitting(false);
+      return toast.error(checkErr.message);
+    }
+    if (atual && (atual.status === "resolvido" || atual.status === "fechado")) {
+      setFinalizarSubmitting(false);
+      setFinalizarModal(null);
+      toast.error("Este chamado já foi finalizado.");
+      load();
+      return;
+    }
+    const c = c0;
     const autor = user?.email ?? "operador";
     const autorNome = operatorsRef.current.find((o) => o.email === autor)?.name?.trim() || autor;
     const now = new Date().toISOString();
@@ -430,6 +455,17 @@ function ChamadosPage() {
     const { error } = await supabase.from("chamados").update(payload as never).eq("id", c.id);
     setFinalizarSubmitting(false);
     if (error) return toast.error(error.message);
+    // Registra evento de finalização sempre (mesmo sem texto), para o relatório
+    await supabase.from("chamado_historico").insert({
+      chamado_id: c.id,
+      tipo: "finalizacao",
+      descricao: texto.length >= 3
+        ? `Atendimento finalizado por ${autorNome}. Relato: ${texto}`
+        : `Atendimento finalizado por ${autorNome}`,
+      status_anterior: c.status,
+      status_novo: "resolvido",
+      autor,
+    } as never);
     void triggerPushForChamado({
       headers: await authHeaders(),
       data: {
