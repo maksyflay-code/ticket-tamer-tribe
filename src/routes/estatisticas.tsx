@@ -396,6 +396,21 @@ function labelPrio(s: string) {
   const m: Record<string, string> = { urgente: "Urgente", alta: "Alta", media: "Média", baixa: "Baixa" };
   return m[s] ?? s;
 }
+function labelTipo(s: string) {
+  const m: Record<string, string> = {
+    ROMPIMENTO: "Rompimento",
+    ATENUACAO: "Atenuação",
+    OUTROS: "Outros",
+    "NÃO INFORMADO": "Não informado",
+  };
+  return m[s] ?? s.charAt(0) + s.slice(1).toLowerCase();
+}
+const TIPO_COLORS: Record<string, string> = {
+  Rompimento: "#ef4444",
+  Atenuação: "#f59e0b",
+  Outros: "#6366f1",
+  "Não informado": "#64748b",
+};
 
 function Kpi({ icon: Icon, label, value, loading, tone, subtitle }: {
   icon: React.ComponentType<{ className?: string }>;
