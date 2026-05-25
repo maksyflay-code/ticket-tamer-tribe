@@ -39,7 +39,7 @@ async function fetchChangelogFromGitHub(): Promise<{ items: CommitItem[]; error?
       author: { login: string; avatar_url: string } | null;
     };
     const all: RawCommit[] = [];
-    const MAX_PAGES = 20; // até 2000 commits
+    const MAX_PAGES = 100; // percorre todo o histórico disponível do repositório
     for (let page = 1; page <= MAX_PAGES; page++) {
       const res = await fetch(
         `https://api.github.com/repos/${REPO}/commits?per_page=100&page=${page}`,
@@ -87,6 +87,10 @@ async function fetchChangelogFromGitHub(): Promise<{ items: CommitItem[]; error?
 }
 
 function humanizeTitle(raw: string): string {
+  if (/^(initial commit|template: tanstack_start_ts)$/i.test(raw.trim())) {
+    return "Criação da base inicial do projeto";
+  }
+
   let t = raw.replace(/^(feat|fix|refactor|perf|docs|style|chore)(\([^)]*\))?:\s*/i, "");
   t = t.replace(/\s*\(#\d+\)\s*$/, "").trim();
   if (!t) return raw;
