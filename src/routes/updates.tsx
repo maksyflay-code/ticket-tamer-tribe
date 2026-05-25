@@ -10,7 +10,6 @@ import {
   FileText,
   RefreshCw,
   GitCommit,
-  ExternalLink,
   AlertCircle,
   Zap,
   Palette,
@@ -62,10 +61,27 @@ async function fetchChangelogFromGitHub(): Promise<{ items: CommitItem[]; error?
         url: c.html_url,
       };
     });
-    return { items };
+    const isBot = (a: string) =>
+      /lovable|bot|github-actions|dependabot|noreply/i.test(a);
+    const cleaned = items
+      .filter((it) => !isBot(it.author))
+      .map((it) => ({
+        ...it,
+        author: "Equipe de desenvolvimento",
+        avatar: null,
+        title: humanizeTitle(it.title),
+      }));
+    return { items: cleaned };
   } catch (e) {
     return { items: [], error: e instanceof Error ? e.message : "Erro desconhecido" };
   }
+}
+
+function humanizeTitle(raw: string): string {
+  let t = raw.replace(/^(feat|fix|refactor|perf|docs|style|chore)(\([^)]*\))?:\s*/i, "");
+  t = t.replace(/\s*\(#\d+\)\s*$/, "").trim();
+  if (!t) return raw;
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
 export const Route = createFileRoute("/updates")({
@@ -188,8 +204,7 @@ function UpdatesPage() {
             <div>
               <h2 className="text-2xl font-display font-bold tracking-tight">Histórico de atualizações</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Todas as modificações e implementações sincronizadas direto do repositório GitHub
-                <span className="font-mono"> · maksyflay-code/ticket-tamer-tribe</span>
+                Todas as modificações e implementações aplicadas ao sistema
               </p>
             </div>
             <button
@@ -286,20 +301,9 @@ function UpdatesPage() {
                             <Icon className="h-4 w-4" />
                           </span>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-3">
-                              <p className="text-sm font-medium text-foreground leading-snug break-words">
-                                {it.title}
-                              </p>
-                              <a
-                                href={it.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
-                                title="Ver no GitHub"
-                              >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </a>
-                            </div>
+                            <p className="text-sm font-medium text-foreground leading-snug break-words">
+                              {it.title}
+                            </p>
                             {it.body && (
                               <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap line-clamp-3">
                                 {it.body}
@@ -316,10 +320,6 @@ function UpdatesPage() {
                               </span>
                               <span>·</span>
                               <span>{time}</span>
-                              <span>·</span>
-                              <a href={it.url} target="_blank" rel="noreferrer" className="hover:text-primary">
-                                #{it.shortSha}
-                              </a>
                             </div>
                           </div>
                         </div>
