@@ -117,16 +117,31 @@ function EstatisticasPage() {
     return order.filter((k) => map.has(k)).map((k) => ({ name: k, value: map.get(k) ?? 0 }));
   }, [rows]);
 
-  const porCategoria = useMemo(() => {
-    const map = new Map<string, number>();
+  const porTipoProblema = useMemo(() => {
+    type Agg = { total: number; resolvidos: number; tempoTotalH: number };
+    const map = new Map<string, Agg>();
     for (const r of rows) {
-      const c = (r.categoria ?? "Sem categoria").trim() || "Sem categoria";
-      map.set(c, (map.get(c) ?? 0) + 1);
+      const raw = (r.tipo_problema ?? "").trim().toUpperCase();
+      const key = raw || "NÃO INFORMADO";
+      const agg = map.get(key) ?? { total: 0, resolvidos: 0, tempoTotalH: 0 };
+      agg.total += 1;
+      if (r.resolvido_at) {
+        const h = (new Date(r.resolvido_at).getTime() - new Date(r.created_at).getTime()) / 3_600_000;
+        if (h >= 0) { agg.resolvidos += 1; agg.tempoTotalH += h; }
+      }
+      map.set(key, agg);
     }
+    const totalAll = rows.length || 1;
     return Array.from(map.entries())
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 8);
+      .map(([name, a]) => ({
+        name: labelTipo(name),
+        key: name,
+        total: a.total,
+        pct: (a.total / totalAll) * 100,
+        tempoMedio: a.resolvidos > 0 ? a.tempoTotalH / a.resolvidos : 0,
+        resolvidos: a.resolvidos,
+      }))
+      .sort((a, b) => b.total - a.total);
   }, [rows]);
 
   const evolucao = useMemo(() => {
