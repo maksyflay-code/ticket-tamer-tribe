@@ -204,8 +204,7 @@ function UpdatesPage() {
             <div>
               <h2 className="text-2xl font-display font-bold tracking-tight">Histórico de atualizações</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Todas as modificações e implementações sincronizadas direto do repositório GitHub
-                <span className="font-mono"> · maksyflay-code/ticket-tamer-tribe</span>
+                Todas as modificações e implementações aplicadas ao sistema
               </p>
             </div>
             <button
