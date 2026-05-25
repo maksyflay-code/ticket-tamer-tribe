@@ -30,6 +30,12 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -202,9 +208,23 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
             </Sheet>
             <h1 className="font-display text-base md:text-lg font-bold tracking-tight truncate">{title}</h1>
           </div>
-          <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-muted-foreground shrink-0">
-            <Activity className="h-3.5 w-3.5 text-emerald-400" />
-            <span>SISTEMA OPERACIONAL</span>
+          <div className="hidden sm:flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+              </span>
+              <span className="text-[11px] font-semibold tracking-wider text-emerald-300 uppercase">Online</span>
+            </div>
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/60 border border-border/50 backdrop-blur-sm">
+              <Clock className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-mono font-medium text-foreground/90 tabular-nums">
+                {now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              </span>
+              <span className="text-xs font-mono text-muted-foreground capitalize hidden lg:inline">
+                {now.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
+              </span>
+            </div>
           </div>
           <Link
             to="/notificacoes"
