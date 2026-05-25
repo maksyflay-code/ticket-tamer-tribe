@@ -377,7 +377,15 @@ function CriarSolicitacaoModal({
     let active = true;
     fetchOperadores()
       .then((list) => {
-        if (active) setOperadores(list ?? []);
+        if (active) {
+          setOperadores(
+            (list ?? []).map((u) => ({
+              id: u.id,
+              email: u.email,
+              name: (u as { name?: string | null }).name ?? null,
+            })),
+          );
+        }
       })
       .catch(() => {
         if (active) setOperadores([]);
