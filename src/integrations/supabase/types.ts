@@ -514,6 +514,116 @@ export type Database = {
         }
         Relationships: []
       }
+      solicitacao_historico: {
+        Row: {
+          autor: string | null
+          created_at: string
+          descricao: string
+          id: string
+          solicitacao_id: string
+          status_anterior: string | null
+          status_novo: string | null
+          tipo: string
+        }
+        Insert: {
+          autor?: string | null
+          created_at?: string
+          descricao: string
+          id?: string
+          solicitacao_id: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          tipo?: string
+        }
+        Update: {
+          autor?: string | null
+          created_at?: string
+          descricao?: string
+          id?: string
+          solicitacao_id?: string
+          status_anterior?: string | null
+          status_novo?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacao_historico_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solicitacoes: {
+        Row: {
+          cancelada_at: string | null
+          chamado_id: string | null
+          cliente_id: string | null
+          concluida_at: string | null
+          created_at: string
+          dados: Json
+          descricao: string | null
+          documento_id: string | null
+          id: string
+          iniciada_at: string | null
+          numero: number
+          prioridade: string
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          solicitante_email: string | null
+          solicitante_id: string | null
+          status: Database["public"]["Enums"]["solicitacao_status"]
+          tipo: Database["public"]["Enums"]["solicitacao_tipo"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          cancelada_at?: string | null
+          chamado_id?: string | null
+          cliente_id?: string | null
+          concluida_at?: string | null
+          created_at?: string
+          dados?: Json
+          descricao?: string | null
+          documento_id?: string | null
+          id?: string
+          iniciada_at?: string | null
+          numero?: number
+          prioridade?: string
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          solicitante_email?: string | null
+          solicitante_id?: string | null
+          status?: Database["public"]["Enums"]["solicitacao_status"]
+          tipo: Database["public"]["Enums"]["solicitacao_tipo"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          cancelada_at?: string | null
+          chamado_id?: string | null
+          cliente_id?: string | null
+          concluida_at?: string | null
+          created_at?: string
+          dados?: Json
+          descricao?: string | null
+          documento_id?: string | null
+          id?: string
+          iniciada_at?: string | null
+          numero?: number
+          prioridade?: string
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          solicitante_email?: string | null
+          solicitante_id?: string | null
+          status?: Database["public"]["Enums"]["solicitacao_status"]
+          tipo?: Database["public"]["Enums"]["solicitacao_tipo"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -561,6 +671,15 @@ export type Database = {
         | "resolvido"
         | "fechado"
       cliente_status: "ativo" | "inativo" | "suspenso"
+      solicitacao_status: "aberta" | "em_andamento" | "concluida" | "cancelada"
+      solicitacao_tipo:
+        | "transito"
+        | "rfo"
+        | "compras"
+        | "manutencao"
+        | "acesso"
+        | "reembolso"
+        | "veiculo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -698,6 +817,16 @@ export const Constants = {
         "fechado",
       ],
       cliente_status: ["ativo", "inativo", "suspenso"],
+      solicitacao_status: ["aberta", "em_andamento", "concluida", "cancelada"],
+      solicitacao_tipo: [
+        "transito",
+        "rfo",
+        "compras",
+        "manutencao",
+        "acesso",
+        "reembolso",
+        "veiculo",
+      ],
     },
   },
 } as const

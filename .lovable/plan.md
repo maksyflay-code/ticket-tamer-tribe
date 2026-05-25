@@ -1,103 +1,66 @@
-# Plano de implementação
+# Solicitações Internas — Módulo Unificado
 
-Três frentes de trabalho em ordem de execução. Cada uma é independente — se quiser, posso entregar uma de cada vez.
+## Visão geral
 
----
+Criar um módulo único `/solicitacoes` com formulário dinâmico por tipo, workflow simples (Aberta → Em andamento → Concluída/Cancelada) e integração com os geradores de PDF existentes (RFO e Trânsito).
 
-## 1. SLA e Operação
+## Tipos suportados
 
-**Objetivo:** tornar o SLA visível no dia a dia e automatizar escalonamento.
+1. **Trânsito VTAL** — migra do gerador atual; ao concluir, gera PDF automaticamente
+2. **RFO (Relatório Final de Ocorrência)** — migra do gerador atual; gera PDF ao concluir
+3. **Compras** — itens, quantidade, fornecedor sugerido, valor estimado, justificativa
+4. **Manutenção programada** — equipamento/POP, janela (início/fim), impacto, plano de rollback
+5. **Acesso/Credenciais** — usuário/sistema solicitado, tipo de acesso, motivo, prazo
+6. **Reembolso** — descrição, valor, data, categoria (combustível/alimentação/outros), anexo do comprovante
+7. **Veículo/Frota** — veículo, data/hora retirada e devolução, destino, motivo
 
-**Banco:**
-- Adicionar coluna `sla_pausado_at` e `sla_pausado_total_seg` em `chamados` (para pausar SLA quando status = "aguardando cliente").
-- Trigger que, ao mudar status para/de "aguardando cliente", acumula tempo pausado.
+## Banco de dados
 
-**Frontend:**
-- Novo componente `<SlaBadge chamado={...} />` que calcula tempo restante usando `sla_config` + prioridade, descontando pausa.
-  - Verde: > 50% restante
-  - Amarelo: 20–50%
-  - Vermelho/pulsante: < 20% ou estourado
-- Mostrar o badge na lista de chamados (`src/routes/chamados.tsx`) e no detalhe.
-- Filtro rápido "SLA em risco" e "SLA estourado" no topo da lista.
+Tabela única `solicitacoes`:
+- `id`, `numero` (sequencial), `tipo` (enum), `titulo`, `descricao`
+- `status` (enum: aberta, em_andamento, concluida, cancelada)
+- `solicitante_id`, `solicitante_email`
+- `responsavel_id`, `responsavel_nome` (quem está executando)
+- `chamado_id` (opcional, link para chamado relacionado)
+- `cliente_id` (opcional)
+- `dados` (jsonb) — campos específicos do tipo
+- `documento_id` (fk opcional para `documentos_gerados` quando há PDF)
+- `created_at`, `updated_at`, `concluida_at`, `cancelada_at`
 
-**Operação:**
-- Coluna "Tempo aberto" formatada (2h 15min, 3d 4h).
-- Botão "Pausar SLA / Retomar" no detalhe do chamado (muda status para aguardando_cliente).
+Tabela `solicitacao_historico`:
+- `id`, `solicitacao_id`, `tipo` (criacao, mudanca_status, comentario, anexo)
+- `descricao`, `status_anterior`, `status_novo`, `autor`, `created_at`
 
----
+Trigger para registrar mudanças de status (espelhando `log_chamado_status_change`).
 
-## 2. Relatórios e Dashboards
+RLS: padrão do projeto (`can_read`, `can_write`, `is_admin`).
 
-**Objetivo:** dar visão analítica ao admin/operador.
+## Telas
 
-**Nova rota:** `src/routes/relatorios.tsx` já existe — vou expandir, não recriar.
+- **`/solicitacoes`** — lista com filtros (tipo, status, responsável), busca por número/título
+- **Botão "Nova solicitação"** — modal escolhe o tipo, depois abre formulário dinâmico
+- **Detalhe da solicitação** (modal ou drawer) — dados, histórico, ações (assumir, concluir, cancelar, gerar PDF)
+- **Sidebar** — novo item "Solicitações"
 
-**Conteúdo:**
-- **Cards KPI:** chamados abertos, fechados no mês, MTTR (tempo médio de resolução), % SLA cumprido.
-- **Gráfico de barras:** chamados por dia (últimos 30 dias).
-- **Heatmap:** abertura por hora × dia da semana.
-- **Ranking de técnicos:** chamados resolvidos, MTTR, no período.
-- **Top clientes:** quem mais abre chamados.
-- **Filtros:** período (7/30/90 dias, customizado), cliente, prioridade.
-- **Exportar CSV** do recorte filtrado.
+## Integração com PDFs
 
-**Tecnologia:** Recharts (já está no projeto via shadcn/chart).
-
-**Dados:** queries diretas em `chamados` + `chamado_historico` via Supabase client (RLS já cobre).
-
----
-
-## 3. RFOs e Trânsitos Gerados
-
-**Objetivo:** persistir histórico dos PDFs gerados em `transito-vtal.tsx` e `rfo.tsx`, hoje só baixados localmente.
-
-**Banco — nova tabela `documentos_gerados`:**
-
-| coluna | tipo | obs |
-|---|---|---|
-| id | uuid PK | |
-| tipo | text | 'rfo' \| 'transito' |
-| titulo | text | nome amigável |
-| chamado_id | uuid null | link opcional |
-| cliente_id | uuid null | link opcional |
-| dados | jsonb | payload usado pra gerar (permite regerar/visualizar) |
-| storage_path | text null | caminho do PDF salvo no bucket |
-| criado_por | uuid | auth.uid() |
-| created_at | timestamptz | default now() |
-
-RLS: select para `can_read`, insert para `can_write`, delete só admin.
-
-**Storage:** bucket novo `documentos-gerados` (privado), upload do PDF gerado.
-
-**Fluxo:**
-- Ao clicar "Gerar PDF" em RFO ou Trânsito VTAL, depois de baixar:
-  - Upload do PDF no bucket
-  - Insert na tabela com `dados` (snapshot do form) e `storage_path`
-- Toast de confirmação.
-
-**Nova rota `src/routes/documentos.tsx`:**
-- Tabs: "RFOs Gerados" | "Trânsitos Gerados"
-- Tabela com: data, título, autor, cliente/chamado vinculado
-- Ações por linha: **Baixar** (signed URL do storage), **Regerar** (carrega `dados` no formulário original), **Excluir** (admin).
-- Filtros: período, autor, busca textual.
-
-**Menu lateral (`AppShell.tsx`):** novo item "Documentos" com ícone `FileArchive`.
-
----
+- Rotas atuais `/rfo` e `/transito-vtal` viram **atalhos** que abrem o formulário de criação no tipo correspondente
+- Ao concluir uma solicitação de tipo `rfo` ou `transito`, chamamos `salvarDocumentoGerado` reaproveitando a lógica atual e vinculamos `documento_id`
+- Mantemos os PDFs gerados aparecendo em `/documentos`
 
 ## Detalhes técnicos
 
-- Migrations separadas por frente (3 arquivos).
-- SLA usa apenas `setInterval` no client pra atualizar o badge (sem polling de servidor).
-- Relatórios: agregar no client com `useMemo` em cima de `useQuery` (volumes pequenos).
-- Storage upload via `supabase.storage.from('documentos-gerados').upload(...)`; nome do arquivo `${tipo}/${id}.pdf`.
+- Formulário dinâmico: um componente por tipo em `src/components/solicitacoes/forms/` (TransitoForm, RfoForm, ComprasForm, ManutencaoForm, AcessoForm, ReembolsoForm, VeiculoForm)
+- Schemas Zod por tipo em `src/lib/solicitacoes-schemas.ts`
+- Helpers em `src/lib/solicitacoes.ts` (CRUD via client `supabase`)
+- Anexos reutilizam bucket `chamado-anexos` (renomear escopo) ou criamos `solicitacao-anexos` — sugiro criar bucket próprio
 
----
+## Ordem de implementação
 
-## Ordem sugerida de entrega
-
-1. **Documentos gerados** (mais isolado, valor imediato)
-2. **SLA visual + pausa**
-3. **Relatórios expandidos**
-
-Quer que eu siga essa ordem ou prefere outra? Posso também fazer tudo de uma vez se preferir.
+1. Migration: enums, tabelas, trigger, RLS, bucket
+2. Schemas + helpers
+3. Tela de lista + sidebar
+4. Modal "Nova solicitação" + formulários por tipo
+5. Detalhe + ações de workflow
+6. Integração com geradores de PDF (RFO/Trânsito)
+7. Atalhos de `/rfo` e `/transito-vtal` para o novo fluxo
