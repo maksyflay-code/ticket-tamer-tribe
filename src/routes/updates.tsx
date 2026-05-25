@@ -32,20 +32,30 @@ const REPO = "maksyflay-code/ticket-tamer-tribe";
 
 async function fetchChangelogFromGitHub(): Promise<{ items: CommitItem[]; error?: string }> {
   try {
-    const res = await fetch(
-      `https://api.github.com/repos/${REPO}/commits?per_page=100`,
-      { headers: { Accept: "application/vnd.github+json" } },
-    );
-    if (!res.ok) {
-      const text = await res.text();
-      return { items: [], error: `GitHub ${res.status}: ${text.slice(0, 200)}` };
-    }
-    const data = (await res.json()) as Array<{
+    type RawCommit = {
       sha: string;
       html_url: string;
       commit: { message: string; author: { name: string; date: string } };
       author: { login: string; avatar_url: string } | null;
-    }>;
+    };
+    const all: RawCommit[] = [];
+    const MAX_PAGES = 20; // até 2000 commits
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const res = await fetch(
+        `https://api.github.com/repos/${REPO}/commits?per_page=100&page=${page}`,
+        { headers: { Accept: "application/vnd.github+json" } },
+      );
+      if (!res.ok) {
+        const text = await res.text();
+        if (page === 1) return { items: [], error: `GitHub ${res.status}: ${text.slice(0, 200)}` };
+        break;
+      }
+      const batch = (await res.json()) as RawCommit[];
+      if (!batch.length) break;
+      all.push(...batch);
+      if (batch.length < 100) break;
+    }
+    const data = all;
     const items: CommitItem[] = data.map((c) => {
       const msg = c.commit.message ?? "";
       const [title, ...rest] = msg.split("\n");
