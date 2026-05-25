@@ -407,12 +407,18 @@ function EstatisticasPage() {
   );
 }
 
+const AXIS_COLOR = "#94a3b8"; // slate-400 — legível no fundo escuro
+const GRID_COLOR = "#1e293b"; // slate-800
 const tooltipStyle = {
-  background: "hsl(var(--card))",
-  border: "1px solid hsl(var(--border))",
+  background: "#0f172a",
+  border: "1px solid #334155",
   borderRadius: 8,
   fontSize: 12,
+  color: "#e2e8f0",
 };
+const tooltipItemStyle = { color: "#e2e8f0" };
+const tooltipLabelStyle = { color: "#cbd5e1", fontWeight: 600 };
+const axisTick = { fill: AXIS_COLOR, fontSize: 11 };
 
 function labelStatus(s: string) {
   const m: Record<string, string> = {
