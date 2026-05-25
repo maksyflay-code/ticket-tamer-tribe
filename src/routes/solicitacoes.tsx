@@ -99,6 +99,14 @@ function SolicitacoesPage() {
   const [createTipo, setCreateTipo] = useState<SolicitacaoTipo | null>(null);
   const [detalhe, setDetalhe] = useState<Solicitacao | null>(null);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("solicitacoes:open-new")) {
+      sessionStorage.removeItem("solicitacoes:open-new");
+      setPicker(true);
+    }
+  }, []);
+
   const fetchOperadores = useServerFn(listAssignableOperators);
   const [opMap, setOpMap] = useState<Map<string, string>>(new Map());
   useEffect(() => {

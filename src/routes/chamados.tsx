@@ -243,6 +243,11 @@ function ChamadosPage() {
   // Abertura automática via deeplink (ex: vindo da página de cliente)
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("chamados:open-new")) {
+      sessionStorage.removeItem("chamados:open-new");
+      setForm(empty);
+      setOpen(true);
+    }
     const openId = sessionStorage.getItem("chamados:open-id");
     if (!openId) return;
     sessionStorage.removeItem("chamados:open-id");
