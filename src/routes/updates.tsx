@@ -168,28 +168,16 @@ function summarizeBody(body: string): string {
   return cleaned;
 }
 
-const KIND_FALLBACK: Partial<Record<Kind, string>> = {
-  feat: "Nova funcionalidade adicionada ao sistema, ampliando as capacidades disponíveis para os usuários.",
-  fix: "Correção aplicada para resolver um comportamento inesperado e garantir maior estabilidade.",
-  perf: "Otimização aplicada para melhorar desempenho e tempo de resposta.",
-  refactor: "Reorganização interna do código sem alterar o comportamento, melhorando manutenibilidade.",
-};
-
-function CommitDetails({ kind, body, title: _title }: { kind: Kind; body: string; title: string }) {
+function CommitDetails({ kind: _kind, body, title: _title }: { kind: Kind; body: string; title: string }) {
   const bullets = parseBullets(body);
   const summary = summarizeBody(body);
-  const fallback = KIND_FALLBACK[kind];
-  const hasContent = bullets.length > 0 || summary || fallback;
+  const hasContent = bullets.length > 0 || summary;
   if (!hasContent) return null;
 
   return (
     <div className="mt-2 space-y-2">
-      {summary ? (
+      {summary && (
         <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{summary}</p>
-      ) : (
-        !bullets.length && fallback && (
-          <p className="text-xs text-muted-foreground leading-relaxed italic">{fallback}</p>
-        )
       )}
       {bullets.length > 0 && (
         <ul className="space-y-1 pl-1">
