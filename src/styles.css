@@ -97,8 +97,8 @@
   --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: oklch(0.62 0.22 275);
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-  --font-display: 'Space Grotesk', 'DM Sans', sans-serif;
-  --font-body: 'DM Sans', 'Inter', system-ui, sans-serif;
+  --font-display: 'Inter Tight', 'Inter', sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
 
   /* Effects */
   --gradient-primary: linear-gradient(135deg, oklch(0.62 0.22 275), oklch(0.72 0.18 250));
