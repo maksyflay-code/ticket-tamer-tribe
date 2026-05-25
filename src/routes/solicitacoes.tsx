@@ -106,7 +106,7 @@ function SolicitacoesPage() {
       try {
         const list = await fetchOperadores();
         const m = new Map<string, string>();
-        for (const u of list as Array<{ email: string; name: string | null }>) {
+        for (const u of list as unknown as Array<{ email: string; name: string | null }>) {
           if (u.email) m.set(u.email.toLowerCase(), (u.name?.trim() || u.email));
         }
         setOpMap(m);
@@ -610,6 +610,7 @@ function DetalheModal({
   currentUserEmail,
   navigateRfo,
   navigateTransito,
+  nameOf,
 }: {
   item: Solicitacao | null;
   onClose: () => void;
@@ -619,6 +620,7 @@ function DetalheModal({
   currentUserEmail: string | null;
   navigateRfo: () => void;
   navigateTransito: () => void;
+  nameOf: (email?: string | null) => string;
 }) {
   const [historico, setHistorico] = useState<HistoricoItem[]>([]);
   const [comentario, setComentario] = useState("");
