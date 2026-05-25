@@ -61,16 +61,12 @@ async function fetchChangelogFromGitHub(): Promise<{ items: CommitItem[]; error?
         url: c.html_url,
       };
     });
-    const isBot = (a: string) =>
-      /lovable|bot|github-actions|dependabot|noreply/i.test(a);
-    const cleaned = items
-      .filter((it) => !isBot(it.author))
-      .map((it) => ({
-        ...it,
-        author: "Equipe de desenvolvimento",
-        avatar: null,
-        title: humanizeTitle(it.title),
-      }));
+    const cleaned = items.map((it) => ({
+      ...it,
+      author: "Equipe de desenvolvimento",
+      avatar: null,
+      title: humanizeTitle(it.title),
+    }));
     return { items: cleaned };
   } catch (e) {
     return { items: [], error: e instanceof Error ? e.message : "Erro desconhecido" };
