@@ -275,17 +275,38 @@ function EstatisticasPage() {
             )}
           </ChartCard>
 
-          <ChartCard title="Top categorias" hint="Mais frequentes" className="lg:col-span-1">
-            {loading ? <ChartSkeleton /> : porCategoria.length === 0 ? <Empty /> : (
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart layout="vertical" data={porCategoria} margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} width={110} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="value" fill="#818cf8" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+          <ChartCard title="Tipo de problema" hint="Rompimento, atenuação e outros" className="lg:col-span-1">
+            {loading ? <ChartSkeleton /> : porTipoProblema.length === 0 ? <Empty /> : (
+              <div className="space-y-3">
+                {porTipoProblema.map((t) => {
+                  const color = TIPO_COLORS[t.name] ?? "#6366f1";
+                  return (
+                    <div key={t.key} className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-2 text-sm">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ background: color }} />
+                          <span className="font-medium truncate">{t.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 font-mono tabular-nums shrink-0">
+                          <span className="text-foreground">{t.total}</span>
+                          <span className="text-muted-foreground text-xs">({t.pct.toFixed(0)}%)</span>
+                        </div>
+                      </div>
+                      <div className="h-2 rounded-full bg-secondary/60 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${Math.max(2, t.pct)}%`, background: color }} />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+                        <span>{t.resolvidos} resolvidos</span>
+                        <span>
+                          {t.resolvidos > 0
+                            ? `Tempo médio ${t.tempoMedio < 1 ? `${Math.round(t.tempoMedio * 60)}min` : `${t.tempoMedio.toFixed(1)}h`}`
+                            : "—"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </ChartCard>
 
