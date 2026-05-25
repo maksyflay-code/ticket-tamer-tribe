@@ -10,7 +10,6 @@ import {
   FileText,
   RefreshCw,
   GitCommit,
-  ExternalLink,
   AlertCircle,
   Zap,
   Palette,
@@ -62,10 +61,27 @@ async function fetchChangelogFromGitHub(): Promise<{ items: CommitItem[]; error?
         url: c.html_url,
       };
     });
-    return { items };
+    const isBot = (a: string) =>
+      /lovable|bot|github-actions|dependabot|noreply/i.test(a);
+    const cleaned = items
+      .filter((it) => !isBot(it.author))
+      .map((it) => ({
+        ...it,
+        author: "Equipe de desenvolvimento",
+        avatar: null,
+        title: humanizeTitle(it.title),
+      }));
+    return { items: cleaned };
   } catch (e) {
     return { items: [], error: e instanceof Error ? e.message : "Erro desconhecido" };
   }
+}
+
+function humanizeTitle(raw: string): string {
+  let t = raw.replace(/^(feat|fix|refactor|perf|docs|style|chore)(\([^)]*\))?:\s*/i, "");
+  t = t.replace(/\s*\(#\d+\)\s*$/, "").trim();
+  if (!t) return raw;
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
 export const Route = createFileRoute("/updates")({
