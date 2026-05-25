@@ -808,7 +808,7 @@ function DetalheModal({
               {historico.map((h) => (
                 <li key={h.id} className="text-sm border-l-2 border-border pl-3 py-1">
                   <div className="text-[11px] font-mono uppercase text-muted-foreground">
-                    {h.tipo} · {fmt(h.created_at)} {h.autor && `· ${h.autor}`}
+                    {h.tipo} · {fmt(h.created_at)} {h.autor && `· ${nameOf(h.autor)}`}
                   </div>
                   <div className="whitespace-pre-wrap">{h.descricao}</div>
                 </li>
