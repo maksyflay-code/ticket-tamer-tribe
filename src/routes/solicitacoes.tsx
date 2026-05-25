@@ -733,13 +733,6 @@ function DetalheModal({
                 <Play className="h-4 w-4" /> Iniciar atendimento
               </Button>
             )}
-            <Button
-              onClick={() => changeStatus("concluida")}
-              disabled={busy}
-              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-            >
-              <CheckCircle2 className="h-4 w-4" /> Concluir
-            </Button>
             <Button onClick={() => changeStatus("cancelada")} disabled={busy} variant="outline" className="gap-2">
               <XCircle className="h-4 w-4" /> Cancelar
             </Button>
@@ -767,9 +760,17 @@ function DetalheModal({
               onChange={(e) => setComentario(e.target.value)}
               className="resize-none"
             />
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
               <Button size="sm" onClick={addComentario} disabled={busy || !comentario.trim()}>
                 Comentar
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => changeStatus("concluida")}
+                disabled={busy}
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <CheckCircle2 className="h-4 w-4" /> Concluir
               </Button>
             </div>
           </div>
