@@ -740,6 +740,8 @@ function DashboardPage() {
           )}
         </div>
       </section>
+      </div>
+      </div>
     </AppShell>
   );
 }
