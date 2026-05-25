@@ -514,7 +514,7 @@ function DashboardPage() {
             <div className="relative">
               <div className="flex items-start justify-between mb-3">
                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
-                  Uptime × Downtime (mês)
+                  Uptime × Downtime ({PERIOD_LABEL[period]})
                 </span>
                 <AlertTriangle className="h-4 w-4 text-red-400" />
               </div>
