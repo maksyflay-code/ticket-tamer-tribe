@@ -302,20 +302,9 @@ function UpdatesPage() {
                             <Icon className="h-4 w-4" />
                           </span>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-3">
-                              <p className="text-sm font-medium text-foreground leading-snug break-words">
-                                {it.title}
-                              </p>
-                              <a
-                                href={it.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
-                                title="Ver no GitHub"
-                              >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </a>
-                            </div>
+                            <p className="text-sm font-medium text-foreground leading-snug break-words">
+                              {it.title}
+                            </p>
                             {it.body && (
                               <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap line-clamp-3">
                                 {it.body}
@@ -332,10 +321,6 @@ function UpdatesPage() {
                               </span>
                               <span>·</span>
                               <span>{time}</span>
-                              <span>·</span>
-                              <a href={it.url} target="_blank" rel="noreferrer" className="hover:text-primary">
-                                #{it.shortSha}
-                              </a>
                             </div>
                           </div>
                         </div>
