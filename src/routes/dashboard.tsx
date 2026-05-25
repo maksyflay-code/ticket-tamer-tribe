@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
 import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck, ArrowRight, GitBranch, Wifi } from "lucide-react";
-import { monthWindow, totalDowntime, uptimePct, fmtUptime, fmtDowntime, type ChamadoUptime } from "@/lib/uptime";
+import { totalDowntime, uptimePct, fmtUptime, fmtDowntime, type ChamadoUptime } from "@/lib/uptime";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
