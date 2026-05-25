@@ -720,7 +720,7 @@ function DetalheModal({
           </DialogTitle>
           <DialogDescription>
             {meta.label} · criada {fmt(item.created_at)}
-            {item.solicitante_email && ` · por ${item.solicitante_email}`}
+            {item.solicitante_email && ` · por ${nameOf(item.solicitante_email)}`}
           </DialogDescription>
         </DialogHeader>
 
