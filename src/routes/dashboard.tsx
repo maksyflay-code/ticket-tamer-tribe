@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
 import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck, ArrowRight, GitBranch, Wifi } from "lucide-react";
-import { monthWindow, totalDowntime, uptimePct, fmtUptime, fmtDowntime, type ChamadoUptime } from "@/lib/uptime";
+import { totalDowntime, uptimePct, fmtUptime, fmtDowntime, type ChamadoUptime } from "@/lib/uptime";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
@@ -101,7 +101,12 @@ function DashboardPage() {
     const startMonth = new Date(); startMonth.setDate(1); startMonth.setHours(0, 0, 0, 0);
     const startSpark = new Date(); startSpark.setHours(0,0,0,0); startSpark.setDate(startSpark.getDate() - 6);
 
-    const mw = monthWindow();
+    // Janela do período selecionado (substitui o cálculo fixo mensal para uptime)
+    const mw = {
+      start: periodStart(period),
+      end: new Date(),
+      get hours() { return Math.max(1 / 60, (this.end.getTime() - this.start.getTime()) / 3_600_000); },
+    };
     const [a, e, r, c, novos, resolvidosPer, rec, abertosPri, todosStatus, todosPri, periodoSerie, resolvidosMes, reabertHist, sparkData, chamadosMesUp, clientesAtivosRes, solStatusAll, solPeriodoRes, solConcluidasPer] = await Promise.all([
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aberto"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aguardando_cliente"),
@@ -399,7 +404,7 @@ function DashboardPage() {
     { label: "Resolvidos Hoje", value: stats.resolvidosHoje, icon: CheckCircle2, accent: "from-emerald-500/20 via-emerald-500/5", bar: "from-emerald-400 to-teal-500", icColor: "text-emerald-400", w: "80%", to: "/chamados", status: "resolvido" as const, spark: sparkResolved, sparkColor: "#10b981" },
     { label: "Total de Clientes", value: stats.totalClientes, icon: Users, accent: "from-blue-500/20 via-blue-500/5", bar: "from-blue-400 to-indigo-500", icColor: "text-blue-400", w: "72%", to: "/clientes", status: null, spark: sparkNew, sparkColor: "#60a5fa" },
     { label: "Tempo Médio", value: `${stats.tempoMedioH.toFixed(1)}h`, icon: Clock, accent: "from-cyan-500/20 via-cyan-500/5", bar: "from-cyan-400 to-sky-500", icColor: "text-cyan-400", w: "55%", to: "/chamados", status: null, spark: sparkResolved, sparkColor: "#22d3ee" },
-    { label: `Novos Clientes (${PERIOD_LABEL[period]})`, value: stats.novosClientes30d, icon: UserPlus, accent: "from-pink-500/20 via-pink-500/5", bar: "from-pink-400 to-rose-500", icColor: "text-pink-400", w: "60%", to: "/clientes", status: null, spark: sparkNew, sparkColor: "#f472b6" },
+    { label: `Solicitações Internas (${PERIOD_LABEL[period]})`, value: solStats.totalPeriodo, icon: Inbox, accent: "from-fuchsia-500/20 via-fuchsia-500/5", bar: "from-fuchsia-400 to-purple-500", icColor: "text-fuchsia-400", w: "60%", to: "/solicitacoes", status: null, spark: sparkNew, sparkColor: "#e879f9" },
     { label: `Chamados (${PERIOD_LABEL[period]})`, value: stats.chamadosMes, icon: Activity, accent: "from-teal-500/20 via-teal-500/5", bar: "from-teal-400 to-emerald-500", icColor: "text-teal-400", w: "70%", to: "/chamados", status: null, spark: sparkNew, sparkColor: "#2dd4bf" },
   ];
 
@@ -483,8 +488,9 @@ function DashboardPage() {
                   else sessionStorage.removeItem("chamados:initial-status");
                 }
               }}
-              className={`group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5`}>
-              <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${c.accent} to-transparent opacity-60 group-hover:opacity-100 transition-opacity`} />
+              className={`group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10`}>
+              <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${c.accent} to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300`} />
+              <div className="pointer-events-none absolute -inset-x-full top-0 h-full -skew-x-12 bg-gradient-to-r from-transparent via-white/5 to-transparent group-hover:translate-x-[200%] transition-transform duration-700 ease-out" />
               <div className="relative">
                 <div className="flex items-start justify-between mb-3">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
@@ -503,13 +509,14 @@ function DashboardPage() {
         {!(isLoading && !data) && (
           <Link
             to="/chamados"
-            className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5"
+            className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-red-500/10"
           >
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-500/20 via-red-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-500/20 via-red-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="pointer-events-none absolute -inset-x-full top-0 h-full -skew-x-12 bg-gradient-to-r from-transparent via-white/5 to-transparent group-hover:translate-x-[200%] transition-transform duration-700 ease-out" />
             <div className="relative">
               <div className="flex items-start justify-between mb-3">
                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
-                  Uptime × Downtime (mês)
+                  Uptime × Downtime ({PERIOD_LABEL[period]})
                 </span>
                 <AlertTriangle className="h-4 w-4 text-red-400" />
               </div>
