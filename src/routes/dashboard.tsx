@@ -102,7 +102,7 @@ function DashboardPage() {
     const startSpark = new Date(); startSpark.setHours(0,0,0,0); startSpark.setDate(startSpark.getDate() - 6);
 
     const mw = monthWindow();
-    const [a, e, r, c, novos, resolvidosPer, rec, abertosPri, todosStatus, todosPri, periodoSerie, resolvidosMes, reabertHist, sparkData, chamadosMesUp, clientesAtivosRes] = await Promise.all([
+    const [a, e, r, c, novos, resolvidosPer, rec, abertosPri, todosStatus, todosPri, periodoSerie, resolvidosMes, reabertHist, sparkData, chamadosMesUp, clientesAtivosRes, solStatusAll, solPeriodoRes, solConcluidasPer] = await Promise.all([
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aberto"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aguardando_cliente"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "resolvido").gte("resolvido_at", today.toISOString()),
@@ -125,6 +125,10 @@ function DashboardPage() {
       supabase.from("chamados").select("cliente_id,created_at,resolvido_at")
         .or(`resolvido_at.is.null,resolvido_at.gte.${mw.start.toISOString()}`),
       supabase.from("clientes").select("id", { count: "exact", head: true }).eq("status", "ativo"),
+      // Métricas de solicitações
+      supabase.from("solicitacoes").select("status,tipo"),
+      supabase.from("solicitacoes").select("id", { count: "exact", head: true }).gte("created_at", start.toISOString()),
+      supabase.from("solicitacoes").select("id", { count: "exact", head: true }).eq("status", "concluida").gte("concluida_at", start.toISOString()),
     ]);
 
     const { getSlaMap } = await import("@/lib/sla");
@@ -176,6 +180,22 @@ function DashboardPage() {
     const clientesAtivos = clientesAtivosRes.count ?? 0;
     stats.downtimeMesH = downH;
     stats.uptimePctMes = uptimePct(downH, mw.hours, clientesAtivos);
+
+    // Solicitações
+    const solRows = ((solStatusAll.data ?? []) as { status: string; tipo: string }[]);
+    const solStatusCount: Record<string, number> = {};
+    const solTipoCount: Record<string, number> = {};
+    for (const s of solRows) {
+      solStatusCount[s.status] = (solStatusCount[s.status] ?? 0) + 1;
+      solTipoCount[s.tipo] = (solTipoCount[s.tipo] ?? 0) + 1;
+    }
+    const solStats = {
+      abertas: solStatusCount["aberta"] ?? 0,
+      emAndamento: solStatusCount["em_andamento"] ?? 0,
+      concluidasPeriodo: solConcluidasPer.count ?? 0,
+      totalPeriodo: solPeriodoRes.count ?? 0,
+      porTipo: solTipoCount,
+    };
 
     const statusColors: Record<string, string> = {
       aberto: "#f59e0b", aguardando_cliente: "#94a3b8", resolvido: "#10b981", fechado: "#6b7280",
@@ -258,6 +278,7 @@ function DashboardPage() {
       sparkNew,
       sparkResolved,
       heat,
+      solStats,
     };
   };
 
@@ -275,6 +296,7 @@ function DashboardPage() {
   const sparkNew = data?.sparkNew ?? [0,0,0,0,0,0,0];
   const sparkResolved = data?.sparkResolved ?? [0,0,0,0,0,0,0];
   const heat = data?.heat ?? [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]];
+  const solStats = data?.solStats ?? { abertas: 0, emAndamento: 0, concluidasPeriodo: 0, totalPeriodo: 0, porTipo: {} as Record<string, number> };
 
   useEffect(() => { setPage(0); }, [period, recentes.length]);
 
@@ -500,6 +522,66 @@ function DashboardPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="mb-8">
+        <div className="flex items-end justify-between mb-4">
+          <h2 className="font-display text-lg font-bold tracking-tight">Solicitações</h2>
+          <Link to="/solicitacoes" className="text-xs font-mono text-primary hover:underline flex items-center gap-1">
+            Ver todas <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <Link to="/solicitacoes" className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-500/20 via-sky-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Abertas</span>
+                <Inbox className="h-4 w-4 text-sky-400" />
+              </div>
+              <div className="font-display text-2xl md:text-3xl font-bold tabular-nums">{solStats.abertas}</div>
+            </div>
+          </Link>
+          <Link to="/solicitacoes" className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/20 via-amber-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Em andamento</span>
+                <Activity className="h-4 w-4 text-amber-400" />
+              </div>
+              <div className="font-display text-2xl md:text-3xl font-bold tabular-nums">{solStats.emAndamento}</div>
+            </div>
+          </Link>
+          <Link to="/solicitacoes" className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-emerald-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Concluídas ({PERIOD_LABEL[period]})</span>
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              </div>
+              <div className="font-display text-2xl md:text-3xl font-bold tabular-nums">{solStats.concluidasPeriodo}</div>
+            </div>
+          </Link>
+          <Link to="/solicitacoes" className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-500/20 via-violet-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Total ({PERIOD_LABEL[period]})</span>
+                <TrendingUp className="h-4 w-4 text-violet-400" />
+              </div>
+              <div className="font-display text-2xl md:text-3xl font-bold tabular-nums">{solStats.totalPeriodo}</div>
+            </div>
+          </Link>
+        </div>
+        {Object.keys(solStats.porTipo).length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-mono">
+            {Object.entries(solStats.porTipo).map(([t, n]) => (
+              <span key={t} className="border border-border bg-card px-2 py-1 text-muted-foreground">
+                {t}: <span className="text-foreground font-semibold">{n}</span>
+              </span>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
@@ -1047,6 +1129,22 @@ type FeedItem = {
   chamados: { titulo: string; codigo: string | null; numero: number } | null;
 };
 
+type FeedItemSol = {
+  id: string;
+  tipo: string;
+  descricao: string;
+  status_anterior: string | null;
+  status_novo: string | null;
+  autor: string | null;
+  created_at: string;
+  solicitacao_id: string;
+  solicitacoes: { titulo: string; numero: number; tipo: string } | null;
+};
+
+type FeedItemUnified =
+  | ({ kind: "chamado" } & FeedItem)
+  | ({ kind: "solicitacao" } & FeedItemSol);
+
 function formatRelative(date: string) {
   const diff = Date.now() - new Date(date).getTime();
   const s = Math.floor(diff / 1000);
@@ -1068,6 +1166,9 @@ function feedMeta(it: FeedItem) {
     aguardando_cliente: "Aguardando cliente",
     resolvido: "Resolvido",
     fechado: "Fechado",
+    aberta: "Aberta",
+    concluida: "Concluída",
+    cancelada: "Cancelada",
   };
   const fmt = (s: string | null) => (s ? statusLabel[s] ?? s : "—");
   if (it.tipo === "criacao") {
@@ -1102,23 +1203,40 @@ function shortAuthor(autor: string | null) {
 
 function FeedAtividadeCard({ onOpen }: { onOpen: (id: string) => void }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data, isLoading } = useQuery({
     queryKey: ["feed-atividade"],
     refetchInterval: 30_000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("chamado_historico")
-        .select("id, tipo, descricao, status_anterior, status_novo, autor, created_at, chamado_id, chamados(titulo, codigo, numero)")
-        .order("created_at", { ascending: false })
-        .limit(8);
-      if (error) throw error;
-      return (data ?? []) as unknown as FeedItem[];
+      const [chRes, solRes] = await Promise.all([
+        supabase
+          .from("chamado_historico")
+          .select("id, tipo, descricao, status_anterior, status_novo, autor, created_at, chamado_id, chamados(titulo, codigo, numero)")
+          .order("created_at", { ascending: false })
+          .limit(15),
+        supabase
+          .from("solicitacao_historico")
+          .select("id, tipo, descricao, status_anterior, status_novo, autor, created_at, solicitacao_id, solicitacoes(titulo, numero, tipo)")
+          .order("created_at", { ascending: false })
+          .limit(15),
+      ]);
+      if (chRes.error) throw chRes.error;
+      if (solRes.error) throw solRes.error;
+      const ch: FeedItemUnified[] = ((chRes.data ?? []) as unknown as FeedItem[])
+        .map((x) => ({ kind: "chamado" as const, ...x }));
+      const sol: FeedItemUnified[] = ((solRes.data ?? []) as unknown as FeedItemSol[])
+        .map((x) => ({ kind: "solicitacao" as const, ...x }));
+      return [...ch, ...sol]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 12);
     },
   });
   useEffect(() => {
     const ch = supabase
       .channel("feed-atividade-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "chamado_historico" },
+        () => qc.invalidateQueries({ queryKey: ["feed-atividade"] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "solicitacao_historico" },
         () => qc.invalidateQueries({ queryKey: ["feed-atividade"] }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -1147,14 +1265,33 @@ function FeedAtividadeCard({ onOpen }: { onOpen: (id: string) => void }) {
         ) : (
           <ul className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
             {items.map((it) => {
-              const meta = feedMeta(it);
+              const isSol = it.kind === "solicitacao";
+              const metaItem: FeedItem = isSol
+                ? {
+                    id: it.id,
+                    tipo: it.tipo,
+                    descricao: it.descricao,
+                    status_anterior: it.status_anterior,
+                    status_novo: it.status_novo,
+                    autor: it.autor,
+                    created_at: it.created_at,
+                    chamado_id: it.solicitacao_id,
+                    chamados: null,
+                  }
+                : it;
+              const meta = feedMeta(metaItem);
               const Icon = meta.icon;
-              const ref = it.chamados?.codigo || (it.chamados?.numero ? `#${it.chamados.numero}` : `#${it.chamado_id.slice(0, 6)}`);
-              const titulo = it.chamados?.titulo ?? "";
+              const ref = isSol
+                ? `SOL-${String(it.solicitacoes?.numero ?? 0).padStart(4, "0")}`
+                : (it.chamados?.codigo || (it.chamados?.numero ? `#${it.chamados.numero}` : `#${it.chamado_id.slice(0, 6)}`));
+              const titulo = isSol ? (it.solicitacoes?.titulo ?? "") : (it.chamados?.titulo ?? "");
+              const onClick = isSol
+                ? () => navigate({ to: "/solicitacoes" })
+                : () => onOpen(it.chamado_id);
               return (
                 <li key={it.id}>
                   <button
-                    onClick={() => onOpen(it.chamado_id)}
+                    onClick={onClick}
                     className="w-full text-left flex items-start gap-2.5 border border-transparent hover:border-primary/30 hover:bg-background/40 p-2 transition-colors"
                   >
                     <div className={`shrink-0 w-7 h-7 border ${meta.bg} flex items-center justify-center rounded-sm`}>
