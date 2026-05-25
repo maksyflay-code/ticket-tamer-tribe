@@ -99,6 +99,25 @@ function SolicitacoesPage() {
   const [createTipo, setCreateTipo] = useState<SolicitacaoTipo | null>(null);
   const [detalhe, setDetalhe] = useState<Solicitacao | null>(null);
 
+  const fetchOperadores = useServerFn(listAssignableOperators);
+  const [opMap, setOpMap] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await fetchOperadores();
+        const m = new Map<string, string>();
+        for (const u of list as unknown as Array<{ email: string; name: string | null }>) {
+          if (u.email) m.set(u.email.toLowerCase(), (u.name?.trim() || u.email));
+        }
+        setOpMap(m);
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, [fetchOperadores]);
+  const nameOf = (email?: string | null) =>
+    !email ? "—" : (opMap.get(email.toLowerCase()) ?? email);
+
   async function load() {
     setLoading(true);
     const { data, error } = await supabase
@@ -268,7 +287,7 @@ function SolicitacoesPage() {
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-3 w-3" /> {fmt(it.created_at)}
                       </span>
-                      {it.solicitante_email && <span>por {it.solicitante_email}</span>}
+                      {it.solicitante_email && <span>por {nameOf(it.solicitante_email)}</span>}
                       {it.responsavel_nome && <span>resp.: {it.responsavel_nome}</span>}
                     </div>
                   </div>
@@ -335,6 +354,7 @@ function SolicitacoesPage() {
         currentUserEmail={user?.email ?? null}
         navigateRfo={() => detalhe && navigate({ to: "/rfo" })}
         navigateTransito={() => detalhe && navigate({ to: "/transito-vtal" })}
+        nameOf={nameOf}
       />
     </AppShell>
   );
@@ -590,6 +610,7 @@ function DetalheModal({
   currentUserEmail,
   navigateRfo,
   navigateTransito,
+  nameOf,
 }: {
   item: Solicitacao | null;
   onClose: () => void;
@@ -599,6 +620,7 @@ function DetalheModal({
   currentUserEmail: string | null;
   navigateRfo: () => void;
   navigateTransito: () => void;
+  nameOf: (email?: string | null) => string;
 }) {
   const [historico, setHistorico] = useState<HistoricoItem[]>([]);
   const [comentario, setComentario] = useState("");
@@ -698,7 +720,7 @@ function DetalheModal({
           </DialogTitle>
           <DialogDescription>
             {meta.label} · criada {fmt(item.created_at)}
-            {item.solicitante_email && ` · por ${item.solicitante_email}`}
+            {item.solicitante_email && ` · por ${nameOf(item.solicitante_email)}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -786,7 +808,7 @@ function DetalheModal({
               {historico.map((h) => (
                 <li key={h.id} className="text-sm border-l-2 border-border pl-3 py-1">
                   <div className="text-[11px] font-mono uppercase text-muted-foreground">
-                    {h.tipo} · {fmt(h.created_at)} {h.autor && `· ${h.autor}`}
+                    {h.tipo} · {fmt(h.created_at)} {h.autor && `· ${nameOf(h.autor)}`}
                   </div>
                   <div className="whitespace-pre-wrap">{h.descricao}</div>
                 </li>

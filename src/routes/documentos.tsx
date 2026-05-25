@@ -12,6 +12,8 @@ import {
 } from "@/lib/documentos";
 import { Download, Trash2, FileText, Network, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { listAssignableOperators } from "@/lib/operators.functions";
 
 export const Route = createFileRoute("/documentos")({
   beforeLoad: requireAuth,
@@ -25,6 +27,25 @@ function DocumentosPage() {
   const [loading, setLoading] = useState(true);
   const [docs, setDocs] = useState<DocumentoGerado[]>([]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const fetchOperadores = useServerFn(listAssignableOperators);
+  const [opMap, setOpMap] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await fetchOperadores();
+        const m = new Map<string, string>();
+        for (const u of list as unknown as Array<{ email: string; name: string | null }>) {
+          if (u.email) m.set(u.email.toLowerCase(), u.name?.trim() || u.email);
+        }
+        setOpMap(m);
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, [fetchOperadores]);
+  const nameOf = (email?: string | null) =>
+    !email ? "—" : (opMap.get(email.toLowerCase()) ?? email);
 
   const load = async (t: DocumentoTipo) => {
     setLoading(true);
@@ -48,9 +69,10 @@ function DocumentosPage() {
     return docs.filter(
       (d) =>
         d.titulo.toLowerCase().includes(q) ||
-        (d.autor_email ?? "").toLowerCase().includes(q),
+        (d.autor_email ?? "").toLowerCase().includes(q) ||
+        nameOf(d.autor_email).toLowerCase().includes(q),
     );
-  }, [docs, busca]);
+  }, [docs, busca, opMap]);
 
   const baixar = async (d: DocumentoGerado) => {
     if (!d.storage_path) return toast.error("Arquivo não disponível");
@@ -142,7 +164,7 @@ function DocumentosPage() {
                       {new Date(d.created_at).toLocaleString("pt-BR")}
                     </td>
                     <td className="p-3">{d.titulo}</td>
-                    <td className="p-3 font-mono text-muted-foreground">{d.autor_email ?? "—"}</td>
+                    <td className="p-3 font-mono text-muted-foreground">{nameOf(d.autor_email)}</td>
                     <td className="p-3 text-right">
                       <div className="inline-flex gap-1">
                         <button
