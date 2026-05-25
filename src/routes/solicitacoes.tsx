@@ -404,21 +404,21 @@ function CriarSolicitacaoModal({
   useEffect(() => {
     if (!tipo) return;
     let active = true;
-    fetchOperadores({ headers: undefined as never })
-      .then((list) => {
-        if (active) {
-          setOperadores(
-            (list ?? []).map((u) => ({
-              id: u.id,
-              email: u.email,
-              name: (u as { name?: string | null }).name ?? null,
-            })),
-          );
-        }
-      })
-      .catch(() => {
+    (async () => {
+      try {
+        const list = await fetchOperadores({ headers: await authHeaders() });
+        if (!active) return;
+        setOperadores(
+          (list ?? []).map((u) => ({
+            id: u.id,
+            email: u.email,
+            name: (u as { name?: string | null }).name ?? null,
+          })),
+        );
+      } catch {
         if (active) setOperadores([]);
-      });
+      }
+    })();
     return () => {
       active = false;
     };
