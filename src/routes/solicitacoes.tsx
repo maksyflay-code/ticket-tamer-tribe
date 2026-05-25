@@ -99,6 +99,25 @@ function SolicitacoesPage() {
   const [createTipo, setCreateTipo] = useState<SolicitacaoTipo | null>(null);
   const [detalhe, setDetalhe] = useState<Solicitacao | null>(null);
 
+  const fetchOperadores = useServerFn(listAssignableOperators);
+  const [opMap, setOpMap] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await fetchOperadores();
+        const m = new Map<string, string>();
+        for (const u of list as Array<{ email: string; name: string | null }>) {
+          if (u.email) m.set(u.email.toLowerCase(), (u.name?.trim() || u.email));
+        }
+        setOpMap(m);
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, [fetchOperadores]);
+  const nameOf = (email?: string | null) =>
+    !email ? "—" : (opMap.get(email.toLowerCase()) ?? email);
+
   async function load() {
     setLoading(true);
     const { data, error } = await supabase
@@ -268,7 +287,7 @@ function SolicitacoesPage() {
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-3 w-3" /> {fmt(it.created_at)}
                       </span>
-                      {it.solicitante_email && <span>por {it.solicitante_email}</span>}
+                      {it.solicitante_email && <span>por {nameOf(it.solicitante_email)}</span>}
                       {it.responsavel_nome && <span>resp.: {it.responsavel_nome}</span>}
                     </div>
                   </div>
@@ -335,6 +354,7 @@ function SolicitacoesPage() {
         currentUserEmail={user?.email ?? null}
         navigateRfo={() => detalhe && navigate({ to: "/rfo" })}
         navigateTransito={() => detalhe && navigate({ to: "/transito-vtal" })}
+        nameOf={nameOf}
       />
     </AppShell>
   );
