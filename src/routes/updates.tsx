@@ -68,7 +68,9 @@ async function fetchChangelogFromGitHub(): Promise<{ items: CommitItem[]; error?
       title: humanizeTitle(it.title),
       body: sanitizeBody(it.body),
     }));
-    return { items: cleaned };
+    const important = filterImportant(cleaned);
+    const deduped = dedupeByTitle(important);
+    return { items: deduped };
   } catch (e) {
     return { items: [], error: e instanceof Error ? e.message : "Erro desconhecido" };
   }
@@ -96,6 +98,50 @@ function sanitizeBody(raw: string): string {
     })
     .join("\n")
     .trim();
+}
+
+const NOISE_PATTERNS: RegExp[] = [
+  /^merge\b/i,
+  /^wip\b/i,
+  /^initial commit/i,
+  /^update readme/i,
+  /^bump\b/i,
+  /^chore(\(|:)/i,
+  /^docs(\(|:)/i,
+  /^style(\(|:)/i,
+  /^test(\(|:)/i,
+  /^ci(\(|:)/i,
+  /^build(\(|:)/i,
+  /^revert\b/i,
+  /^format\b/i,
+  /^lint\b/i,
+  /^typo\b/i,
+  /^\.{1,}$/,
+  /^[a-f0-9]{6,}$/i,
+];
+
+function isImportant(title: string): boolean {
+  const raw = title.trim();
+  if (!raw || raw.length < 6) return false;
+  if (NOISE_PATTERNS.some((re) => re.test(raw))) return false;
+  const k = classify(raw);
+  return k === "feat" || k === "fix" || k === "perf" || k === "refactor";
+}
+
+function filterImportant(items: CommitItem[]): CommitItem[] {
+  return items.filter((it) => isImportant(it.title));
+}
+
+function dedupeByTitle(items: CommitItem[]): CommitItem[] {
+  const seen = new Set<string>();
+  const out: CommitItem[] = [];
+  for (const it of items) {
+    const key = it.title.trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(it);
+  }
+  return out;
 }
 
 export const Route = createFileRoute("/updates")({
@@ -207,7 +253,7 @@ function UpdatesPage() {
     return Array.from(map.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
   }, [filtered]);
 
-  const filterKeys: Array<Kind | "all"> = ["all", "feat", "fix", "refactor", "perf", "style", "docs", "chore"];
+  const filterKeys: Array<Kind | "all"> = ["all", "feat", "fix", "perf", "refactor"];
 
   return (
     <AppShell title="Updates & Fixes">
