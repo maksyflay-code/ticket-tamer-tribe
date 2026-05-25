@@ -19,6 +19,7 @@ import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as NotificacoesRouteImport } from './routes/notificacoes'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as EstatisticasRouteImport } from './routes/estatisticas'
 import { Route as EquipamentosRouteImport } from './routes/equipamentos'
 import { Route as DocumentosRouteImport } from './routes/documentos'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -80,6 +81,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EstatisticasRoute = EstatisticasRouteImport.update({
+  id: '/estatisticas',
+  path: '/estatisticas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EquipamentosRoute = EquipamentosRouteImport.update({
   id: '/equipamentos',
   path: '/equipamentos',
@@ -139,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/documentos': typeof DocumentosRoute
   '/equipamentos': typeof EquipamentosRoute
+  '/estatisticas': typeof EstatisticasRoute
   '/login': typeof LoginRoute
   '/notificacoes': typeof NotificacoesRouteWithChildren
   '/perfil': typeof PerfilRoute
@@ -161,6 +168,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/documentos': typeof DocumentosRoute
   '/equipamentos': typeof EquipamentosRoute
+  '/estatisticas': typeof EstatisticasRoute
   '/login': typeof LoginRoute
   '/notificacoes': typeof NotificacoesRouteWithChildren
   '/perfil': typeof PerfilRoute
@@ -184,6 +192,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/documentos': typeof DocumentosRoute
   '/equipamentos': typeof EquipamentosRoute
+  '/estatisticas': typeof EstatisticasRoute
   '/login': typeof LoginRoute
   '/notificacoes': typeof NotificacoesRouteWithChildren
   '/perfil': typeof PerfilRoute
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/documentos'
     | '/equipamentos'
+    | '/estatisticas'
     | '/login'
     | '/notificacoes'
     | '/perfil'
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/documentos'
     | '/equipamentos'
+    | '/estatisticas'
     | '/login'
     | '/notificacoes'
     | '/perfil'
@@ -252,6 +263,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/documentos'
     | '/equipamentos'
+    | '/estatisticas'
     | '/login'
     | '/notificacoes'
     | '/perfil'
@@ -275,6 +287,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   DocumentosRoute: typeof DocumentosRoute
   EquipamentosRoute: typeof EquipamentosRoute
+  EstatisticasRoute: typeof EstatisticasRoute
   LoginRoute: typeof LoginRoute
   NotificacoesRoute: typeof NotificacoesRouteWithChildren
   PerfilRoute: typeof PerfilRoute
@@ -360,6 +373,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/estatisticas': {
+      id: '/estatisticas'
+      path: '/estatisticas'
+      fullPath: '/estatisticas'
+      preLoaderRoute: typeof EstatisticasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/equipamentos': {
@@ -454,6 +474,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   DocumentosRoute: DocumentosRoute,
   EquipamentosRoute: EquipamentosRoute,
+  EstatisticasRoute: EstatisticasRoute,
   LoginRoute: LoginRoute,
   NotificacoesRoute: NotificacoesRouteWithChildren,
   PerfilRoute: PerfilRoute,

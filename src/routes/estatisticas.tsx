@@ -1,0 +1,437 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { AppShell } from "@/components/AppShell";
+import { supabase } from "@/integrations/supabase/client";
+import { requireAuth } from "@/lib/guard";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area,
+} from "recharts";
+import { Activity, AlertTriangle, CheckCircle2, Users, Ticket, Wifi, TrendingUp } from "lucide-react";
+import { monthWindow, downtimeByCliente, totalDowntime, uptimePct, fmtUptime, fmtDowntime, type ChamadoUptime } from "@/lib/uptime";
+
+export const Route = createFileRoute("/estatisticas")({
+  beforeLoad: requireAuth,
+  component: EstatisticasPage,
+});
+
+type Period = "7d" | "30d" | "90d";
+const PERIOD_LABEL: Record<Period, string> = { "7d": "Últimos 7 dias", "30d": "Últimos 30 dias", "90d": "Últimos 90 dias" };
+function periodStart(p: Period): Date {
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  const days = p === "7d" ? 7 : p === "30d" ? 30 : 90;
+  d.setDate(d.getDate() - (days - 1));
+  return d;
+}
+
+type ChamadoRow = {
+  id: string;
+  status: string;
+  prioridade: string;
+  categoria: string | null;
+  cliente_id: string | null;
+  created_at: string;
+  resolvido_at: string | null;
+  clientes: { nome: string } | null;
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  aberto: "#f59e0b",
+  em_andamento: "#3b82f6",
+  aguardando_cliente: "#94a3b8",
+  resolvido: "#10b981",
+  fechado: "#64748b",
+};
+const PRIO_COLORS: Record<string, string> = {
+  urgente: "#ef4444",
+  alta: "#f97316",
+  media: "#eab308",
+  baixa: "#64748b",
+};
+const CHART_PALETTE = ["#4f46e5", "#6366f1", "#818cf8", "#a78bfa", "#c4b5fd", "#22d3ee", "#10b981", "#f59e0b", "#ef4444", "#ec4899"];
+
+function fmtDayLabel(d: Date) {
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
+function EstatisticasPage() {
+  const [period, setPeriod] = useState<Period>("30d");
+  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<ChamadoRow[]>([]);
+  const [clientesAtivos, setClientesAtivos] = useState(0);
+  const [novosClientes, setNovosClientes] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const start = periodStart(period);
+        const [chamadosRes, clientesRes, novosRes] = await Promise.all([
+          supabase
+            .from("chamados")
+            .select("id,status,prioridade,categoria,cliente_id,created_at,resolvido_at,clientes(nome)")
+            .gte("created_at", start.toISOString())
+            .order("created_at", { ascending: false })
+            .limit(1000),
+          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("status", "ativo"),
+          supabase.from("clientes").select("id", { count: "exact", head: true }).gte("created_at", start.toISOString()),
+        ]);
+        if (!active) return;
+        setRows((chamadosRes.data ?? []) as ChamadoRow[]);
+        setClientesAtivos(clientesRes.count ?? 0);
+        setNovosClientes(novosRes.count ?? 0);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [period]);
+
+  const stats = useMemo(() => {
+    const abertos = rows.filter((r) => r.status === "aberto" || r.status === "em_andamento").length;
+    const resolvidos = rows.filter((r) => r.status === "resolvido" || r.status === "fechado").length;
+    let tempoTotal = 0; let count = 0;
+    for (const r of rows) {
+      if (r.resolvido_at) {
+        const h = (new Date(r.resolvido_at).getTime() - new Date(r.created_at).getTime()) / 3_600_000;
+        if (h >= 0) { tempoTotal += h; count++; }
+      }
+    }
+    const tempoMedio = count > 0 ? tempoTotal / count : 0;
+    return { abertos, resolvidos, total: rows.length, tempoMedio };
+  }, [rows]);
+
+  const porStatus = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of rows) map.set(r.status, (map.get(r.status) ?? 0) + 1);
+    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+  }, [rows]);
+
+  const porPrioridade = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of rows) map.set(r.prioridade, (map.get(r.prioridade) ?? 0) + 1);
+    const order = ["urgente", "alta", "media", "baixa"];
+    return order.filter((k) => map.has(k)).map((k) => ({ name: k, value: map.get(k) ?? 0 }));
+  }, [rows]);
+
+  const porCategoria = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of rows) {
+      const c = (r.categoria ?? "Sem categoria").trim() || "Sem categoria";
+      map.set(c, (map.get(c) ?? 0) + 1);
+    }
+    return Array.from(map.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+  }, [rows]);
+
+  const evolucao = useMemo(() => {
+    const start = periodStart(period);
+    const days = Math.ceil((Date.now() - start.getTime()) / 86_400_000) + 1;
+    const buckets: Array<{ date: string; abertos: number; resolvidos: number }> = [];
+    const idx = new Map<string, number>();
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start); d.setDate(d.getDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      idx.set(key, buckets.length);
+      buckets.push({ date: fmtDayLabel(d), abertos: 0, resolvidos: 0 });
+    }
+    for (const r of rows) {
+      const k = r.created_at.slice(0, 10);
+      const i = idx.get(k);
+      if (i != null) buckets[i].abertos += 1;
+      if (r.resolvido_at) {
+        const k2 = r.resolvido_at.slice(0, 10);
+        const j = idx.get(k2);
+        if (j != null) buckets[j].resolvidos += 1;
+      }
+    }
+    return buckets;
+  }, [rows, period]);
+
+  const topClientes = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of rows) {
+      const nome = r.clientes?.nome ?? "Sem cliente";
+      map.set(nome, (map.get(nome) ?? 0) + 1);
+    }
+    return Array.from(map.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  }, [rows]);
+
+  const uptimePorCliente = useMemo(() => {
+    const { start, end, hours } = monthWindow();
+    const chamadosUp: ChamadoUptime[] = rows
+      .filter((r) => r.cliente_id)
+      .map((r) => ({ cliente_id: r.cliente_id, created_at: r.created_at, resolvido_at: r.resolvido_at }));
+    const nomeById = new Map<string, string>();
+    for (const r of rows) if (r.cliente_id) nomeById.set(r.cliente_id, r.clientes?.nome ?? "—");
+    const dt = downtimeByCliente(chamadosUp, start, end);
+    return Array.from(dt.entries())
+      .map(([id, h]) => ({
+        name: nomeById.get(id) ?? "—",
+        uptime: uptimePct(h, hours, 1),
+        downtimeH: h,
+      }))
+      .sort((a, b) => a.uptime - b.uptime)
+      .slice(0, 10);
+  }, [rows]);
+
+  const uptimeGeral = useMemo(() => {
+    const { start, end, hours } = monthWindow();
+    const chamadosUp: ChamadoUptime[] = rows
+      .filter((r) => r.cliente_id)
+      .map((r) => ({ cliente_id: r.cliente_id, created_at: r.created_at, resolvido_at: r.resolvido_at }));
+    const dt = totalDowntime(chamadosUp, start, end);
+    return uptimePct(dt, hours, Math.max(1, clientesAtivos));
+  }, [rows, clientesAtivos]);
+
+  return (
+    <AppShell title="Estatísticas">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl font-bold tracking-tight">Painel analítico</h2>
+            <p className="text-sm text-muted-foreground">Visão geral de chamados, clientes e disponibilidade.</p>
+          </div>
+          <div className="flex items-center gap-1 bg-card/60 border border-border/60 rounded-lg p-1">
+            {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1.5 text-xs font-mono rounded-md transition-colors ${
+                  period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {PERIOD_LABEL[p]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <Kpi icon={Ticket} label="Total chamados" value={stats.total} loading={loading} tone="primary" />
+          <Kpi icon={AlertTriangle} label="Em aberto" value={stats.abertos} loading={loading} tone="amber" />
+          <Kpi icon={CheckCircle2} label="Resolvidos" value={stats.resolvidos} loading={loading} tone="emerald" />
+          <Kpi icon={Activity} label="Tempo médio" value={`${stats.tempoMedio.toFixed(1)}h`} loading={loading} tone="indigo" />
+          <Kpi icon={Users} label="Clientes ativos" value={clientesAtivos} loading={loading} tone="cyan" subtitle={`+${novosClientes} no período`} />
+          <Kpi icon={Wifi} label="Uptime do mês" value={fmtUptime(uptimeGeral)} loading={loading} tone="emerald" />
+        </div>
+
+        {/* Charts grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <ChartCard title="Chamados por status" hint={PERIOD_LABEL[period]} className="lg:col-span-1">
+            {loading ? <ChartSkeleton /> : porStatus.length === 0 ? <Empty /> : (
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie data={porStatus} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2}>
+                    {porStatus.map((e, i) => (
+                      <Cell key={i} fill={STATUS_COLORS[e.name] ?? CHART_PALETTE[i % CHART_PALETTE.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number, n: string) => [v, labelStatus(n)]} />
+                  <Legend formatter={(v) => <span className="text-xs text-muted-foreground">{labelStatus(String(v))}</span>} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
+          <ChartCard title="Chamados por prioridade" hint={PERIOD_LABEL[period]} className="lg:col-span-1">
+            {loading ? <ChartSkeleton /> : porPrioridade.length === 0 ? <Empty /> : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={porPrioridade} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => labelPrio(v)} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} allowDecimals={false} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [v, "Chamados"]} labelFormatter={(l) => labelPrio(String(l))} />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                    {porPrioridade.map((e, i) => <Cell key={i} fill={PRIO_COLORS[e.name] ?? CHART_PALETTE[i]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
+          <ChartCard title="Top categorias" hint="Mais frequentes" className="lg:col-span-1">
+            {loading ? <ChartSkeleton /> : porCategoria.length === 0 ? <Empty /> : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart layout="vertical" data={porCategoria} margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} width={110} />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Bar dataKey="value" fill="#818cf8" radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
+          <ChartCard title="Evolução diária" hint="Abertos vs resolvidos" className="lg:col-span-2">
+            {loading ? <ChartSkeleton h={300} /> : evolucao.length === 0 ? <Empty /> : (
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={evolucao} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gAbertos" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.5} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gResolvidos" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.5} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} allowDecimals={false} />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Legend formatter={(v) => <span className="text-xs text-muted-foreground capitalize">{v}</span>} />
+                  <Area type="monotone" dataKey="abertos" stroke="#f59e0b" strokeWidth={2} fill="url(#gAbertos)" />
+                  <Area type="monotone" dataKey="resolvidos" stroke="#10b981" strokeWidth={2} fill="url(#gResolvidos)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
+          <ChartCard title="Top clientes" hint="Por nº de chamados" className="lg:col-span-1">
+            {loading ? <ChartSkeleton h={300} /> : topClientes.length === 0 ? <Empty /> : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart layout="vertical" data={topClientes} margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} width={120} />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Bar dataKey="value" fill="#4f46e5" radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
+          <ChartCard
+            title="Uptime por cliente"
+            hint="Mês atual — 10 mais afetados"
+            className="lg:col-span-3"
+            icon={<TrendingUp className="h-4 w-4 text-primary" />}
+          >
+            {loading ? <ChartSkeleton h={280} /> : uptimePorCliente.length === 0 ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                Sem indisponibilidades registradas neste mês — todos os clientes em 100% de uptime.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs font-mono uppercase text-muted-foreground border-b border-border/60">
+                      <th className="py-2 px-3">Cliente</th>
+                      <th className="py-2 px-3">Uptime</th>
+                      <th className="py-2 px-3 w-1/2">Disponibilidade</th>
+                      <th className="py-2 px-3 text-right">Downtime</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {uptimePorCliente.map((c) => {
+                      const pct = c.uptime;
+                      const tone = pct >= 99 ? "bg-emerald-500" : pct >= 95 ? "bg-amber-500" : "bg-red-500";
+                      return (
+                        <tr key={c.name} className="border-b border-border/30 last:border-0">
+                          <td className="py-2 px-3 font-medium">{c.name}</td>
+                          <td className="py-2 px-3 font-mono tabular-nums">{fmtUptime(pct)}</td>
+                          <td className="py-2 px-3">
+                            <div className="h-2 rounded-full bg-secondary/60 overflow-hidden">
+                              <div className={`h-full ${tone}`} style={{ width: `${Math.max(2, pct)}%` }} />
+                            </div>
+                          </td>
+                          <td className="py-2 px-3 text-right text-muted-foreground font-mono">{fmtDowntime(c.downtimeH)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </ChartCard>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
+const tooltipStyle = {
+  background: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
+  borderRadius: 8,
+  fontSize: 12,
+};
+
+function labelStatus(s: string) {
+  const m: Record<string, string> = {
+    aberto: "Aberto", em_andamento: "Em andamento", aguardando_cliente: "Aguardando cliente",
+    resolvido: "Resolvido", fechado: "Fechado",
+  };
+  return m[s] ?? s;
+}
+function labelPrio(s: string) {
+  const m: Record<string, string> = { urgente: "Urgente", alta: "Alta", media: "Média", baixa: "Baixa" };
+  return m[s] ?? s;
+}
+
+function Kpi({ icon: Icon, label, value, loading, tone, subtitle }: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string | number;
+  loading?: boolean;
+  tone: "primary" | "emerald" | "amber" | "indigo" | "cyan";
+  subtitle?: string;
+}) {
+  const tones: Record<string, string> = {
+    primary: "text-primary bg-primary/10 border-primary/20",
+    emerald: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+    amber: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+    indigo: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
+    cyan: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
+  };
+  return (
+    <div className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-sm p-4 hover:border-primary/40 transition-colors">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">{label}</span>
+        <span className={`h-7 w-7 rounded-md border flex items-center justify-center ${tones[tone]}`}>
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+      </div>
+      {loading ? <Skeleton className="h-7 w-20" /> : (
+        <div className="font-display text-2xl font-bold tabular-nums">{value}</div>
+      )}
+      {subtitle && <div className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</div>}
+    </div>
+  );
+}
+
+function ChartCard({ title, hint, children, className, icon }: {
+  title: string; hint?: string; children: React.ReactNode; className?: string; icon?: React.ReactNode;
+}) {
+  return (
+    <div className={`rounded-xl border border-border/60 bg-card/40 backdrop-blur-sm p-4 ${className ?? ""}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          {icon}
+          <h3 className="font-display text-sm font-bold tracking-tight">{title}</h3>
+        </div>
+        {hint && <span className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">{hint}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ChartSkeleton({ h = 260 }: { h?: number }) {
+  return <Skeleton className="w-full" style={{ height: h }} />;
+}
+function Empty() {
+  return <div className="py-10 text-center text-sm text-muted-foreground">Sem dados no período selecionado.</div>;
+}

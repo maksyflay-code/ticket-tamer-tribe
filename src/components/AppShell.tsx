@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock, Bell, Network, FolderArchive, ClipboardList, Sparkles } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock, Bell, Network, FolderArchive, ClipboardList, Sparkles, PieChart } from "lucide-react";
 import logo from "@/assets/ivi-logo.jpeg";
 import { useState, useEffect, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -14,6 +14,7 @@ const nav = [
   { to: "/planos", label: "Planos", icon: Package },
   { to: "/equipamentos", label: "Equipamentos", icon: Server },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { to: "/estatisticas", label: "Estatísticas", icon: PieChart },
   { to: "/rfo", label: "Gerar RFO", icon: FileText },
   { to: "/transito-vtal", label: "Trânsito VTAL", icon: Network },
   { to: "/documentos", label: "Documentos", icon: FolderArchive },
