@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { listAllSystemUsers } from "@/lib/operators.functions";
+import { authHeaders } from "@/lib/server-call";
 import {
   TIPOS,
   TIPOS_MAP,
@@ -112,7 +113,7 @@ function SolicitacoesPage() {
   useEffect(() => {
     (async () => {
       try {
-        const list = await fetchOperadores();
+        const list = await fetchOperadores({ headers: await authHeaders() });
         const m = new Map<string, string>();
         for (const u of list as unknown as Array<{ email: string; name: string | null }>) {
           if (u.email) m.set(u.email.toLowerCase(), (u.name?.trim() || u.email));
@@ -403,21 +404,21 @@ function CriarSolicitacaoModal({
   useEffect(() => {
     if (!tipo) return;
     let active = true;
-    fetchOperadores()
-      .then((list) => {
-        if (active) {
-          setOperadores(
-            (list ?? []).map((u) => ({
-              id: u.id,
-              email: u.email,
-              name: (u as { name?: string | null }).name ?? null,
-            })),
-          );
-        }
-      })
-      .catch(() => {
+    (async () => {
+      try {
+        const list = await fetchOperadores({ headers: await authHeaders() });
+        if (!active) return;
+        setOperadores(
+          (list ?? []).map((u) => ({
+            id: u.id,
+            email: u.email,
+            name: (u as { name?: string | null }).name ?? null,
+          })),
+        );
+      } catch {
         if (active) setOperadores([]);
-      });
+      }
+    })();
     return () => {
       active = false;
     };
