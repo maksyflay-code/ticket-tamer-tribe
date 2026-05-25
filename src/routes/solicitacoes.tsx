@@ -404,7 +404,7 @@ function CriarSolicitacaoModal({
   useEffect(() => {
     if (!tipo) return;
     let active = true;
-    fetchOperadores()
+    fetchOperadores({ headers: undefined as never })
       .then((list) => {
         if (active) {
           setOperadores(
