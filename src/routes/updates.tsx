@@ -144,6 +144,67 @@ function dedupeByTitle(items: CommitItem[]): CommitItem[] {
   return out;
 }
 
+function parseBullets(body: string): string[] {
+  if (!body) return [];
+  const lines = body.split("\n").map((l) => l.trim()).filter(Boolean);
+  const bullets: string[] = [];
+  for (const l of lines) {
+    const m = l.match(/^[-*•·–]\s*(.+)$/);
+    if (m) bullets.push(m[1].trim());
+    else if (/^\d+[.)]\s+/.test(l)) bullets.push(l.replace(/^\d+[.)]\s+/, "").trim());
+  }
+  return bullets;
+}
+
+function summarizeBody(body: string): string {
+  if (!body) return "";
+  const cleaned = body
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l && !/^[-*•·–]/.test(l) && !/^\d+[.)]/.test(l))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned;
+}
+
+const KIND_FALLBACK: Partial<Record<Kind, string>> = {
+  feat: "Nova funcionalidade adicionada ao sistema, ampliando as capacidades disponíveis para os usuários.",
+  fix: "Correção aplicada para resolver um comportamento inesperado e garantir maior estabilidade.",
+  perf: "Otimização aplicada para melhorar desempenho e tempo de resposta.",
+  refactor: "Reorganização interna do código sem alterar o comportamento, melhorando manutenibilidade.",
+};
+
+function CommitDetails({ kind, body, title: _title }: { kind: Kind; body: string; title: string }) {
+  const bullets = parseBullets(body);
+  const summary = summarizeBody(body);
+  const fallback = KIND_FALLBACK[kind];
+  const hasContent = bullets.length > 0 || summary || fallback;
+  if (!hasContent) return null;
+
+  return (
+    <div className="mt-2 space-y-2">
+      {summary ? (
+        <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{summary}</p>
+      ) : (
+        !bullets.length && fallback && (
+          <p className="text-xs text-muted-foreground leading-relaxed italic">{fallback}</p>
+        )
+      )}
+      {bullets.length > 0 && (
+        <ul className="space-y-1 pl-1">
+          {bullets.map((b, i) => (
+            <li key={i} className="text-xs text-foreground/80 leading-relaxed flex gap-2">
+              <span className="text-primary mt-1.5 h-1 w-1 rounded-full bg-primary shrink-0" />
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/updates")({
   beforeLoad: requireAuth,
   component: UpdatesRoute,
