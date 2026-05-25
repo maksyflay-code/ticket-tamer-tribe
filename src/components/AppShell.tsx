@@ -18,9 +18,6 @@ const nav = [
   { to: "/transito-vtal", label: "Trânsito VTAL", icon: Network, n: "08" },
   { to: "/documentos", label: "Documentos", icon: FolderArchive, n: "09" },
   { to: "/solicitacoes", label: "Solicitações", icon: ClipboardList, n: "10" },
-] as const;
-
-const utilityNav = [
   { to: "/updates", label: "Updates & Fixes", icon: Sparkles, n: "11" },
 ] as const;
 
