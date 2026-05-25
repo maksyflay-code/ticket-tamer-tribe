@@ -1,10 +1,59 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { requireAuth } from "@/lib/guard";
-import { listChangelog, type CommitItem } from "@/lib/changelog.functions";
+
+type CommitItem = {
+  sha: string;
+  shortSha: string;
+  message: string;
+  title: string;
+  body: string;
+  author: string;
+  avatar: string | null;
+  date: string;
+  url: string;
+};
+
+const REPO = "maksyflay-code/ticket-tamer-tribe";
+
+async function fetchChangelogFromGitHub(): Promise<{ items: CommitItem[]; error?: string }> {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${REPO}/commits?per_page=100`,
+      { headers: { Accept: "application/vnd.github+json" } },
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      return { items: [], error: `GitHub ${res.status}: ${text.slice(0, 200)}` };
+    }
+    const data = (await res.json()) as Array<{
+      sha: string;
+      html_url: string;
+      commit: { message: string; author: { name: string; date: string } };
+      author: { login: string; avatar_url: string } | null;
+    }>;
+    const items: CommitItem[] = data.map((c) => {
+      const msg = c.commit.message ?? "";
+      const [title, ...rest] = msg.split("\n");
+      return {
+        sha: c.sha,
+        shortSha: c.sha.slice(0, 7),
+        message: msg,
+        title: title.trim(),
+        body: rest.join("\n").trim(),
+        author: c.author?.login ?? c.commit.author?.name ?? "—",
+        avatar: c.author?.avatar_url ?? null,
+        date: c.commit.author?.date ?? new Date().toISOString(),
+        url: c.html_url,
+      };
+    });
+    return { items };
+  } catch (e) {
+    return { items: [], error: e instanceof Error ? e.message : "Erro desconhecido" };
+  }
+}
 import {
   Sparkles,
   Bug,
@@ -69,10 +118,9 @@ function formatDay(key: string) {
 }
 
 function UpdatesPage() {
-  const fetchChangelog = useServerFn(listChangelog);
   const { data, isLoading, isFetching, refetch, error } = useQuery({
     queryKey: ["changelog"],
-    queryFn: () => fetchChangelog(),
+    queryFn: () => fetchChangelogFromGitHub(),
     staleTime: 5 * 60 * 1000,
   });
   const [q, setQ] = useState("");
