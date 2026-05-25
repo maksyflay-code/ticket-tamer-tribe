@@ -66,6 +66,7 @@ async function fetchChangelogFromGitHub(): Promise<{ items: CommitItem[]; error?
       author: "Equipe de desenvolvimento",
       avatar: null,
       title: humanizeTitle(it.title),
+      body: sanitizeBody(it.body),
     }));
     return { items: cleaned };
   } catch (e) {
@@ -78,6 +79,24 @@ function humanizeTitle(raw: string): string {
   t = t.replace(/\s*\(#\d+\)\s*$/, "").trim();
   if (!t) return raw;
   return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+function sanitizeBody(raw: string): string {
+  if (!raw) return raw;
+  return raw
+    .split("\n")
+    .filter((line) => {
+      const l = line.trim().toLowerCase();
+      if (!l) return true;
+      if (l.startsWith("co-authored-by:")) return false;
+      if (l.startsWith("signed-off-by:")) return false;
+      if (l.includes("maksyflay")) return false;
+      if (l.includes("lovable")) return false;
+      if (l.includes("@users.noreply")) return false;
+      return true;
+    })
+    .join("\n")
+    .trim();
 }
 
 export const Route = createFileRoute("/updates")({
