@@ -391,7 +391,7 @@ function CriarSolicitacaoModal({
   const [operadores, setOperadores] = useState<
     { id: string; email: string; name: string | null }[]
   >([]);
-  const fetchOperadores = useServerFn(listAssignableOperators);
+  const fetchOperadores = useServerFn(listAllSystemUsers);
 
   useEffect(() => {
     setDados({});
