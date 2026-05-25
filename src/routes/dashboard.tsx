@@ -1083,13 +1083,13 @@ function PlacarDoDiaCard() {
         {isLoading ? <Skeleton className="h-24 w-full" /> : (
           <>
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="text-center border border-border bg-background/40 p-3">
-                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-1">Abertos hoje</div>
-                <div className="font-display text-4xl font-bold tabular-nums text-amber-400">{abertos}</div>
+              <div className="flex flex-col items-center justify-between border border-border bg-background/40 p-3 min-h-[110px]">
+                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground text-center min-h-[28px] flex items-center justify-center">Abertos hoje</div>
+                <div className="font-display text-4xl font-bold tabular-nums text-amber-400 leading-none">{abertos}</div>
               </div>
-              <div className="text-center border border-border bg-background/40 p-3">
-                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-1">Resolvidos hoje</div>
-                <div className="font-display text-4xl font-bold tabular-nums text-emerald-400">{resolvidos}</div>
+              <div className="flex flex-col items-center justify-between border border-border bg-background/40 p-3 min-h-[110px]">
+                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground text-center min-h-[28px] flex items-center justify-center">Resolvidos hoje</div>
+                <div className="font-display text-4xl font-bold tabular-nums text-emerald-400 leading-none">{resolvidos}</div>
               </div>
             </div>
             <div className="h-2 bg-border/60 w-full overflow-hidden rounded-full mb-2">
