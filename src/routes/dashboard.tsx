@@ -414,21 +414,24 @@ function DashboardPage() {
 
   return (
     <AppShell title="Painel de Controle">
-      <div className="flex flex-col sm:flex-row gap-2 mb-5">
+      <div className="relative">
+      <div className="ambient-orbs" />
+      <div className="relative">
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <button
           onClick={() => {
             if (typeof window !== "undefined") sessionStorage.setItem("chamados:open-new", "1");
             navigate({ to: "/chamados" });
           }}
-          className="group flex-1 inline-flex items-center justify-between gap-3 border border-border bg-card hover:border-primary/60 hover:bg-primary/5 transition-all px-4 py-3 text-left"
+          className="group flex-1 inline-flex items-center justify-between gap-3 bento px-5 py-4 text-left rounded-2xl"
         >
           <span className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center border border-primary/30 bg-primary/10 text-primary">
-              <MessageSquare className="h-4 w-4" />
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/40 bg-primary/15 text-primary shadow-[0_0_20px_-4px_var(--primary)] group-hover:scale-110 transition-transform">
+              <MessageSquare className="h-4.5 w-4.5" />
             </span>
             <span>
               <span className="block text-[10px] uppercase tracking-widest font-mono text-muted-foreground">Ação rápida</span>
-              <span className="block text-sm font-semibold">Abrir novo chamado</span>
+              <span className="block text-sm font-semibold font-display">Abrir novo chamado</span>
             </span>
           </span>
           <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
@@ -438,31 +441,31 @@ function DashboardPage() {
             if (typeof window !== "undefined") sessionStorage.setItem("solicitacoes:open-new", "1");
             navigate({ to: "/solicitacoes" });
           }}
-          className="group flex-1 inline-flex items-center justify-between gap-3 border border-border bg-card hover:border-primary/60 hover:bg-primary/5 transition-all px-4 py-3 text-left"
+          className="group flex-1 inline-flex items-center justify-between gap-3 bento px-5 py-4 text-left rounded-2xl"
         >
           <span className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
-              <Inbox className="h-4 w-4" />
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/40 bg-emerald-500/15 text-emerald-400 shadow-[0_0_20px_-4px_#10b981] group-hover:scale-110 transition-transform">
+              <Inbox className="h-4.5 w-4.5" />
             </span>
             <span>
               <span className="block text-[10px] uppercase tracking-widest font-mono text-muted-foreground">Ação rápida</span>
-              <span className="block text-sm font-semibold">Abrir nova solicitação interna</span>
+              <span className="block text-sm font-semibold font-display">Abrir nova solicitação interna</span>
             </span>
           </span>
           <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
         </button>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">Período</div>
+          <div className="text-[10px] uppercase tracking-widest font-mono text-primary">Período</div>
           <div className="text-xs font-mono text-muted-foreground mt-0.5">Dados filtrados para os últimos {PERIOD_LABEL[period]}</div>
         </div>
-        <div className="inline-flex border border-border bg-card overflow-hidden">
+        <div className="inline-flex border border-border bg-card/60 backdrop-blur-md overflow-hidden rounded-xl">
           {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-colors ${period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary/50"}`}
+              className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all ${period === p ? "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-[0_0_20px_-4px_var(--primary)]" : "text-muted-foreground hover:bg-secondary/50"}`}
             >
               {PERIOD_LABEL[p]}
             </button>
@@ -470,9 +473,9 @@ function DashboardPage() {
         </div>
       </div>
 
-      <section className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-8">
+      <section className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-10">
         {isLoading && !data ? Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="border border-border bg-card p-3 md:p-5">
+          <div key={i} className="bento p-3 md:p-5 rounded-2xl">
             <Skeleton className="h-3 w-24 mb-3" />
             <Skeleton className="h-8 w-16" />
             <Skeleton className="h-1 w-full mt-4" />
@@ -488,7 +491,7 @@ function DashboardPage() {
                   else sessionStorage.removeItem("chamados:initial-status");
                 }
               }}
-              className={`group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10`}>
+              className={`group bento p-3 md:p-5 block rounded-2xl`}>
               <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${c.accent} to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300`} />
               <div className="pointer-events-none absolute -inset-x-full top-0 h-full -skew-x-12 bg-gradient-to-r from-transparent via-white/5 to-transparent group-hover:translate-x-[200%] transition-transform duration-700 ease-out" />
               <div className="relative">
@@ -496,9 +499,11 @@ function DashboardPage() {
                   <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
                     {c.label}
                   </span>
-                  <Icon className={`h-4 w-4 ${c.icColor}`} />
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${c.accent} to-transparent ${c.icColor}`}>
+                    <Icon className={`h-4 w-4`} />
+                  </span>
                 </div>
-                <div className="font-display text-2xl md:text-3xl font-bold tracking-tight tabular-nums">{c.value}</div>
+                <div className="font-display text-3xl md:text-4xl font-bold tracking-tight tabular-nums">{c.value}</div>
                 <div className="mt-4 h-1 bg-border/50 w-full overflow-hidden rounded-full">
                   <div className={`h-full bg-gradient-to-r ${c.bar} transition-all`} style={{ width: c.w }} />
                 </div>
@@ -509,7 +514,7 @@ function DashboardPage() {
         {!(isLoading && !data) && (
           <Link
             to="/chamados"
-            className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-red-500/10"
+            className="group bento p-3 md:p-5 block rounded-2xl"
           >
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-500/20 via-red-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
             <div className="pointer-events-none absolute -inset-x-full top-0 h-full -skew-x-12 bg-gradient-to-r from-transparent via-white/5 to-transparent group-hover:translate-x-[200%] transition-transform duration-700 ease-out" />
@@ -518,7 +523,9 @@ function DashboardPage() {
                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
                   Uptime × Downtime ({PERIOD_LABEL[period]})
                 </span>
-                <AlertTriangle className="h-4 w-4 text-red-400" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-500/20 to-transparent text-red-400">
+                  <AlertTriangle className="h-4 w-4" />
+                </span>
               </div>
               <div className="flex items-baseline gap-3">
                 <div className="font-display text-2xl md:text-3xl font-bold tracking-tight tabular-nums text-emerald-400">
