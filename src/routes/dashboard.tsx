@@ -488,8 +488,9 @@ function DashboardPage() {
                   else sessionStorage.removeItem("chamados:initial-status");
                 }
               }}
-              className={`group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5`}>
-              <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${c.accent} to-transparent opacity-60 group-hover:opacity-100 transition-opacity`} />
+              className={`group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10`}>
+              <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${c.accent} to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300`} />
+              <div className="pointer-events-none absolute -inset-x-full top-0 h-full -skew-x-12 bg-gradient-to-r from-transparent via-white/5 to-transparent group-hover:translate-x-[200%] transition-transform duration-700 ease-out" />
               <div className="relative">
                 <div className="flex items-start justify-between mb-3">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
@@ -508,9 +509,10 @@ function DashboardPage() {
         {!(isLoading && !data) && (
           <Link
             to="/chamados"
-            className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5"
+            className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-red-500/10"
           >
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-500/20 via-red-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-500/20 via-red-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="pointer-events-none absolute -inset-x-full top-0 h-full -skew-x-12 bg-gradient-to-r from-transparent via-white/5 to-transparent group-hover:translate-x-[200%] transition-transform duration-700 ease-out" />
             <div className="relative">
               <div className="flex items-start justify-between mb-3">
                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono leading-tight">
