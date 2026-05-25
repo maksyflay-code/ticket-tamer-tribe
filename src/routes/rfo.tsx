@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { requireAuth } from "@/lib/guard";
@@ -8,6 +8,7 @@ import { Download, ImagePlus, X, FileText } from "lucide-react";
 import jsPDF from "jspdf";
 import bgUrl from "@/assets/rfo-background.jpg";
 import { salvarDocumentoGerado } from "@/lib/documentos";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/rfo")({
   beforeLoad: requireAuth,
@@ -72,6 +73,7 @@ function formatDateTimeBr(value: string): string {
 
 function RfoPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState<RfoForm>({
     cliente: "",
@@ -279,6 +281,56 @@ function RfoPage() {
         else {
           console.error("[RFO] falha ao salvar:", res.error);
           toast.error(`RFO gerado, mas NÃO salvo: ${res.error ?? "erro desconhecido"}`);
+        }
+
+        // Abre solicitação de registro com dados pré-preenchidos
+        try {
+          const ocorrencia = form.descricao.split("\n")[0].slice(0, 80) || `RFO ${form.cliente}`;
+          const dadosSol = {
+            // campos do schema "rfo" (para o detalhe renderizar)
+            ocorrencia,
+            inicio: form.inicio,
+            fim: form.fim,
+            causa_raiz: form.descricao,
+            acoes_tomadas: form.solucao,
+            acoes_preventivas: "",
+            // dados brutos do formulário
+            cliente: form.cliente,
+            protocolo: form.protocolo,
+            data: form.data,
+            trecho: form.trecho,
+            localizacao: form.localizacao,
+            responsavel: form.responsavel,
+            responsavelArea: form.responsavelArea,
+            responsavelEmail: form.responsavelEmail,
+            fotosCount: fotos.length,
+          };
+          const { data: userData } = await supabase.auth.getUser();
+          const u = userData.user;
+          const { data: sol, error: solErr } = await supabase
+            .from("solicitacoes")
+            .insert({
+              tipo: "rfo",
+              titulo: `RFO · ${form.cliente || "—"} · ${formatDataBr(form.data)}`,
+              descricao: `RFO gerado para ${form.cliente || "—"}.`,
+              solicitante_id: u?.id ?? null,
+              solicitante_email: u?.email ?? null,
+              documento_id: res.ok ? res.id ?? null : null,
+              dados: dadosSol as never,
+            } as never)
+            .select("id, numero")
+            .single();
+          if (solErr || !sol) {
+            console.error("[RFO] falha ao abrir solicitação:", solErr);
+            toast.error("RFO gerado, mas falhou ao abrir solicitação", {
+              description: solErr?.message,
+            });
+          } else {
+            toast.success(`Solicitação #${sol.numero} aberta para registro`);
+            navigate({ to: "/solicitacoes" });
+          }
+        } catch (err) {
+          console.error("[RFO] exceção ao abrir solicitação:", err);
         }
       } catch (err) {
         console.error("[RFO] exceção ao salvar:", err);
