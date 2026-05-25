@@ -1047,6 +1047,22 @@ type FeedItem = {
   chamados: { titulo: string; codigo: string | null; numero: number } | null;
 };
 
+type FeedItemSol = {
+  id: string;
+  tipo: string;
+  descricao: string;
+  status_anterior: string | null;
+  status_novo: string | null;
+  autor: string | null;
+  created_at: string;
+  solicitacao_id: string;
+  solicitacoes: { titulo: string; numero: number; tipo: string } | null;
+};
+
+type FeedItemUnified =
+  | ({ kind: "chamado" } & FeedItem)
+  | ({ kind: "solicitacao" } & FeedItemSol);
+
 function formatRelative(date: string) {
   const diff = Date.now() - new Date(date).getTime();
   const s = Math.floor(diff / 1000);
@@ -1068,6 +1084,9 @@ function feedMeta(it: FeedItem) {
     aguardando_cliente: "Aguardando cliente",
     resolvido: "Resolvido",
     fechado: "Fechado",
+    aberta: "Aberta",
+    concluida: "Concluída",
+    cancelada: "Cancelada",
   };
   const fmt = (s: string | null) => (s ? statusLabel[s] ?? s : "—");
   if (it.tipo === "criacao") {
