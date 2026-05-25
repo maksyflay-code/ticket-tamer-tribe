@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { AppShell } from "@/components/AppShell";
@@ -9,12 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Loader2, Plus, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { salvarDocumentoGerado } from "@/lib/documentos";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/transito-vtal")({
   component: TransitoVtalPage,
 });
 
 function TransitoVtalPage() {
+  const navigate = useNavigate();
   const [asNumber, setAsNumber] = useState("");
   const [asName, setAsName] = useState("");
   const [asPath, setAsPath] = useState("");
@@ -165,6 +167,53 @@ function TransitoVtalPage() {
         else {
           console.error("[Trânsito] falha ao salvar:", res.error);
           toast.error(`PDF gerado, mas NÃO salvo: ${res.error ?? "erro desconhecido"}`);
+        }
+
+        // Abre solicitação de registro com dados pré-preenchidos
+        try {
+          const asn = asNumber.trim();
+          const nome = asName.trim();
+          const origemLabel = `AS${asn}${nome ? " " + nome : ""}`;
+          const dadosSol = {
+            // campos do schema "transito" (para o detalhe renderizar)
+            origem: origemLabel,
+            destino: "VTAL",
+            data_prevista: new Date().toISOString().slice(0, 10),
+            observacoes:
+              `AS-PATH: ${asPath.trim()}\n` +
+              `Prefixos (${prefList.length}):\n${prefList.join("\n")}`,
+            // dados brutos do BGP
+            asNumber: asn,
+            asName: nome,
+            asPath: asPath.trim(),
+            prefixos: prefList,
+          };
+          const { data: userData } = await supabase.auth.getUser();
+          const u = userData.user;
+          const { data: sol, error: solErr } = await supabase
+            .from("solicitacoes")
+            .insert({
+              tipo: "transito",
+              titulo: `Trânsito VTAL · ${origemLabel}`,
+              descricao: `PDF de solicitação BGP gerado para ${origemLabel}.`,
+              solicitante_id: u?.id ?? null,
+              solicitante_email: u?.email ?? null,
+              documento_id: res.ok ? res.id ?? null : null,
+              dados: dadosSol as never,
+            } as never)
+            .select("id, numero")
+            .single();
+          if (solErr || !sol) {
+            console.error("[Trânsito] falha ao abrir solicitação:", solErr);
+            toast.error("PDF gerado, mas falhou ao abrir solicitação", {
+              description: solErr?.message,
+            });
+          } else {
+            toast.success(`Solicitação #${sol.numero} aberta para registro`);
+            navigate({ to: "/solicitacoes" });
+          }
+        } catch (err) {
+          console.error("[Trânsito] exceção ao abrir solicitação:", err);
         }
       } catch (err) {
         console.error("[Trânsito] exceção ao salvar:", err);
