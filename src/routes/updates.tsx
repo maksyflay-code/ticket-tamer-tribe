@@ -1,8 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { requireAuth } from "@/lib/guard";
+import {
+  Sparkles,
+  Bug,
+  Wrench,
+  FileText,
+  RefreshCw,
+  GitCommit,
+  ExternalLink,
+  AlertCircle,
+  Zap,
+  Palette,
+  Search,
+} from "lucide-react";
 
 type CommitItem = {
   sha: string;
@@ -54,24 +67,26 @@ async function fetchChangelogFromGitHub(): Promise<{ items: CommitItem[]; error?
     return { items: [], error: e instanceof Error ? e.message : "Erro desconhecido" };
   }
 }
-import {
-  Sparkles,
-  Bug,
-  Wrench,
-  FileText,
-  RefreshCw,
-  GitCommit,
-  ExternalLink,
-  AlertCircle,
-  Zap,
-  Palette,
-  Search,
-} from "lucide-react";
 
 export const Route = createFileRoute("/updates")({
   beforeLoad: requireAuth,
-  component: UpdatesPage,
+  component: UpdatesRoute,
 });
+
+function UpdatesRoute() {
+  const [client] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: { queries: { staleTime: 5 * 60 * 1000, refetchOnWindowFocus: false } },
+      }),
+  );
+
+  return (
+    <QueryClientProvider client={client}>
+      <UpdatesPage />
+    </QueryClientProvider>
+  );
+}
 
 type Kind = "feat" | "fix" | "refactor" | "docs" | "style" | "chore" | "perf" | "other";
 
