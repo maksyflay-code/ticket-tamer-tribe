@@ -1121,23 +1121,40 @@ function shortAuthor(autor: string | null) {
 
 function FeedAtividadeCard({ onOpen }: { onOpen: (id: string) => void }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data, isLoading } = useQuery({
     queryKey: ["feed-atividade"],
     refetchInterval: 30_000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("chamado_historico")
-        .select("id, tipo, descricao, status_anterior, status_novo, autor, created_at, chamado_id, chamados(titulo, codigo, numero)")
-        .order("created_at", { ascending: false })
-        .limit(8);
-      if (error) throw error;
-      return (data ?? []) as unknown as FeedItem[];
+      const [chRes, solRes] = await Promise.all([
+        supabase
+          .from("chamado_historico")
+          .select("id, tipo, descricao, status_anterior, status_novo, autor, created_at, chamado_id, chamados(titulo, codigo, numero)")
+          .order("created_at", { ascending: false })
+          .limit(15),
+        supabase
+          .from("solicitacao_historico")
+          .select("id, tipo, descricao, status_anterior, status_novo, autor, created_at, solicitacao_id, solicitacoes(titulo, numero, tipo)")
+          .order("created_at", { ascending: false })
+          .limit(15),
+      ]);
+      if (chRes.error) throw chRes.error;
+      if (solRes.error) throw solRes.error;
+      const ch: FeedItemUnified[] = ((chRes.data ?? []) as unknown as FeedItem[])
+        .map((x) => ({ kind: "chamado" as const, ...x }));
+      const sol: FeedItemUnified[] = ((solRes.data ?? []) as unknown as FeedItemSol[])
+        .map((x) => ({ kind: "solicitacao" as const, ...x }));
+      return [...ch, ...sol]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 12);
     },
   });
   useEffect(() => {
     const ch = supabase
       .channel("feed-atividade-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "chamado_historico" },
+        () => qc.invalidateQueries({ queryKey: ["feed-atividade"] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "solicitacao_historico" },
         () => qc.invalidateQueries({ queryKey: ["feed-atividade"] }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -1166,14 +1183,33 @@ function FeedAtividadeCard({ onOpen }: { onOpen: (id: string) => void }) {
         ) : (
           <ul className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
             {items.map((it) => {
-              const meta = feedMeta(it);
+              const isSol = it.kind === "solicitacao";
+              const metaItem: FeedItem = isSol
+                ? {
+                    id: it.id,
+                    tipo: it.tipo,
+                    descricao: it.descricao,
+                    status_anterior: it.status_anterior,
+                    status_novo: it.status_novo,
+                    autor: it.autor,
+                    created_at: it.created_at,
+                    chamado_id: it.solicitacao_id,
+                    chamados: null,
+                  }
+                : it;
+              const meta = feedMeta(metaItem);
               const Icon = meta.icon;
-              const ref = it.chamados?.codigo || (it.chamados?.numero ? `#${it.chamados.numero}` : `#${it.chamado_id.slice(0, 6)}`);
-              const titulo = it.chamados?.titulo ?? "";
+              const ref = isSol
+                ? `SOL-${String(it.solicitacoes?.numero ?? 0).padStart(4, "0")}`
+                : (it.chamados?.codigo || (it.chamados?.numero ? `#${it.chamados.numero}` : `#${it.chamado_id.slice(0, 6)}`));
+              const titulo = isSol ? (it.solicitacoes?.titulo ?? "") : (it.chamados?.titulo ?? "");
+              const onClick = isSol
+                ? () => navigate({ to: "/solicitacoes" })
+                : () => onOpen(it.chamado_id);
               return (
                 <li key={it.id}>
                   <button
-                    onClick={() => onOpen(it.chamado_id)}
+                    onClick={onClick}
                     className="w-full text-left flex items-start gap-2.5 border border-transparent hover:border-primary/30 hover:bg-background/40 p-2 transition-colors"
                   >
                     <div className={`shrink-0 w-7 h-7 border ${meta.bg} flex items-center justify-center rounded-sm`}>
