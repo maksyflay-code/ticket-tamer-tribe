@@ -8,21 +8,20 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { supabase } from "@/integrations/supabase/client";
 
 const nav = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, n: "01" },
-  { to: "/clientes", label: "Clientes", icon: Users, n: "02" },
-  { to: "/chamados", label: "Chamados", icon: Ticket, n: "03" },
-  { to: "/planos", label: "Planos", icon: Package, n: "04" },
-  { to: "/equipamentos", label: "Equipamentos", icon: Server, n: "05" },
-  { to: "/relatorios", label: "Relatórios", icon: BarChart3, n: "06" },
-  { to: "/rfo", label: "Gerar RFO", icon: FileText, n: "07" },
-  { to: "/transito-vtal", label: "Trânsito VTAL", icon: Network, n: "08" },
-  { to: "/documentos", label: "Documentos", icon: FolderArchive, n: "09" },
-  { to: "/solicitacoes", label: "Solicitações", icon: ClipboardList, n: "10" },
-  { to: "/updates", label: "Updates & Fixes", icon: Sparkles, n: "11" },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/clientes", label: "Clientes", icon: Users },
+  { to: "/chamados", label: "Chamados", icon: Ticket },
+  { to: "/planos", label: "Planos", icon: Package },
+  { to: "/equipamentos", label: "Equipamentos", icon: Server },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { to: "/rfo", label: "Gerar RFO", icon: FileText },
+  { to: "/transito-vtal", label: "Trânsito VTAL", icon: Network },
+  { to: "/documentos", label: "Documentos", icon: FolderArchive },
+  { to: "/solicitacoes", label: "Solicitações", icon: ClipboardList },
 ] as const;
 
 const adminNav = [
-  { to: "/configuracoes/sla", label: "Config. SLA", icon: Clock, n: "09" },
+  { to: "/configuracoes/sla", label: "Config. SLA", icon: Clock },
 ] as const;
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
@@ -94,7 +93,6 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                     : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
                 )}
               >
-                <span className="text-[10px] opacity-60">{item.n}</span>
                 <Icon className="h-4 w-4" />
                 <span>{item.label}</span>
               </Link>
@@ -111,7 +109,6 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                   : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
               )}
             >
-              <span className="text-[10px] opacity-60">08</span>
               <UserCircle className="h-4 w-4" />
               <span>Meu perfil</span>
             </Link>
@@ -126,7 +123,6 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                     : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
                 )}
               >
-                <span className="text-[10px] opacity-60">09</span>
                 <UserCog className="h-4 w-4" />
                 <span>Usuários</span>
               </Link>
@@ -141,12 +137,24 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                     active ? "bg-accent text-primary border-primary"
                       : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
                   )}>
-                  <span className="text-[10px] opacity-60">10</span>
                   <Icon className="h-4 w-4" />
                   <span>{item.label}</span>
                 </Link>
               );
             })}
+            <Link
+              to="/updates"
+              onClick={onNavigate}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 text-sm font-mono transition-colors border-l-2",
+                path.startsWith("/updates")
+                  ? "bg-accent text-primary border-primary"
+                  : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
+              )}
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>Updates & Fixes</span>
+            </Link>
           </div>
         </nav>
         <div className="p-4 border-t border-sidebar-border">
