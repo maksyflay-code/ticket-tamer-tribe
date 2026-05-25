@@ -252,8 +252,16 @@ function EstatisticasPage() {
                       <Cell key={i} fill={STATUS_COLORS[e.name] ?? CHART_PALETTE[i % CHART_PALETTE.length]} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number, n: string) => [v, labelStatus(n)]} />
-                  <Legend formatter={(v) => <span className="text-xs text-muted-foreground">{labelStatus(String(v))}</span>} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    itemStyle={tooltipItemStyle}
+                    labelStyle={tooltipLabelStyle}
+                    formatter={(v: number, n: string) => [v, labelStatus(n)]}
+                  />
+                  <Legend
+                    wrapperStyle={{ color: AXIS_COLOR, fontSize: 12 }}
+                    formatter={(v) => <span style={{ color: AXIS_COLOR }}>{labelStatus(String(v))}</span>}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -263,10 +271,17 @@ function EstatisticasPage() {
             {loading ? <ChartSkeleton /> : porPrioridade.length === 0 ? <Empty /> : (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={porPrioridade} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => labelPrio(v)} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} allowDecimals={false} />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [v, "Chamados"]} labelFormatter={(l) => labelPrio(String(l))} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
+                  <XAxis dataKey="name" stroke={AXIS_COLOR} tick={axisTick} tickFormatter={(v) => labelPrio(v)} />
+                  <YAxis stroke={AXIS_COLOR} tick={axisTick} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    itemStyle={tooltipItemStyle}
+                    labelStyle={tooltipLabelStyle}
+                    cursor={{ fill: "rgba(148,163,184,0.08)" }}
+                    formatter={(v: number) => [v, "Chamados"]}
+                    labelFormatter={(l) => labelPrio(String(l))}
+                  />
                   <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                     {porPrioridade.map((e, i) => <Cell key={i} fill={PRIO_COLORS[e.name] ?? CHART_PALETTE[i]} />)}
                   </Bar>
@@ -324,11 +339,19 @@ function EstatisticasPage() {
                       <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} allowDecimals={false} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Legend formatter={(v) => <span className="text-xs text-muted-foreground capitalize">{v}</span>} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
+                  <XAxis dataKey="date" stroke={AXIS_COLOR} tick={axisTick} />
+                  <YAxis stroke={AXIS_COLOR} tick={axisTick} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    itemStyle={tooltipItemStyle}
+                    labelStyle={tooltipLabelStyle}
+                    cursor={{ stroke: "#475569", strokeDasharray: "3 3" }}
+                  />
+                  <Legend
+                    wrapperStyle={{ color: AXIS_COLOR, fontSize: 12 }}
+                    formatter={(v) => <span style={{ color: AXIS_COLOR, textTransform: "capitalize" }}>{v}</span>}
+                  />
                   <Area type="monotone" dataKey="abertos" stroke="#f59e0b" strokeWidth={2} fill="url(#gAbertos)" />
                   <Area type="monotone" dataKey="resolvidos" stroke="#10b981" strokeWidth={2} fill="url(#gResolvidos)" />
                 </AreaChart>
