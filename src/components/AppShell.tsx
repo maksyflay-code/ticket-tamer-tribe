@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock, Bell, Network, FolderArchive, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock, Bell, Network, FolderArchive, ClipboardList, Sparkles } from "lucide-react";
 import logo from "@/assets/ivi-logo.jpeg";
 import { useState, useEffect, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -18,6 +18,7 @@ const nav = [
   { to: "/transito-vtal", label: "Trânsito VTAL", icon: Network, n: "08" },
   { to: "/documentos", label: "Documentos", icon: FolderArchive, n: "09" },
   { to: "/solicitacoes", label: "Solicitações", icon: ClipboardList, n: "10" },
+  { to: "/updates", label: "Updates & Fixes", icon: Sparkles, n: "11" },
 ] as const;
 
 const adminNav = [
