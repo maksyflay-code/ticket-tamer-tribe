@@ -101,7 +101,12 @@ function DashboardPage() {
     const startMonth = new Date(); startMonth.setDate(1); startMonth.setHours(0, 0, 0, 0);
     const startSpark = new Date(); startSpark.setHours(0,0,0,0); startSpark.setDate(startSpark.getDate() - 6);
 
-    const mw = monthWindow();
+    // Janela do período selecionado (substitui o cálculo fixo mensal para uptime)
+    const mw = {
+      start: periodStart(period),
+      end: new Date(),
+      get hours() { return Math.max(1 / 60, (this.end.getTime() - this.start.getTime()) / 3_600_000); },
+    };
     const [a, e, r, c, novos, resolvidosPer, rec, abertosPri, todosStatus, todosPri, periodoSerie, resolvidosMes, reabertHist, sparkData, chamadosMesUp, clientesAtivosRes, solStatusAll, solPeriodoRes, solConcluidasPer] = await Promise.all([
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aberto"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aguardando_cliente"),
