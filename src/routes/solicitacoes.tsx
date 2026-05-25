@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { listAssignableOperators } from "@/lib/operators.functions";
+import { listAllSystemUsers } from "@/lib/operators.functions";
 import {
   TIPOS,
   TIPOS_MAP,
@@ -107,7 +107,7 @@ function SolicitacoesPage() {
     }
   }, []);
 
-  const fetchOperadores = useServerFn(listAssignableOperators);
+  const fetchOperadores = useServerFn(listAllSystemUsers);
   const [opMap, setOpMap] = useState<Map<string, string>>(new Map());
   useEffect(() => {
     (async () => {
@@ -391,7 +391,7 @@ function CriarSolicitacaoModal({
   const [operadores, setOperadores] = useState<
     { id: string; email: string; name: string | null }[]
   >([]);
-  const fetchOperadores = useServerFn(listAssignableOperators);
+  const fetchOperadores = useServerFn(listAllSystemUsers);
 
   useEffect(() => {
     setDados({});

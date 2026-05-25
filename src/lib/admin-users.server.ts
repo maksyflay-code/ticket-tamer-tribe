@@ -179,3 +179,34 @@ export async function listAssignableOperatorUsers() {
     }))
     .sort((a, b) => a.email.localeCompare(b.email));
 }
+
+export async function listAllAssignableUsers() {
+  ensureAdminConfig();
+
+  const { data: users, error } = await supabaseAdmin.auth.admin.listUsers({
+    page: 1,
+    perPage: 200,
+  });
+  if (error) throw adminError(error);
+
+  const ids = users.users.map((u) => u.id);
+  const { data: roles } = await supabaseAdmin
+    .from("user_roles")
+    .select("user_id, role")
+    .in("user_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+
+  const roleByUser = new Map<string, string>();
+  (roles ?? []).forEach((r) => roleByUser.set(r.user_id, r.role));
+
+  return users.users
+    .map((u) => ({
+      id: u.id,
+      email: u.email ?? "",
+      name:
+        ((u.user_metadata as { full_name?: string; name?: string } | null)?.full_name ??
+          (u.user_metadata as { full_name?: string; name?: string } | null)?.name ??
+          "") || null,
+      role: roleByUser.get(u.id) ?? "",
+    }))
+    .sort((a, b) => a.email.localeCompare(b.email));
+}
