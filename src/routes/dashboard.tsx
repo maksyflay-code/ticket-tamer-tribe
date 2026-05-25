@@ -524,6 +524,66 @@ function DashboardPage() {
         </div>
       </section>
 
+      <section className="mb-8">
+        <div className="flex items-end justify-between mb-4">
+          <h2 className="font-display text-lg font-bold tracking-tight">Solicitações</h2>
+          <Link to="/solicitacoes" className="text-xs font-mono text-primary hover:underline flex items-center gap-1">
+            Ver todas <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <Link to="/solicitacoes" className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-500/20 via-sky-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Abertas</span>
+                <Inbox className="h-4 w-4 text-sky-400" />
+              </div>
+              <div className="font-display text-2xl md:text-3xl font-bold tabular-nums">{solStats.abertas}</div>
+            </div>
+          </Link>
+          <Link to="/solicitacoes" className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/20 via-amber-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Em andamento</span>
+                <Activity className="h-4 w-4 text-amber-400" />
+              </div>
+              <div className="font-display text-2xl md:text-3xl font-bold tabular-nums">{solStats.emAndamento}</div>
+            </div>
+          </Link>
+          <Link to="/solicitacoes" className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-emerald-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Concluídas ({PERIOD_LABEL[period]})</span>
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              </div>
+              <div className="font-display text-2xl md:text-3xl font-bold tabular-nums">{solStats.concluidasPeriodo}</div>
+            </div>
+          </Link>
+          <Link to="/solicitacoes" className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 block hover:border-primary/60 transition-all">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-500/20 via-violet-500/5 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Total ({PERIOD_LABEL[period]})</span>
+                <TrendingUp className="h-4 w-4 text-violet-400" />
+              </div>
+              <div className="font-display text-2xl md:text-3xl font-bold tabular-nums">{solStats.totalPeriodo}</div>
+            </div>
+          </Link>
+        </div>
+        {Object.keys(solStats.porTipo).length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-mono">
+            {Object.entries(solStats.porTipo).map(([t, n]) => (
+              <span key={t} className="border border-border bg-card px-2 py-1 text-muted-foreground">
+                {t}: <span className="text-foreground font-semibold">{n}</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
         <ChartCard title="Distribuição por status">
           {isLoading && !data ? <Skeleton className="h-[200px] w-full" /> : <DonutChart data={statusDist} />}
