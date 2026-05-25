@@ -359,12 +359,33 @@ function CriarSolicitacaoModal({
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [responsavelId, setResponsavelId] = useState<string>("");
+  const [operadores, setOperadores] = useState<
+    { id: string; email: string; name: string | null }[]
+  >([]);
+  const fetchOperadores = useServerFn(listAssignableOperators);
 
   useEffect(() => {
     setDados({});
     setTitulo("");
     setDescricao("");
+    setResponsavelId("");
   }, [tipo]);
+
+  useEffect(() => {
+    if (!tipo) return;
+    let active = true;
+    fetchOperadores()
+      .then((list) => {
+        if (active) setOperadores(list ?? []);
+      })
+      .catch(() => {
+        if (active) setOperadores([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [tipo, fetchOperadores]);
 
   if (!tipo) return null;
   const meta = TIPOS_MAP[tipo];
@@ -384,6 +405,8 @@ function CriarSolicitacaoModal({
     }
     setSubmitting(true);
     const tit = titulo.trim() || defaultTituloForTipo(tipo!, dados);
+    const resp = operadores.find((o) => o.id === responsavelId);
+    const respNome = resp ? resp.name || resp.email : null;
     const { data, error } = await supabase
       .from("solicitacoes")
       .insert({
@@ -392,6 +415,8 @@ function CriarSolicitacaoModal({
         descricao: descricao.trim() || null,
         solicitante_id: userId,
         solicitante_email: userEmail,
+        responsavel_id: resp ? resp.id : null,
+        responsavel_nome: respNome,
         dados: dados as never,
       } as never)
       .select("*")
