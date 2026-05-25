@@ -756,7 +756,7 @@ const legendStyle = { fontSize: 11, fontFamily: "monospace" } as const;
 
 function ChartCard({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`group relative overflow-hidden border border-border bg-card p-3 md:p-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 ${className}`}>
+    <div className={`group bento p-3 md:p-5 rounded-2xl ${className}`}>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-60" />
       <div className="pointer-events-none absolute -top-24 -right-24 w-56 h-56 rounded-full bg-primary/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
       <div className="relative">
