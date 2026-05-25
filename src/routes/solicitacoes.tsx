@@ -469,6 +469,26 @@ function CriarSolicitacaoModal({
           ))}
 
           <div className="space-y-1.5">
+            <Label htmlFor="responsavel">Responsável</Label>
+            <Select
+              value={responsavelId || "nenhum"}
+              onValueChange={(v) => setResponsavelId(v === "nenhum" ? "" : v)}
+            >
+              <SelectTrigger id="responsavel">
+                <SelectValue placeholder="Sem responsável" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nenhum">Sem responsável</SelectItem>
+                {operadores.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.name ? `${o.name} (${o.email})` : o.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
             <Label htmlFor="descricao">Observações gerais</Label>
             <Textarea
               id="descricao"
