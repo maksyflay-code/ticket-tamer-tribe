@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { AppShell } from "@/components/AppShell";
@@ -9,12 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Loader2, Plus, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { salvarDocumentoGerado } from "@/lib/documentos";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/transito-vtal")({
   component: TransitoVtalPage,
 });
 
 function TransitoVtalPage() {
+  const navigate = useNavigate();
   const [asNumber, setAsNumber] = useState("");
   const [asName, setAsName] = useState("");
   const [asPath, setAsPath] = useState("");
