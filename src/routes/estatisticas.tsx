@@ -30,6 +30,7 @@ type ChamadoRow = {
   status: string;
   prioridade: string;
   categoria: string | null;
+  tipo_problema: string | null;
   cliente_id: string | null;
   created_at: string;
   resolvido_at: string | null;
@@ -71,7 +72,7 @@ function EstatisticasPage() {
         const [chamadosRes, clientesRes, novosRes] = await Promise.all([
           supabase
             .from("chamados")
-            .select("id,status,prioridade,categoria,cliente_id,created_at,resolvido_at,clientes(nome)")
+            .select("id,status,prioridade,categoria,tipo_problema,cliente_id,created_at,resolvido_at,clientes(nome)")
             .gte("created_at", start.toISOString())
             .order("created_at", { ascending: false })
             .limit(1000),
