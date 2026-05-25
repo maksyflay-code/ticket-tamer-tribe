@@ -113,7 +113,7 @@ function SolicitacoesPage() {
   useEffect(() => {
     (async () => {
       try {
-        const list = await fetchOperadores();
+        const list = await fetchOperadores({ headers: await authHeaders() });
         const m = new Map<string, string>();
         for (const u of list as unknown as Array<{ email: string; name: string | null }>) {
           if (u.email) m.set(u.email.toLowerCase(), (u.name?.trim() || u.email));
