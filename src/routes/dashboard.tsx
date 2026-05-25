@@ -409,6 +409,44 @@ function DashboardPage() {
 
   return (
     <AppShell title="Painel de Controle">
+      <div className="flex flex-col sm:flex-row gap-2 mb-5">
+        <button
+          onClick={() => {
+            if (typeof window !== "undefined") sessionStorage.setItem("chamados:open-new", "1");
+            navigate({ to: "/chamados" });
+          }}
+          className="group flex-1 inline-flex items-center justify-between gap-3 border border-border bg-card hover:border-primary/60 hover:bg-primary/5 transition-all px-4 py-3 text-left"
+        >
+          <span className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center border border-primary/30 bg-primary/10 text-primary">
+              <MessageSquare className="h-4 w-4" />
+            </span>
+            <span>
+              <span className="block text-[10px] uppercase tracking-widest font-mono text-muted-foreground">Ação rápida</span>
+              <span className="block text-sm font-semibold">Abrir novo chamado</span>
+            </span>
+          </span>
+          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+        </button>
+        <button
+          onClick={() => {
+            if (typeof window !== "undefined") sessionStorage.setItem("solicitacoes:open-new", "1");
+            navigate({ to: "/solicitacoes" });
+          }}
+          className="group flex-1 inline-flex items-center justify-between gap-3 border border-border bg-card hover:border-primary/60 hover:bg-primary/5 transition-all px-4 py-3 text-left"
+        >
+          <span className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+              <Inbox className="h-4 w-4" />
+            </span>
+            <span>
+              <span className="block text-[10px] uppercase tracking-widest font-mono text-muted-foreground">Ação rápida</span>
+              <span className="block text-sm font-semibold">Abrir nova solicitação interna</span>
+            </span>
+          </span>
+          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+        </button>
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div>
           <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">Período</div>
