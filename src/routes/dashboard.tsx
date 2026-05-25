@@ -296,6 +296,7 @@ function DashboardPage() {
   const sparkNew = data?.sparkNew ?? [0,0,0,0,0,0,0];
   const sparkResolved = data?.sparkResolved ?? [0,0,0,0,0,0,0];
   const heat = data?.heat ?? [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]];
+  const solStats = data?.solStats ?? { abertas: 0, emAndamento: 0, concluidasPeriodo: 0, totalPeriodo: 0, porTipo: {} as Record<string, number> };
 
   useEffect(() => { setPage(0); }, [period, recentes.length]);
 
