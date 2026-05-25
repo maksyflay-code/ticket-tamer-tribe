@@ -102,7 +102,7 @@ function DashboardPage() {
     const startSpark = new Date(); startSpark.setHours(0,0,0,0); startSpark.setDate(startSpark.getDate() - 6);
 
     const mw = monthWindow();
-    const [a, e, r, c, novos, resolvidosPer, rec, abertosPri, todosStatus, todosPri, periodoSerie, resolvidosMes, reabertHist, sparkData, chamadosMesUp, clientesAtivosRes] = await Promise.all([
+    const [a, e, r, c, novos, resolvidosPer, rec, abertosPri, todosStatus, todosPri, periodoSerie, resolvidosMes, reabertHist, sparkData, chamadosMesUp, clientesAtivosRes, solStatusAll, solPeriodoRes, solConcluidasPer] = await Promise.all([
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aberto"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "aguardando_cliente"),
       supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "resolvido").gte("resolvido_at", today.toISOString()),
@@ -125,6 +125,10 @@ function DashboardPage() {
       supabase.from("chamados").select("cliente_id,created_at,resolvido_at")
         .or(`resolvido_at.is.null,resolvido_at.gte.${mw.start.toISOString()}`),
       supabase.from("clientes").select("id", { count: "exact", head: true }).eq("status", "ativo"),
+      // Métricas de solicitações
+      supabase.from("solicitacoes").select("status,tipo"),
+      supabase.from("solicitacoes").select("id", { count: "exact", head: true }).gte("created_at", start.toISOString()),
+      supabase.from("solicitacoes").select("id", { count: "exact", head: true }).eq("status", "concluida").gte("concluida_at", start.toISOString()),
     ]);
 
     const { getSlaMap } = await import("@/lib/sla");
@@ -176,6 +180,22 @@ function DashboardPage() {
     const clientesAtivos = clientesAtivosRes.count ?? 0;
     stats.downtimeMesH = downH;
     stats.uptimePctMes = uptimePct(downH, mw.hours, clientesAtivos);
+
+    // Solicitações
+    const solRows = ((solStatusAll.data ?? []) as { status: string; tipo: string }[]);
+    const solStatusCount: Record<string, number> = {};
+    const solTipoCount: Record<string, number> = {};
+    for (const s of solRows) {
+      solStatusCount[s.status] = (solStatusCount[s.status] ?? 0) + 1;
+      solTipoCount[s.tipo] = (solTipoCount[s.tipo] ?? 0) + 1;
+    }
+    const solStats = {
+      abertas: solStatusCount["aberta"] ?? 0,
+      emAndamento: solStatusCount["em_andamento"] ?? 0,
+      concluidasPeriodo: solConcluidasPer.count ?? 0,
+      totalPeriodo: solPeriodoRes.count ?? 0,
+      porTipo: solTipoCount,
+    };
 
     const statusColors: Record<string, string> = {
       aberto: "#f59e0b", aguardando_cliente: "#94a3b8", resolvido: "#10b981", fechado: "#6b7280",
@@ -258,6 +278,7 @@ function DashboardPage() {
       sparkNew,
       sparkResolved,
       heat,
+      solStats,
     };
   };
 
