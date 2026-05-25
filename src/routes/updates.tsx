@@ -90,7 +90,6 @@ function sanitizeBody(raw: string): string {
       if (!l) return true;
       if (l.startsWith("co-authored-by:")) return false;
       if (l.startsWith("signed-off-by:")) return false;
-      if (l.includes("maksyflay")) return false;
       if (l.includes("lovable")) return false;
       if (l.includes("@users.noreply")) return false;
       return true;
