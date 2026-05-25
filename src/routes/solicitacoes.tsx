@@ -4,6 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { listAssignableOperators } from "@/lib/operators.functions";
 import {
   TIPOS,
   TIPOS_MAP,
@@ -357,12 +359,41 @@ function CriarSolicitacaoModal({
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [responsavelId, setResponsavelId] = useState<string>("");
+  const [operadores, setOperadores] = useState<
+    { id: string; email: string; name: string | null }[]
+  >([]);
+  const fetchOperadores = useServerFn(listAssignableOperators);
 
   useEffect(() => {
     setDados({});
     setTitulo("");
     setDescricao("");
+    setResponsavelId("");
   }, [tipo]);
+
+  useEffect(() => {
+    if (!tipo) return;
+    let active = true;
+    fetchOperadores()
+      .then((list) => {
+        if (active) {
+          setOperadores(
+            (list ?? []).map((u) => ({
+              id: u.id,
+              email: u.email,
+              name: (u as { name?: string | null }).name ?? null,
+            })),
+          );
+        }
+      })
+      .catch(() => {
+        if (active) setOperadores([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [tipo, fetchOperadores]);
 
   if (!tipo) return null;
   const meta = TIPOS_MAP[tipo];
@@ -382,6 +413,8 @@ function CriarSolicitacaoModal({
     }
     setSubmitting(true);
     const tit = titulo.trim() || defaultTituloForTipo(tipo!, dados);
+    const resp = operadores.find((o) => o.id === responsavelId);
+    const respNome = resp ? resp.name || resp.email : null;
     const { data, error } = await supabase
       .from("solicitacoes")
       .insert({
@@ -390,6 +423,8 @@ function CriarSolicitacaoModal({
         descricao: descricao.trim() || null,
         solicitante_id: userId,
         solicitante_email: userEmail,
+        responsavel_id: resp ? resp.id : null,
+        responsavel_nome: respNome,
         dados: dados as never,
       } as never)
       .select("*")
@@ -432,6 +467,26 @@ function CriarSolicitacaoModal({
               onChange={(v) => updateField(c.name, v)}
             />
           ))}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="responsavel">Responsável</Label>
+            <Select
+              value={responsavelId || "nenhum"}
+              onValueChange={(v) => setResponsavelId(v === "nenhum" ? "" : v)}
+            >
+              <SelectTrigger id="responsavel">
+                <SelectValue placeholder="Sem responsável" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nenhum">Sem responsável</SelectItem>
+                {operadores.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.name ? `${o.name} (${o.email})` : o.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="descricao">Observações gerais</Label>
