@@ -364,11 +364,7 @@ function UpdatesPage() {
                             <p className="text-sm font-medium text-foreground leading-snug break-words">
                               {it.title}
                             </p>
-                            {it.body && (
-                              <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap line-clamp-3">
-                                {it.body}
-                              </p>
-                            )}
+                            <CommitDetails kind={k} body={it.body} title={it.title} />
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-[11px] font-mono text-muted-foreground">
                               <span className={`uppercase tracking-wider ${meta.cls.split(" ")[0]}`}>{meta.label}</span>
                               <span>·</span>
