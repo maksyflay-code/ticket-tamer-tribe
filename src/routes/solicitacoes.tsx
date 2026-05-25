@@ -4,6 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { listAssignableOperators } from "@/lib/operators.functions";
 import {
   TIPOS,
   TIPOS_MAP,
