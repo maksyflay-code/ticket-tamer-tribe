@@ -338,15 +338,23 @@ function EstatisticasPage() {
 
           <ChartCard title="Top clientes" hint="Por nº de chamados" className="lg:col-span-1">
             {loading ? <ChartSkeleton h={300} /> : topClientes.length === 0 ? <Empty /> : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart layout="vertical" data={topClientes} margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} width={120} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="value" fill="#4f46e5" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="space-y-2">
+                {(() => {
+                  const max = Math.max(...topClientes.map((c) => c.value), 1);
+                  return topClientes.map((c) => (
+                    <div key={c.name} className="flex items-center gap-3 text-sm">
+                      <div className="w-40 shrink-0 truncate font-medium" title={c.name}>{c.name}</div>
+                      <div className="flex-1 h-3 rounded-full bg-secondary/60 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-primary to-indigo-400"
+                          style={{ width: `${(c.value / max) * 100}%` }}
+                        />
+                      </div>
+                      <div className="w-8 text-right font-mono tabular-nums text-foreground">{c.value}</div>
+                    </div>
+                  ));
+                })()}
+              </div>
             )}
           </ChartCard>
 
