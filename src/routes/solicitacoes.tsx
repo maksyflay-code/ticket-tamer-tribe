@@ -107,7 +107,7 @@ function SolicitacoesPage() {
     }
   }, []);
 
-  const fetchOperadores = useServerFn(listAssignableOperators);
+  const fetchOperadores = useServerFn(listAllSystemUsers);
   const [opMap, setOpMap] = useState<Map<string, string>>(new Map());
   useEffect(() => {
     (async () => {
