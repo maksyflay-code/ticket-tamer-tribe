@@ -30,6 +30,7 @@ type ChamadoRow = {
   status: string;
   prioridade: string;
   categoria: string | null;
+  tipo_problema: string | null;
   cliente_id: string | null;
   created_at: string;
   resolvido_at: string | null;
@@ -71,7 +72,7 @@ function EstatisticasPage() {
         const [chamadosRes, clientesRes, novosRes] = await Promise.all([
           supabase
             .from("chamados")
-            .select("id,status,prioridade,categoria,cliente_id,created_at,resolvido_at,clientes(nome)")
+            .select("id,status,prioridade,categoria,tipo_problema,cliente_id,created_at,resolvido_at,clientes(nome)")
             .gte("created_at", start.toISOString())
             .order("created_at", { ascending: false })
             .limit(1000),
@@ -116,16 +117,31 @@ function EstatisticasPage() {
     return order.filter((k) => map.has(k)).map((k) => ({ name: k, value: map.get(k) ?? 0 }));
   }, [rows]);
 
-  const porCategoria = useMemo(() => {
-    const map = new Map<string, number>();
+  const porTipoProblema = useMemo(() => {
+    type Agg = { total: number; resolvidos: number; tempoTotalH: number };
+    const map = new Map<string, Agg>();
     for (const r of rows) {
-      const c = (r.categoria ?? "Sem categoria").trim() || "Sem categoria";
-      map.set(c, (map.get(c) ?? 0) + 1);
+      const raw = (r.tipo_problema ?? "").trim().toUpperCase();
+      const key = raw || "NÃO INFORMADO";
+      const agg = map.get(key) ?? { total: 0, resolvidos: 0, tempoTotalH: 0 };
+      agg.total += 1;
+      if (r.resolvido_at) {
+        const h = (new Date(r.resolvido_at).getTime() - new Date(r.created_at).getTime()) / 3_600_000;
+        if (h >= 0) { agg.resolvidos += 1; agg.tempoTotalH += h; }
+      }
+      map.set(key, agg);
     }
+    const totalAll = rows.length || 1;
     return Array.from(map.entries())
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 8);
+      .map(([name, a]) => ({
+        name: labelTipo(name),
+        key: name,
+        total: a.total,
+        pct: (a.total / totalAll) * 100,
+        tempoMedio: a.resolvidos > 0 ? a.tempoTotalH / a.resolvidos : 0,
+        resolvidos: a.resolvidos,
+      }))
+      .sort((a, b) => b.total - a.total);
   }, [rows]);
 
   const evolucao = useMemo(() => {
@@ -259,17 +275,38 @@ function EstatisticasPage() {
             )}
           </ChartCard>
 
-          <ChartCard title="Top categorias" hint="Mais frequentes" className="lg:col-span-1">
-            {loading ? <ChartSkeleton /> : porCategoria.length === 0 ? <Empty /> : (
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart layout="vertical" data={porCategoria} margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={false} />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} width={110} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="value" fill="#818cf8" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+          <ChartCard title="Tipo de problema" hint="Rompimento, atenuação e outros" className="lg:col-span-1">
+            {loading ? <ChartSkeleton /> : porTipoProblema.length === 0 ? <Empty /> : (
+              <div className="space-y-3">
+                {porTipoProblema.map((t) => {
+                  const color = TIPO_COLORS[t.name] ?? "#6366f1";
+                  return (
+                    <div key={t.key} className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-2 text-sm">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ background: color }} />
+                          <span className="font-medium truncate">{t.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 font-mono tabular-nums shrink-0">
+                          <span className="text-foreground">{t.total}</span>
+                          <span className="text-muted-foreground text-xs">({t.pct.toFixed(0)}%)</span>
+                        </div>
+                      </div>
+                      <div className="h-2 rounded-full bg-secondary/60 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${Math.max(2, t.pct)}%`, background: color }} />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+                        <span>{t.resolvidos} resolvidos</span>
+                        <span>
+                          {t.resolvidos > 0
+                            ? `Tempo médio ${t.tempoMedio < 1 ? `${Math.round(t.tempoMedio * 60)}min` : `${t.tempoMedio.toFixed(1)}h`}`
+                            : "—"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </ChartCard>
 
@@ -380,6 +417,21 @@ function labelPrio(s: string) {
   const m: Record<string, string> = { urgente: "Urgente", alta: "Alta", media: "Média", baixa: "Baixa" };
   return m[s] ?? s;
 }
+function labelTipo(s: string) {
+  const m: Record<string, string> = {
+    ROMPIMENTO: "Rompimento",
+    ATENUACAO: "Atenuação",
+    OUTROS: "Outros",
+    "NÃO INFORMADO": "Não informado",
+  };
+  return m[s] ?? s.charAt(0) + s.slice(1).toLowerCase();
+}
+const TIPO_COLORS: Record<string, string> = {
+  Rompimento: "#ef4444",
+  Atenuação: "#f59e0b",
+  Outros: "#6366f1",
+  "Não informado": "#64748b",
+};
 
 function Kpi({ icon: Icon, label, value, loading, tone, subtitle }: {
   icon: React.ComponentType<{ className?: string }>;
