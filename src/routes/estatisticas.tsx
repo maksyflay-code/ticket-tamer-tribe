@@ -122,7 +122,8 @@ function EstatisticasPage() {
     const map = new Map<string, Agg>();
     for (const r of rows) {
       const raw = (r.tipo_problema ?? "").trim().toUpperCase();
-      const key = raw || "NÃO INFORMADO";
+      if (!raw) continue;
+      const key = raw;
       const agg = map.get(key) ?? { total: 0, resolvidos: 0, tempoTotalH: 0 };
       agg.total += 1;
       if (r.resolvido_at) {
@@ -131,7 +132,9 @@ function EstatisticasPage() {
       }
       map.set(key, agg);
     }
-    const totalAll = rows.length || 1;
+    let totalAll = 0;
+    for (const a of map.values()) totalAll += a.total;
+    totalAll = totalAll || 1;
     return Array.from(map.entries())
       .map(([name, a]) => ({
         name: labelTipo(name),
