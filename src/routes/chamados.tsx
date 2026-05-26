@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { useAuth } from "@/lib/auth";
-import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X, UserCheck, AlertTriangle, ChevronLeft, ChevronRight, Hand, UserMinus, RotateCcw, Copy, Pause, Play, CheckCircle2 } from "lucide-react";
+import { Plus, Search, Trash2, Pencil, Paperclip, MessageSquare, Clock, Download, X, UserCheck, AlertTriangle, ChevronLeft, ChevronRight, Hand, UserMinus, RotateCcw, Copy, Pause, Play, CheckCircle2, Building2, Tag, AlertCircle, User, CalendarClock, PlayCircle, StopCircle, Timer, FileText, Upload, Hash, History } from "lucide-react";
 import { toast } from "sonner";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
