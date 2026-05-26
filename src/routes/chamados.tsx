@@ -1526,21 +1526,21 @@ function Info({
   highlight?: boolean;
 }) {
   return (
-    <div className={`group flex items-start gap-3 rounded-md border px-3 py-2.5 transition hover:border-primary/40 ${
+    <div className={`group flex items-start gap-2 rounded-md border px-2.5 py-1.5 transition hover:border-primary/40 ${
       highlight
         ? "border-primary/30 bg-primary/5"
         : "border-border bg-background/50"
     }`}>
       {Icon && (
-        <div className={`mt-0.5 shrink-0 rounded p-1.5 ${
+        <div className={`mt-0.5 shrink-0 rounded p-1 ${
           highlight ? "bg-primary/20 text-primary" : "bg-secondary/60 text-muted-foreground group-hover:text-primary"
         } transition`}>
-          <Icon className="h-3.5 w-3.5" />
+          <Icon className="h-3 w-3" />
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">{label}</div>
-        <div className={`text-sm mt-0.5 break-words ${highlight ? "font-semibold text-foreground" : ""}`}>{value}</div>
+        <div className="text-[9px] uppercase tracking-wider font-mono text-muted-foreground leading-tight">{label}</div>
+        <div className={`text-xs mt-0.5 break-words leading-tight ${highlight ? "font-semibold text-foreground" : ""}`}>{value}</div>
       </div>
     </div>
   );
