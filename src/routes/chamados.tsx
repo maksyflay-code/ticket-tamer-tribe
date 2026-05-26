@@ -1272,8 +1272,13 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                 )}
               </div>
             </div>
-            <button onClick={onClose} className="shrink-0 p-2 -mt-1 -mr-2 text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition rounded">
+            <button
+              onClick={onClose}
+              aria-label="Fechar"
+              className="shrink-0 inline-flex items-center gap-2 px-3 h-10 rounded-md bg-destructive text-destructive-foreground font-semibold shadow-lg hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive transition"
+            >
               <X className="h-5 w-5" />
+              <span className="hidden sm:inline">FECHAR</span>
             </button>
           </div>
         </div>
