@@ -1126,6 +1126,10 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
     toast.success(finalizando ? "Chamado finalizado" : "Chamado atualizado");
     Object.assign(chamado, payload);
     if (finalizando && effectiveRespId) setResponsavelId(effectiveRespId);
+    if (finalizando) {
+      onClose();
+      return;
+    }
     load();
   };
 
