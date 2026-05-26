@@ -1255,14 +1255,14 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
       <div ref={scrollRef} className="bg-card w-full h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="relative border-b border-border sticky top-0 z-10 bg-gradient-to-br from-primary/10 via-card to-card">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,theme(colors.primary/15),transparent_60%)] pointer-events-none" />
-          <div className="relative p-6 flex justify-between items-start gap-4">
+          <div className="relative px-5 py-3 flex justify-between items-start gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground uppercase">
                 <Hash className="h-3 w-3" />
                 <span>{ticketLabel(chamado)}</span>
               </div>
-              <h2 className="font-display text-2xl font-bold mt-1.5 leading-tight break-words">{chamado.titulo}</h2>
-              <div className="flex items-center gap-2 mt-3 flex-wrap">
+              <h2 className="font-display text-lg font-bold mt-1 leading-tight break-words">{chamado.titulo}</h2>
+              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                 <span className={`px-2.5 py-1 border text-[10px] font-mono uppercase tracking-wider ${statusBadge(chamado.status)}`}>{chamado.status.replace("_", " ")}</span>
                 <span className={`inline-flex items-center gap-1 px-2.5 py-1 border border-border bg-background/40 text-[10px] font-mono uppercase tracking-wider ${prioridadeColor(chamado.prioridade)}`}>● {chamado.prioridade}</span>
                 {chamado.clientes?.nome && (
@@ -1275,21 +1275,21 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
             <button
               onClick={onClose}
               aria-label="Fechar"
-              className="shrink-0 inline-flex items-center gap-2 px-3 h-10 rounded-md bg-destructive text-destructive-foreground font-semibold shadow-lg hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive transition"
+              className="shrink-0 inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md bg-destructive text-destructive-foreground text-xs font-semibold shadow-lg hover:bg-destructive/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive transition"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
               <span className="hidden sm:inline">FECHAR</span>
             </button>
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="px-5 py-4 space-y-3">
           {canWrite && (
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-3 border border-border bg-background/60 rounded-md p-4 shadow-sm">
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-2 border border-border bg-background/60 rounded-md p-3 shadow-sm">
               <div>
                 <Lbl>Status</Lbl>
                 <select value={status} onChange={(e) => setStatus(e.target.value as Status)}
-                  className="mt-1.5 w-full bg-card border border-border rounded px-2 py-2 text-xs font-mono focus:outline-none focus:border-primary transition">
+                  className="mt-1 w-full bg-card border border-border rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-primary transition">
                   <option value="aberto">Aberto</option>
                   <option value="aguardando_cliente">Aguardando cliente</option>
                   <option value="resolvido">Resolvido</option>
@@ -1298,7 +1298,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
               <div>
                 <Lbl>Prioridade</Lbl>
                 <select value={prioridade} onChange={(e) => setPrioridade(e.target.value as Prioridade)}
-                  className="mt-1.5 w-full bg-card border border-border rounded px-2 py-2 text-xs font-mono focus:outline-none focus:border-primary transition">
+                  className="mt-1 w-full bg-card border border-border rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-primary transition">
                   <option value="baixa">Baixa</option><option value="media">Média</option>
                   <option value="alta">Alta</option><option value="urgente">Urgente</option>
                 </select>
@@ -1306,13 +1306,13 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
               <div>
                 <Lbl>Responsável</Lbl>
                 <select value={responsavelId} onChange={(e) => setResponsavelId(e.target.value)}
-                  className="mt-1.5 w-full bg-card border border-border rounded px-2 py-2 text-xs font-mono focus:outline-none focus:border-primary transition">
+                  className="mt-1 w-full bg-card border border-border rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-primary transition">
                   <option value="">— Não atribuído —</option>
                   {operators.map((o) => <option key={o.id} value={o.id}>{o.email}</option>)}
                 </select>
               </div>
               {dirty && (status === "resolvido" || status === "fechado") && (
-                <div className="md:col-span-3 flex items-start gap-2 text-[11px] font-mono text-emerald-300 bg-emerald-500/5 border border-emerald-500/20 rounded px-3 py-2">
+                <div className="md:col-span-3 flex items-start gap-2 text-[10px] font-mono text-emerald-300 bg-emerald-500/5 border border-emerald-500/20 rounded px-2.5 py-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5 mt-px shrink-0" />
                   <span>Ao finalizar, você será definido como responsável e o relato abaixo (se houver) será registrado.</span>
                 </div>
@@ -1320,7 +1320,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
             </section>
           )}
 
-          <section className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2">
             <Info icon={Building2} label="Cliente" value={chamado.clientes?.nome ?? "—"} />
             <Info icon={Tag} label="Categoria" value={chamado.categoria ?? "—"} />
             <Info icon={AlertCircle} label="Tipo de problema" value={chamado.tipo_problema ?? "—"} />
@@ -1342,13 +1342,13 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
           </section>
 
           {sla && (
-            <section className={`border rounded-md p-4 shadow-sm ${
+            <section className={`border rounded-md p-3 shadow-sm ${
               sla.pausado ? "border-slate-500/30 bg-slate-500/5" :
               sla.color === "red" ? "border-red-500/30 bg-red-500/5" :
               sla.color === "amber" ? "border-amber-500/30 bg-amber-500/5" :
               "border-emerald-500/30 bg-emerald-500/5"
             }`}>
-              <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-3 gap-2 flex-wrap">
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-2 gap-2 flex-wrap">
                 <span className="inline-flex items-center gap-1.5">
                   <Timer className="h-3 w-3" /> SLA · Prazo {sla.limite}h ({prioridade})
                 </span>
@@ -1386,7 +1386,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                   )}
                 </div>
               </div>
-              <div className="h-2.5 w-full bg-secondary/70 rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-secondary/70 rounded-full overflow-hidden">
                 <div className={
                   (sla.pausado ? "bg-gradient-to-r from-slate-500 to-slate-400" :
                    sla.color === "red" ? "bg-gradient-to-r from-red-500 to-red-400" :
@@ -1394,7 +1394,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                    "bg-gradient-to-r from-emerald-500 to-emerald-400") + " h-full transition-all rounded-full"
                 } style={{ width: `${Math.min(100, sla.pct)}%` }} />
               </div>
-              <div className="mt-2 text-[10px] font-mono text-muted-foreground">
+              <div className="mt-1.5 text-[10px] font-mono text-muted-foreground">
                 {sla.decorrido.toFixed(1)}h decorridas de {sla.limite}h ({sla.pct.toFixed(0)}%)
                 {sla.pausado && " · cronômetro pausado"}
               </div>
@@ -1402,11 +1402,11 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
           )}
 
           {chamado.descricao && (
-            <section className="border border-border bg-background/60 rounded-md p-4">
-              <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
+            <section className="border border-border bg-background/60 rounded-md p-3">
+              <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 flex items-center gap-2">
                 <FileText className="h-3 w-3" /> Descrição
               </h3>
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">{chamado.descricao}</p>
+              <p className="text-xs whitespace-pre-wrap leading-relaxed">{chamado.descricao}</p>
             </section>
           )}
 
