@@ -1251,8 +1251,8 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
   };
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex justify-end" onClick={onClose}>
-      <div ref={scrollRef} className="bg-card border-l border-border w-full max-w-2xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex" onClick={onClose}>
+      <div ref={scrollRef} className="bg-card w-full h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="relative border-b border-border sticky top-0 z-10 bg-gradient-to-br from-primary/10 via-card to-card">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,theme(colors.primary/15),transparent_60%)] pointer-events-none" />
           <div className="relative p-6 flex justify-between items-start gap-4">
