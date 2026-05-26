@@ -1253,25 +1253,38 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex justify-end" onClick={onClose}>
       <div ref={scrollRef} className="bg-card border-l border-border w-full max-w-2xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="p-6 border-b border-border flex justify-between items-start sticky top-0 bg-card z-10">
-          <div>
-            <div className="text-[10px] font-mono text-muted-foreground uppercase">{ticketLabel(chamado)}</div>
-            <h2 className="font-display text-xl font-bold mt-1">{chamado.titulo}</h2>
-            <div className="flex gap-2 mt-2">
-              <span className={`px-2 py-0.5 border text-[10px] font-mono uppercase ${statusBadge(chamado.status)}`}>{chamado.status.replace("_", " ")}</span>
-              <span className={`text-[10px] font-mono uppercase ${prioridadeColor(chamado.prioridade)}`}>● {chamado.prioridade}</span>
+        <div className="relative border-b border-border sticky top-0 z-10 bg-gradient-to-br from-primary/10 via-card to-card">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,theme(colors.primary/15),transparent_60%)] pointer-events-none" />
+          <div className="relative p-6 flex justify-between items-start gap-4">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground uppercase">
+                <Hash className="h-3 w-3" />
+                <span>{ticketLabel(chamado)}</span>
+              </div>
+              <h2 className="font-display text-2xl font-bold mt-1.5 leading-tight break-words">{chamado.titulo}</h2>
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                <span className={`px-2.5 py-1 border text-[10px] font-mono uppercase tracking-wider ${statusBadge(chamado.status)}`}>{chamado.status.replace("_", " ")}</span>
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 border border-border bg-background/40 text-[10px] font-mono uppercase tracking-wider ${prioridadeColor(chamado.prioridade)}`}>● {chamado.prioridade}</span>
+                {chamado.clientes?.nome && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 border border-border bg-background/40 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    <Building2 className="h-3 w-3" /> {chamado.clientes.nome}
+                  </span>
+                )}
+              </div>
             </div>
+            <button onClick={onClose} className="shrink-0 p-2 -mt-1 -mr-2 text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition rounded">
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="p-6 space-y-6">
           {canWrite && (
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-3 border border-border bg-background p-3">
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-3 border border-border bg-background/60 rounded-md p-4 shadow-sm">
               <div>
                 <Lbl>Status</Lbl>
                 <select value={status} onChange={(e) => setStatus(e.target.value as Status)}
-                  className="mt-1 w-full bg-card border border-border px-2 py-1.5 text-xs font-mono">
+                  className="mt-1.5 w-full bg-card border border-border rounded px-2 py-2 text-xs font-mono focus:outline-none focus:border-primary transition">
                   <option value="aberto">Aberto</option>
                   <option value="aguardando_cliente">Aguardando cliente</option>
                   <option value="resolvido">Resolvido</option>
@@ -1280,7 +1293,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
               <div>
                 <Lbl>Prioridade</Lbl>
                 <select value={prioridade} onChange={(e) => setPrioridade(e.target.value as Prioridade)}
-                  className="mt-1 w-full bg-card border border-border px-2 py-1.5 text-xs font-mono">
+                  className="mt-1.5 w-full bg-card border border-border rounded px-2 py-2 text-xs font-mono focus:outline-none focus:border-primary transition">
                   <option value="baixa">Baixa</option><option value="media">Média</option>
                   <option value="alta">Alta</option><option value="urgente">Urgente</option>
                 </select>
@@ -1288,30 +1301,32 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
               <div>
                 <Lbl>Responsável</Lbl>
                 <select value={responsavelId} onChange={(e) => setResponsavelId(e.target.value)}
-                  className="mt-1 w-full bg-card border border-border px-2 py-1.5 text-xs font-mono">
+                  className="mt-1.5 w-full bg-card border border-border rounded px-2 py-2 text-xs font-mono focus:outline-none focus:border-primary transition">
                   <option value="">— Não atribuído —</option>
                   {operators.map((o) => <option key={o.id} value={o.id}>{o.email}</option>)}
                 </select>
               </div>
               {dirty && (status === "resolvido" || status === "fechado") && (
-                <div className="md:col-span-3 text-[10px] font-mono text-emerald-400">
-                  Ao finalizar, você será definido como responsável e o relato abaixo (se houver) será registrado.
+                <div className="md:col-span-3 flex items-start gap-2 text-[11px] font-mono text-emerald-300 bg-emerald-500/5 border border-emerald-500/20 rounded px-3 py-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 mt-px shrink-0" />
+                  <span>Ao finalizar, você será definido como responsável e o relato abaixo (se houver) será registrado.</span>
                 </div>
               )}
             </section>
           )}
 
-          <section className="grid grid-cols-2 gap-4 text-xs font-mono">
-            <Info label="Cliente" value={chamado.clientes?.nome ?? "—"} />
-            <Info label="Categoria" value={chamado.categoria ?? "—"} />
-            <Info label="Tipo de problema" value={chamado.tipo_problema ?? "—"} />
-            <Info label="Responsável" value={chamado.tecnico_responsavel ?? (chamado.responsavel_id ? "atribuído" : "não atribuído")} />
-            <Info label="Aberto em" value={new Date(chamado.created_at).toLocaleString("pt-BR")} />
-            <Info label="Horário inicial" value={chamado.iniciado_at ? new Date(chamado.iniciado_at).toLocaleString("pt-BR") : "—"} />
-            <Info label="Horário final" value={chamado.finalizado_at ? new Date(chamado.finalizado_at).toLocaleString("pt-BR") : "—"} />
-            <Info label="Duração do atendimento" value={formatDuracao(chamado.iniciado_at ?? chamado.created_at, chamado.finalizado_at, { emAndamento: true })} />
+          <section className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <Info icon={Building2} label="Cliente" value={chamado.clientes?.nome ?? "—"} />
+            <Info icon={Tag} label="Categoria" value={chamado.categoria ?? "—"} />
+            <Info icon={AlertCircle} label="Tipo de problema" value={chamado.tipo_problema ?? "—"} />
+            <Info icon={User} label="Responsável" value={chamado.tecnico_responsavel ?? (chamado.responsavel_id ? "atribuído" : "não atribuído")} />
+            <Info icon={CalendarClock} label="Aberto em" value={new Date(chamado.created_at).toLocaleString("pt-BR")} />
+            <Info icon={PlayCircle} label="Horário inicial" value={chamado.iniciado_at ? new Date(chamado.iniciado_at).toLocaleString("pt-BR") : "—"} />
+            <Info icon={StopCircle} label="Horário final" value={chamado.finalizado_at ? new Date(chamado.finalizado_at).toLocaleString("pt-BR") : "—"} />
+            <Info icon={Timer} label="Duração do atendimento" value={formatDuracao(chamado.iniciado_at ?? chamado.created_at, chamado.finalizado_at, { emAndamento: true })} highlight />
             {chamado.finalizado_at && (
               <Info
+                icon={CheckCircle2}
                 label="Finalizado por"
                 value={(() => {
                   const op = chamado.responsavel_id ? operators.find((o) => o.id === chamado.responsavel_id) : undefined;
@@ -1322,14 +1337,21 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
           </section>
 
           {sla && (
-            <section className="border border-border bg-background p-3">
-              <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-2">
-                <span>SLA · Prazo {sla.limite}h ({prioridade})</span>
+            <section className={`border rounded-md p-4 shadow-sm ${
+              sla.pausado ? "border-slate-500/30 bg-slate-500/5" :
+              sla.color === "red" ? "border-red-500/30 bg-red-500/5" :
+              sla.color === "amber" ? "border-amber-500/30 bg-amber-500/5" :
+              "border-emerald-500/30 bg-emerald-500/5"
+            }`}>
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-3 gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5">
+                  <Timer className="h-3 w-3" /> SLA · Prazo {sla.limite}h ({prioridade})
+                </span>
                 <div className="flex items-center gap-2">
-                  <span className={
+                  <span className={"font-bold " +(
                     sla.pausado ? "text-slate-300" :
                     sla.color === "red" ? "text-red-400" : sla.color === "amber" ? "text-amber-400" : "text-emerald-400"
-                  }>
+                  )}>
                     {sla.pausado
                       ? "⏸ PAUSADO (aguardando cliente)"
                       : !sla.ativo
@@ -1350,7 +1372,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                         setStatus(novo as Status);
                         toast.success(novo === "aguardando_cliente" ? "SLA pausado · aguardando cliente" : "SLA retomado");
                       }}
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 border text-[10px] uppercase tracking-widest ${sla.pausado
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded border text-[10px] uppercase tracking-widest transition ${sla.pausado
                         ? "border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
                         : "border-slate-500/40 text-slate-300 hover:bg-slate-500/10"}`}
                     >
@@ -1359,13 +1381,15 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                   )}
                 </div>
               </div>
-              <div className="h-2 w-full bg-secondary overflow-hidden">
+              <div className="h-2.5 w-full bg-secondary/70 rounded-full overflow-hidden">
                 <div className={
-                  (sla.pausado ? "bg-slate-400" :
-                   sla.color === "red" ? "bg-red-400" : sla.color === "amber" ? "bg-amber-400" : "bg-emerald-400") + " h-full transition-all"
+                  (sla.pausado ? "bg-gradient-to-r from-slate-500 to-slate-400" :
+                   sla.color === "red" ? "bg-gradient-to-r from-red-500 to-red-400" :
+                   sla.color === "amber" ? "bg-gradient-to-r from-amber-500 to-amber-400" :
+                   "bg-gradient-to-r from-emerald-500 to-emerald-400") + " h-full transition-all rounded-full"
                 } style={{ width: `${Math.min(100, sla.pct)}%` }} />
               </div>
-              <div className="mt-1 text-[10px] font-mono text-muted-foreground">
+              <div className="mt-2 text-[10px] font-mono text-muted-foreground">
                 {sla.decorrido.toFixed(1)}h decorridas de {sla.limite}h ({sla.pct.toFixed(0)}%)
                 {sla.pausado && " · cronômetro pausado"}
               </div>
@@ -1373,32 +1397,37 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
           )}
 
           {chamado.descricao && (
-            <section>
-              <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Descrição</h3>
-              <p className="text-sm whitespace-pre-wrap">{chamado.descricao}</p>
+            <section className="border border-border bg-background/60 rounded-md p-4">
+              <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
+                <FileText className="h-3 w-3" /> Descrição
+              </h3>
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{chamado.descricao}</p>
             </section>
           )}
 
           <section>
             <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
-              <Paperclip className="h-3 w-3" /> Anexos ({anexos.length})
+              <Paperclip className="h-3 w-3" /> Anexos <span className="text-foreground/70">({anexos.length})</span>
             </h3>
-            <label className="block border border-dashed border-border bg-background hover:bg-secondary/30 cursor-pointer p-4 text-center text-xs text-muted-foreground font-mono mb-3">
-              {uploading ? "Enviando…" : "Clique para enviar arquivo"}
+            <label className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-border bg-background/40 hover:bg-secondary/30 hover:border-primary/50 cursor-pointer p-5 rounded-md text-center text-xs text-muted-foreground font-mono mb-3 transition">
+              <Upload className="h-5 w-5 text-muted-foreground" />
+              <span>{uploading ? "Enviando…" : "Clique para enviar arquivo"}</span>
               <input type="file" className="hidden" disabled={uploading}
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
             </label>
             <div className="space-y-2">
               {anexos.map((a) => (
-                <div key={a.id} className="flex items-center justify-between border border-border bg-background px-3 py-2 text-xs">
+                <div key={a.id} className="group flex items-center justify-between border border-border bg-background/60 hover:bg-secondary/30 rounded px-3 py-2 text-xs transition">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Paperclip className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <span className="truncate">{a.nome_arquivo}</span>
+                    <div className="p-1.5 rounded bg-primary/10 text-primary shrink-0">
+                      <Paperclip className="h-3 w-3" />
+                    </div>
+                    <span className="truncate font-medium">{a.nome_arquivo}</span>
                     {a.tamanho && <span className="text-muted-foreground font-mono shrink-0">({(a.tamanho / 1024).toFixed(0)}KB)</span>}
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <button onClick={() => downloadAnexo(a)} className="p-1 hover:bg-secondary text-muted-foreground hover:text-primary"><Download className="h-3 w-3" /></button>
-                    <button onClick={() => removeAnexo(a)} className="p-1 hover:bg-secondary text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                    <button onClick={() => downloadAnexo(a)} className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-primary transition"><Download className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => removeAnexo(a)} className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-destructive transition"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>
               ))}
@@ -1407,22 +1436,22 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
 
           <section>
             <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
-              <MessageSquare className="h-3 w-3" /> Relatos / Andamento & Histórico
+              <History className="h-3 w-3" /> Relatos / Andamento & Histórico
             </h3>
             <form onSubmit={addComentario} className="mb-4 space-y-2">
               <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} rows={3}
                 placeholder={status === "resolvido" || status === "fechado"
                   ? "Descreva a resolução / observações finais…"
                   : "Adicionar relato sobre o andamento do chamado…"}
-                className="w-full bg-background border border-border px-3 py-2 text-sm focus:outline-none focus:border-primary" />
+                className="w-full bg-background/60 border border-border rounded px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:bg-background transition" />
               <div className="flex justify-end gap-2 flex-wrap">
                 <button type="submit" disabled={!comentario.trim()}
-                  className="bg-secondary border border-border text-foreground px-3 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-40 hover:bg-secondary/70">
-                  Adicionar relato
+                  className="inline-flex items-center gap-1.5 bg-secondary border border-border rounded text-foreground px-3 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-40 hover:bg-secondary/70 transition">
+                  <MessageSquare className="h-3.5 w-3.5" /> Adicionar relato
                 </button>
                 {canWrite && dirty && (
                   <button type="button" disabled={savingQuick} onClick={saveQuick}
-                    className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50 ${
+                    className={`inline-flex items-center gap-1.5 rounded px-3 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50 shadow-sm transition ${
                       status === "resolvido" || status === "fechado"
                         ? "bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
                         : "bg-primary text-primary-foreground hover:opacity-90"
@@ -1430,7 +1459,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                     {savingQuick
                       ? "Salvando…"
                       : status === "resolvido" || status === "fechado"
-                        ? "Finalizar"
+                        ? <><CheckCircle2 className="h-3.5 w-3.5" /> Finalizar</>
                         : "Aplicar"}
                   </button>
                 )}
@@ -1480,11 +1509,34 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({
+  label,
+  value,
+  icon: Icon,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  highlight?: boolean;
+}) {
   return (
-    <div>
-      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className="text-sm mt-0.5">{value}</div>
+    <div className={`group flex items-start gap-3 rounded-md border px-3 py-2.5 transition hover:border-primary/40 ${
+      highlight
+        ? "border-primary/30 bg-primary/5"
+        : "border-border bg-background/50"
+    }`}>
+      {Icon && (
+        <div className={`mt-0.5 shrink-0 rounded p-1.5 ${
+          highlight ? "bg-primary/20 text-primary" : "bg-secondary/60 text-muted-foreground group-hover:text-primary"
+        } transition`}>
+          <Icon className="h-3.5 w-3.5" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">{label}</div>
+        <div className={`text-sm mt-0.5 break-words ${highlight ? "font-semibold text-foreground" : ""}`}>{value}</div>
+      </div>
     </div>
   );
 }
