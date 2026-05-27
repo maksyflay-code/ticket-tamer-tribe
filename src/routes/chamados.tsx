@@ -1256,10 +1256,10 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex" onClick={onClose}>
-      <div ref={scrollRef} className="bg-card w-full h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div ref={scrollRef} className="bg-card w-full h-full overflow-y-auto overflow-x-hidden overscroll-contain" onClick={(e) => e.stopPropagation()}>
         <div className="relative border-b border-border sticky top-0 z-10 bg-gradient-to-br from-primary/10 via-card to-card">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,theme(colors.primary/15),transparent_60%)] pointer-events-none" />
-          <div className="relative px-5 py-3 flex justify-between items-start gap-4">
+          <div className="relative px-3 sm:px-5 py-3 flex justify-between items-start gap-2 sm:gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground uppercase">
                 <Hash className="h-3 w-3" />
@@ -1287,7 +1287,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
           </div>
         </div>
 
-        <div className="px-5 py-4 space-y-3">
+        <div className="px-3 sm:px-5 py-4 space-y-3 pb-8">
           {canWrite && (
             <section className="grid grid-cols-1 md:grid-cols-3 gap-2 border border-border bg-background/60 rounded-md p-3 shadow-sm">
               <div>
@@ -1324,7 +1324,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
             </section>
           )}
 
-          <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2">
+          <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2">
             <Info icon={Building2} label="Cliente" value={chamado.clientes?.nome ?? "—"} />
             <Info icon={Tag} label="Categoria" value={chamado.categoria ?? "—"} />
             <Info icon={AlertCircle} label="Tipo de problema" value={chamado.tipo_problema ?? "—"} />
