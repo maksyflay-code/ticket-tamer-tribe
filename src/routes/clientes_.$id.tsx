@@ -260,8 +260,7 @@ function ClienteDetailPage() {
           <div className="bg-card border border-border max-w-3xl w-full max-h-[90vh] flex flex-col">
             <div className="p-4 border-b border-border flex justify-between items-center">
               <h2 className="font-display text-base font-bold flex items-center gap-2">
-                {netMode === "ping" ? <Activity className="h-4 w-4" /> : <LineChartIcon className="h-4 w-4" />}
-                {netMode === "ping" ? "Ping" : "Teste de latência"} — {cliente.ip}
+                <Activity className="h-4 w-4" /> Ping — {cliente.ip}
               </h2>
               <button onClick={() => setNetOpen(false)} className="text-muted-foreground hover:text-foreground">✕</button>
             </div>
@@ -269,7 +268,7 @@ function ClienteDetailPage() {
               {netLoading ? (
                 <div className="flex items-center gap-2 text-sm font-mono text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {netMode === "ping" ? "Executando ping…" : "Coletando 20 amostras de latência…"}
+                  Coletando 20 amostras…
                 </div>
               ) : netError ? (
                 <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed text-red-400">{netError}</pre>
@@ -282,7 +281,7 @@ function ClienteDetailPage() {
             <div className="p-4 border-t border-border flex justify-end gap-2">
               <button
                 disabled={netLoading}
-                onClick={() => cliente.ip && runNet(netMode, cliente.ip)}
+                onClick={() => cliente.ip && runNet(cliente.ip)}
                 className="px-3 py-2 text-xs font-mono border border-border hover:border-primary hover:text-primary disabled:opacity-50"
               >
                 Repetir
