@@ -191,25 +191,25 @@ function ClienteDetailPage() {
           )}
           {cliente.ip && (
             <div className="md:col-span-2 flex flex-wrap items-center gap-2">
-              <Globe className="h-3 w-3 text-muted-foreground" />
+              <Globe className="h-3.5 w-3.5 text-muted-foreground" />
               <button
                 onClick={() => navigator.clipboard?.writeText(cliente.ip!).then(() => toast.success("IP copiado"))}
-                className="hover:text-primary"
+                className="font-mono text-sm font-semibold text-foreground hover:text-primary"
                 title="Copiar IP"
               >
                 {cliente.ip}
               </button>
               <button
                 onClick={() => runNet("ping", cliente.ip!)}
-                className="ml-2 px-2 py-1 border border-border hover:border-primary hover:text-primary inline-flex items-center gap-1"
+                className="ml-2 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:opacity-90"
               >
-                <Activity className="h-3 w-3" /> Ping
+                <Activity className="h-3.5 w-3.5" /> Ping
               </button>
               <button
                 onClick={() => runNet("traceroute", cliente.ip!)}
-                className="px-2 py-1 border border-border hover:border-primary hover:text-primary inline-flex items-center gap-1"
+                className="px-3 py-1.5 bg-violet-500 text-white text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:opacity-90"
               >
-                <Network className="h-3 w-3" /> Traceroute
+                <Network className="h-3.5 w-3.5" /> Traceroute
               </button>
             </div>
           )}
