@@ -56,28 +56,31 @@ export function PingResult({ data }: { data: PingResultData }) {
       </div>
 
       {hasSamples && (
-        <div className="border border-border bg-background/40 p-3">
+        <div className="border border-border bg-card p-3">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-2">
             Latência por amostra (ms)
           </div>
           <div className="h-48 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                <XAxis dataKey="i" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 10, fontFamily: "monospace" }} />
-                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 10, fontFamily: "monospace" }} unit="ms" width={45} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" opacity={0.25} />
+                <XAxis dataKey="i" stroke="#cbd5e1" tick={{ fontSize: 10, fontFamily: "monospace", fill: "#cbd5e1" }} />
+                <YAxis stroke="#cbd5e1" tick={{ fontSize: 10, fontFamily: "monospace", fill: "#cbd5e1" }} unit="ms" width={45} />
                 <Tooltip
                   contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
+                    background: "#0f172a",
+                    border: "1px solid #334155",
+                    color: "#e2e8f0",
                     fontFamily: "monospace",
                     fontSize: 11,
                   }}
+                  labelStyle={{ color: "#e2e8f0" }}
+                  itemStyle={{ color: "#60a5fa" }}
                   formatter={(v: number) => [`${v} ms`, "Latência"]}
                   labelFormatter={(l) => `Amostra #${l}`}
                 />
-                <ReferenceLine y={stats.avg} stroke="hsl(var(--primary))" strokeDasharray="4 4" opacity={0.6} />
-                <Line type="monotone" dataKey="ms" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} isAnimationActive={false} />
+                <ReferenceLine y={stats.avg} stroke="#60a5fa" strokeDasharray="4 4" opacity={0.6} />
+                <Line type="monotone" dataKey="ms" stroke="#60a5fa" strokeWidth={2} dot={{ r: 3, fill: "#60a5fa" }} activeDot={{ r: 5 }} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>

@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
-import { ArrowLeft, Mail, Phone, MapPin, FileText, Plus, Ticket, Clock, CheckCircle2, AlertTriangle, Activity, LineChart as LineChartIcon, Loader2, Globe } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, FileText, Plus, Ticket, Clock, CheckCircle2, AlertTriangle, Activity, Loader2, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { getSlaMap, calcSla, type SlaMap } from "@/lib/sla";
 import { pingHost } from "@/lib/ping.functions";
@@ -65,21 +65,18 @@ function ClienteDetailPage() {
   const [slaMap, setSlaMap] = useState<SlaMap | null>(null);
   const [loading, setLoading] = useState(true);
   const [netOpen, setNetOpen] = useState(false);
-  const [netMode, setNetMode] = useState<"ping" | "latency">("ping");
   const [netLoading, setNetLoading] = useState(false);
   const [netResult, setNetResult] = useState<PingResultData | null>(null);
   const [netError, setNetError] = useState<string | null>(null);
   const runPing = useServerFn(pingHost);
 
-  const runNet = async (mode: "ping" | "latency", ip: string) => {
-    setNetMode(mode);
+  const runNet = async (ip: string) => {
     setNetOpen(true);
     setNetResult(null);
     setNetError(null);
     setNetLoading(true);
     try {
-      const count = mode === "latency" ? 20 : 5;
-      const res = await runPing({ data: { host: ip, count } });
+      const res = await runPing({ data: { host: ip, count: 20 } });
       setNetResult(res as PingResultData);
     } catch (err) {
       const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
@@ -196,16 +193,10 @@ function ClienteDetailPage() {
                 {cliente.ip}
               </button>
               <button
-                onClick={() => runNet("ping", cliente.ip!)}
+                onClick={() => runNet(cliente.ip!)}
                 className="ml-2 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:opacity-90"
               >
                 <Activity className="h-3.5 w-3.5" /> Ping
-              </button>
-              <button
-                onClick={() => runNet("latency", cliente.ip!)}
-                className="px-3 py-1.5 bg-violet-500 text-white text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:opacity-90"
-              >
-                <LineChartIcon className="h-3.5 w-3.5" /> Latência
               </button>
             </div>
           )}
@@ -269,8 +260,7 @@ function ClienteDetailPage() {
           <div className="bg-card border border-border max-w-3xl w-full max-h-[90vh] flex flex-col">
             <div className="p-4 border-b border-border flex justify-between items-center">
               <h2 className="font-display text-base font-bold flex items-center gap-2">
-                {netMode === "ping" ? <Activity className="h-4 w-4" /> : <LineChartIcon className="h-4 w-4" />}
-                {netMode === "ping" ? "Ping" : "Teste de latência"} — {cliente.ip}
+                <Activity className="h-4 w-4" /> Ping — {cliente.ip}
               </h2>
               <button onClick={() => setNetOpen(false)} className="text-muted-foreground hover:text-foreground">✕</button>
             </div>
@@ -278,7 +268,7 @@ function ClienteDetailPage() {
               {netLoading ? (
                 <div className="flex items-center gap-2 text-sm font-mono text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {netMode === "ping" ? "Executando ping…" : "Coletando 20 amostras de latência…"}
+                  Coletando 20 amostras…
                 </div>
               ) : netError ? (
                 <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed text-red-400">{netError}</pre>
@@ -291,7 +281,7 @@ function ClienteDetailPage() {
             <div className="p-4 border-t border-border flex justify-end gap-2">
               <button
                 disabled={netLoading}
-                onClick={() => cliente.ip && runNet(netMode, cliente.ip)}
+                onClick={() => cliente.ip && runNet(cliente.ip)}
                 className="px-3 py-2 text-xs font-mono border border-border hover:border-primary hover:text-primary disabled:opacity-50"
               >
                 Repetir
