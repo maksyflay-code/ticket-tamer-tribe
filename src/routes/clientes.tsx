@@ -26,6 +26,7 @@ type Cliente = {
   planos?: { nome: string; preco: number } | null;
   status: "ativo" | "inativo" | "suspenso";
   observacoes: string | null;
+  ip: string | null;
 };
 
 type PlanoOpt = { id: string; nome: string; preco: number };
@@ -256,6 +257,7 @@ function ClientesPage() {
               <Field label="Telefone" value={form.telefone ?? ""} onChange={(v) => setForm({ ...form, telefone: v })} />
               <Field label="Endereço" value={form.endereco ?? ""} onChange={(v) => setForm({ ...form, endereco: v })} />
               <Field label="Cidade" value={form.cidade ?? ""} onChange={(v) => setForm({ ...form, cidade: v })} />
+              <Field label="IP do cliente" value={form.ip ?? ""} onChange={(v) => setForm({ ...form, ip: v || null as unknown as string })} />
               <div>
                 <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Plano</label>
                 <select
