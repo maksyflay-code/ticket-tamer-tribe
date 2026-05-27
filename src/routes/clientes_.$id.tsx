@@ -1,11 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
-import { ArrowLeft, Mail, Phone, MapPin, FileText, Plus, Ticket, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, FileText, Plus, Ticket, Clock, CheckCircle2, AlertTriangle, Activity, Network, Loader2, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { getSlaMap, calcSla, type SlaMap } from "@/lib/sla";
+import { pingHost } from "@/lib/ping.functions";
+import { tracerouteHost } from "@/lib/traceroute.functions";
 
 export const Route = createFileRoute("/clientes_/$id")({
   beforeLoad: requireAuth,
@@ -25,6 +28,7 @@ type Cliente = {
   data_contrato: string | null;
   plano: string | null;
   planos: { nome: string; preco: number } | null;
+  ip: string | null;
 };
 type ChamadoRow = {
   id: string;
@@ -60,6 +64,34 @@ function ClienteDetailPage() {
   const [chamados, setChamados] = useState<ChamadoRow[]>([]);
   const [slaMap, setSlaMap] = useState<SlaMap | null>(null);
   const [loading, setLoading] = useState(true);
+  const [netOpen, setNetOpen] = useState(false);
+  const [netMode, setNetMode] = useState<"ping" | "traceroute">("ping");
+  const [netLoading, setNetLoading] = useState(false);
+  const [netOutput, setNetOutput] = useState("");
+  const runPing = useServerFn(pingHost);
+  const runTraceroute = useServerFn(tracerouteHost);
+
+  const runNet = async (mode: "ping" | "traceroute", ip: string) => {
+    setNetMode(mode);
+    setNetOpen(true);
+    setNetOutput("");
+    setNetLoading(true);
+    try {
+      const res = mode === "ping"
+        ? await runPing({ data: { host: ip, count: 4 } })
+        : await runTraceroute({ data: { host: ip, maxHops: 20 } });
+      if (res && typeof res === "object" && "output" in res) {
+        setNetOutput((res as { output: string }).output);
+      } else {
+        setNetOutput(`Resposta inesperada:\n${JSON.stringify(res, null, 2)}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      setNetOutput(`Erro ao chamar o servidor:\n${msg}`);
+    } finally {
+      setNetLoading(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -157,6 +189,30 @@ function ClienteDetailPage() {
           {(cliente.endereco || cliente.cidade) && (
             <div className="flex items-center gap-2 md:col-span-2"><MapPin className="h-3 w-3 text-muted-foreground" /> {[cliente.endereco, cliente.cidade].filter(Boolean).join(" — ")}</div>
           )}
+          {cliente.ip && (
+            <div className="md:col-span-2 flex flex-wrap items-center gap-2">
+              <Globe className="h-3 w-3 text-muted-foreground" />
+              <button
+                onClick={() => navigator.clipboard?.writeText(cliente.ip!).then(() => toast.success("IP copiado"))}
+                className="hover:text-primary"
+                title="Copiar IP"
+              >
+                {cliente.ip}
+              </button>
+              <button
+                onClick={() => runNet("ping", cliente.ip!)}
+                className="ml-2 px-2 py-1 border border-border hover:border-primary hover:text-primary inline-flex items-center gap-1"
+              >
+                <Activity className="h-3 w-3" /> Ping
+              </button>
+              <button
+                onClick={() => runNet("traceroute", cliente.ip!)}
+                className="px-2 py-1 border border-border hover:border-primary hover:text-primary inline-flex items-center gap-1"
+              >
+                <Network className="h-3 w-3" /> Traceroute
+              </button>
+            </div>
+          )}
           {cliente.observacoes && (
             <div className="md:col-span-2 flex items-start gap-2 text-muted-foreground"><FileText className="h-3 w-3 mt-0.5" /> <span className="whitespace-pre-wrap">{cliente.observacoes}</span></div>
           )}
@@ -211,6 +267,44 @@ function ClienteDetailPage() {
           </tbody>
         </table>
       </div>
+
+      {netOpen && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-border flex justify-between items-center">
+              <h2 className="font-display text-base font-bold flex items-center gap-2">
+                {netMode === "ping" ? <Activity className="h-4 w-4" /> : <Network className="h-4 w-4" />}
+                {netMode === "ping" ? "Ping" : "Traceroute"} {cliente.ip}
+              </h2>
+              <button onClick={() => setNetOpen(false)} className="text-muted-foreground hover:text-foreground">✕</button>
+            </div>
+            <div className="p-4 flex-1 overflow-auto">
+              {netLoading ? (
+                <div className="flex items-center gap-2 text-sm font-mono text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Executando {netMode}…
+                </div>
+              ) : (
+                <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed">{netOutput}</pre>
+              )}
+            </div>
+            <div className="p-4 border-t border-border flex justify-end gap-2">
+              <button
+                disabled={netLoading}
+                onClick={() => cliente.ip && runNet(netMode, cliente.ip)}
+                className="px-3 py-2 text-xs font-mono border border-border hover:border-primary hover:text-primary disabled:opacity-50"
+              >
+                Repetir
+              </button>
+              <button
+                onClick={() => setNetOpen(false)}
+                className="bg-primary text-primary-foreground px-4 py-2 text-xs font-semibold uppercase tracking-wider"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
