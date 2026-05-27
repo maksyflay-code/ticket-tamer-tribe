@@ -101,7 +101,7 @@ export function GlobalSearch() {
     setOpen(false);
     setQ("");
     if (hit.kind === "cliente") {
-      navigate({ to: "/clientes_/$id", params: { id: hit.id } });
+      navigate({ to: "/clientes/$id", params: { id: hit.id } });
     } else {
       if (typeof window !== "undefined") sessionStorage.setItem("chamados:open-id", hit.id);
       navigate({ to: "/chamados" });
