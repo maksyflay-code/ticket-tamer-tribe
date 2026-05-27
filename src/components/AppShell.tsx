@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock, Bell, Network, FolderArchive, ClipboardList, Sparkles, PieChart } from "lucide-react";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import logo from "@/assets/ivi-logo.jpeg";
 import { useState, useEffect, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -31,12 +32,6 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unread, setUnread] = useState(0);
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     if (!user) return;
