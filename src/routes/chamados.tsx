@@ -243,6 +243,13 @@ function ChamadosPage() {
   // Abertura automática via deeplink (ex: vindo da página de cliente)
   useEffect(() => {
     if (typeof window === "undefined") return;
+    // Pré-preencher cliente em "Novo chamado" (vindo da aba do cliente)
+    const preCli = sessionStorage.getItem("chamados:prefill-cliente");
+    if (preCli) {
+      sessionStorage.removeItem("chamados:prefill-cliente");
+      setForm({ ...empty, cliente_id: preCli });
+      setOpen(true);
+    }
     if (sessionStorage.getItem("chamados:open-new")) {
       sessionStorage.removeItem("chamados:open-new");
       setForm(empty);
@@ -255,13 +262,6 @@ function ChamadosPage() {
       const { data } = await supabase.from("chamados").select("*, clientes(nome)").eq("id", openId).maybeSingle();
       if (data) setDetail(data as unknown as Chamado);
     })();
-    // Pré-preencher cliente em "Novo chamado"
-    const preCli = sessionStorage.getItem("chamados:prefill-cliente");
-    if (preCli) {
-      sessionStorage.removeItem("chamados:prefill-cliente");
-      setForm({ ...empty, cliente_id: preCli });
-      setOpen(true);
-    }
   }, []);
 
   const opEmailById = useMemo(() => {
