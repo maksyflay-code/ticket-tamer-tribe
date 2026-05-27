@@ -99,7 +99,8 @@ export const pingHost = createServerFn({ method: "POST" })
               },
             );
           });
-          return out;
+          const samples = parseIcmpSamples(out.output);
+          return { ...out, samples, stats: computeStats(samples, count), method: "icmp" as const };
         }
       } catch {
         // segue pro Bun.spawn
@@ -108,7 +109,10 @@ export const pingHost = createServerFn({ method: "POST" })
       // 1) Tenta ICMP real via Bun (caso do VPS)
       if (!port) {
         const icmp = await icmpPingViaBun(host, count);
-        if (icmp) return icmp;
+        if (icmp) {
+          const samples = parseIcmpSamples(icmp.output);
+          return { ...icmp, samples, stats: computeStats(samples, count), method: "icmp" as const };
+        }
       }
 
       // 2) Fallback: probe TCP em portas comuns
@@ -151,17 +155,23 @@ export const pingHost = createServerFn({ method: "POST" })
       }
 
       const total = openPort ? count : 1;
-      const loss = total > 0 ? Math.round(((total - okCount) / total) * 100) : 100;
-      const min = times.length ? Math.min(...times).toFixed(1) : "—";
-      const max = times.length ? Math.max(...times).toFixed(1) : "—";
-      const avg = times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—";
+      const stats = computeStats(times, total);
+      const min = times.length ? stats.min.toFixed(1) : "—";
+      const max = times.length ? stats.max.toFixed(1) : "—";
+      const avg = times.length ? stats.avg.toFixed(1) : "—";
 
       const header = openPort
         ? `PING TCP ${host}:${openPort} (${count} tentativas)\n`
         : `PING TCP ${host} — sem resposta\n`;
-      const footer = `\n--- estatísticas ---\n${total} pacotes enviados, ${okCount} recebidos, ${loss}% perda\nrtt min/avg/max = ${min}/${avg}/${max} ms`;
+      const footer = `\n--- estatísticas ---\n${total} pacotes enviados, ${okCount} recebidos, ${stats.loss}% perda\nrtt min/avg/max = ${min}/${avg}/${max} ms`;
 
-      return { ok: okCount > 0, output: header + lines.join("\n") + footer };
+      return {
+        ok: okCount > 0,
+        output: header + lines.join("\n") + footer,
+        samples: times,
+        stats,
+        method: "tcp" as const,
+      };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return {
@@ -171,6 +181,9 @@ export const pingHost = createServerFn({ method: "POST" })
           `Motivo: ${msg}\n\n` +
           `Observação: o preview do Lovable roda em runtime serverless e não tem acesso a IPs privados/LAN. ` +
           `Acesse o app pelo seu servidor (VPS na mesma rede do equipamento) para o ping funcionar.`,
+        samples: [] as number[],
+        stats: computeStats([], 0),
+        method: "error" as const,
       };
     }
   });
