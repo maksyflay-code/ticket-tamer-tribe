@@ -22,6 +22,30 @@ async function probeOnce(host: string, port: number, timeoutMs: number): Promise
   });
 }
 
+function parseIcmpSamples(text: string): number[] {
+  const out: number[] = [];
+  const re = /time[=<]\s*([\d.]+)\s*ms/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) out.push(Number(m[1]));
+  return out;
+}
+
+function computeStats(samples: number[], total: number) {
+  const received = samples.length;
+  const loss = total > 0 ? Math.round(((total - received) / total) * 100) : 100;
+  const min = samples.length ? Math.min(...samples) : 0;
+  const max = samples.length ? Math.max(...samples) : 0;
+  const avg = samples.length ? samples.reduce((a, b) => a + b, 0) / samples.length : 0;
+  // jitter = média das diferenças absolutas entre amostras consecutivas
+  let jitter = 0;
+  if (samples.length > 1) {
+    let sum = 0;
+    for (let i = 1; i < samples.length; i++) sum += Math.abs(samples[i] - samples[i - 1]);
+    jitter = sum / (samples.length - 1);
+  }
+  return { min, avg, max, jitter, loss, sent: total, received };
+}
+
 async function icmpPingViaBun(host: string, count: number): Promise<{ ok: boolean; output: string } | null> {
   // Só funciona no runtime Bun (VPS). Worker não tem Bun.spawn.
   const B = (globalThis as { Bun?: { spawn: (opts: unknown) => unknown } }).Bun;
