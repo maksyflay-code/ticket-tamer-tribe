@@ -257,7 +257,7 @@ function ClientesPage() {
               <Field label="Telefone" value={form.telefone ?? ""} onChange={(v) => setForm({ ...form, telefone: v })} />
               <Field label="Endereço" value={form.endereco ?? ""} onChange={(v) => setForm({ ...form, endereco: v })} />
               <Field label="Cidade" value={form.cidade ?? ""} onChange={(v) => setForm({ ...form, cidade: v })} />
-              <Field label="IP do cliente" value={form.ip ?? ""} onChange={(v) => setForm({ ...form, ip: v || null as unknown as string })} />
+              <Field label="IP do cliente" value={form.ip ?? ""} onChange={(v) => setForm({ ...form, ip: v })} />
               <div>
                 <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Plano</label>
                 <select
