@@ -109,9 +109,10 @@ export function GlobalSearch() {
   };
 
   return (
-    <div ref={rootRef} className="relative flex-1 max-w-xl">
-      <div className="relative">
-        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+    <div ref={rootRef} className="relative flex-1 max-w-3xl">
+      <div className="relative group">
+        <div className="absolute -inset-px rounded-xl bg-gradient-to-r from-primary/40 via-primary/10 to-primary/40 opacity-60 blur-sm group-focus-within:opacity-100 transition-opacity pointer-events-none" />
+        <Search className="h-5 w-5 absolute left-4 top-1/2 -translate-y-1/2 text-primary pointer-events-none z-10" />
         <input
           ref={inputRef}
           value={q}
@@ -124,9 +125,9 @@ export function GlobalSearch() {
             else if (e.key === "Enter") { e.preventDefault(); goTo(hits[activeIdx]); }
           }}
           placeholder="Buscar cliente, chamado, IP, código…"
-          className="w-full bg-background/60 border border-border rounded pl-9 pr-16 py-2 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+          className="relative w-full bg-background/80 border border-border rounded-xl pl-12 pr-20 py-3 text-base font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary shadow-[0_0_0_1px_transparent] focus:shadow-[0_0_30px_-8px_var(--primary)] transition-shadow"
         />
-        <kbd className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-muted-foreground border border-border rounded px-1.5 py-0.5 bg-card">
+        <kbd className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-mono text-muted-foreground border border-border rounded-md px-2 py-1 bg-card z-10">
           /
         </kbd>
       </div>
