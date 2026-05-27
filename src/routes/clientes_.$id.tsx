@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
-import { ArrowLeft, Mail, Phone, MapPin, FileText, Plus, Ticket, Clock, CheckCircle2, AlertTriangle, Activity, LineChart as LineChartIcon, Loader2, Globe } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, FileText, Plus, Ticket, Clock, CheckCircle2, AlertTriangle, Activity, Loader2, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { getSlaMap, calcSla, type SlaMap } from "@/lib/sla";
 import { pingHost } from "@/lib/ping.functions";
@@ -65,21 +65,18 @@ function ClienteDetailPage() {
   const [slaMap, setSlaMap] = useState<SlaMap | null>(null);
   const [loading, setLoading] = useState(true);
   const [netOpen, setNetOpen] = useState(false);
-  const [netMode, setNetMode] = useState<"ping" | "latency">("ping");
   const [netLoading, setNetLoading] = useState(false);
   const [netResult, setNetResult] = useState<PingResultData | null>(null);
   const [netError, setNetError] = useState<string | null>(null);
   const runPing = useServerFn(pingHost);
 
-  const runNet = async (mode: "ping" | "latency", ip: string) => {
-    setNetMode(mode);
+  const runNet = async (ip: string) => {
     setNetOpen(true);
     setNetResult(null);
     setNetError(null);
     setNetLoading(true);
     try {
-      const count = mode === "latency" ? 20 : 5;
-      const res = await runPing({ data: { host: ip, count } });
+      const res = await runPing({ data: { host: ip, count: 20 } });
       setNetResult(res as PingResultData);
     } catch (err) {
       const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
@@ -196,16 +193,10 @@ function ClienteDetailPage() {
                 {cliente.ip}
               </button>
               <button
-                onClick={() => runNet("ping", cliente.ip!)}
+                onClick={() => runNet(cliente.ip!)}
                 className="ml-2 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:opacity-90"
               >
                 <Activity className="h-3.5 w-3.5" /> Ping
-              </button>
-              <button
-                onClick={() => runNet("latency", cliente.ip!)}
-                className="px-3 py-1.5 bg-violet-500 text-white text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:opacity-90"
-              >
-                <LineChartIcon className="h-3.5 w-3.5" /> Latência
               </button>
             </div>
           )}
