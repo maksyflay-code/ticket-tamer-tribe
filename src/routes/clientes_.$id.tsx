@@ -266,21 +266,26 @@ function ClienteDetailPage() {
 
       {netOpen && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border max-w-2xl w-full max-h-[90vh] flex flex-col">
+          <div className="bg-card border border-border max-w-3xl w-full max-h-[90vh] flex flex-col">
             <div className="p-4 border-b border-border flex justify-between items-center">
               <h2 className="font-display text-base font-bold flex items-center gap-2">
-                {netMode === "ping" ? <Activity className="h-4 w-4" /> : <Network className="h-4 w-4" />}
-                {netMode === "ping" ? "Ping" : "Traceroute"} {cliente.ip}
+                {netMode === "ping" ? <Activity className="h-4 w-4" /> : <LineChartIcon className="h-4 w-4" />}
+                {netMode === "ping" ? "Ping" : "Teste de latência"} — {cliente.ip}
               </h2>
               <button onClick={() => setNetOpen(false)} className="text-muted-foreground hover:text-foreground">✕</button>
             </div>
             <div className="p-4 flex-1 overflow-auto">
               {netLoading ? (
                 <div className="flex items-center gap-2 text-sm font-mono text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Executando {netMode}…
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {netMode === "ping" ? "Executando ping…" : "Coletando 20 amostras de latência…"}
                 </div>
+              ) : netError ? (
+                <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed text-red-400">{netError}</pre>
+              ) : netResult ? (
+                <PingResult data={netResult} />
               ) : (
-                <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed">{netOutput}</pre>
+                <div className="text-xs font-mono text-muted-foreground">Sem resultado.</div>
               )}
             </div>
             <div className="p-4 border-t border-border flex justify-end gap-2">
