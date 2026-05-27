@@ -527,12 +527,12 @@ function DashboardPage() {
                   <AlertTriangle className="h-4 w-4" />
                 </span>
               </div>
-              <div className="flex items-baseline gap-3">
-                <div className="font-display text-2xl md:text-3xl font-bold tracking-tight tabular-nums text-emerald-400">
+              <div className="flex items-baseline gap-2 md:gap-3 flex-wrap">
+                <div className="font-display text-xl md:text-3xl font-bold tracking-tight tabular-nums text-emerald-400">
                   {fmtUptime(stats.uptimePctMes)}
                 </div>
-                <div className="text-muted-foreground font-mono text-sm">×</div>
-                <div className="font-display text-2xl md:text-3xl font-bold tracking-tight tabular-nums text-red-400">
+                <div className="text-muted-foreground font-mono text-xs md:text-sm">×</div>
+                <div className="font-display text-xl md:text-3xl font-bold tracking-tight tabular-nums text-red-400">
                   {(100 - stats.uptimePctMes).toFixed(2)}%
                 </div>
               </div>
