@@ -1141,7 +1141,7 @@ function Heatmap({ data }: { data: number[][] }) {
               <div
                 key={di}
                 title={`${v} chamado${v === 1 ? "" : "s"}`}
-                className={`aspect-square rounded-sm ${intensity(v)} hover:ring-1 hover:ring-primary/60 transition-all flex items-center justify-center text-[10px] font-mono ${v > 0 ? "text-foreground" : "text-transparent"}`}
+                className={`aspect-square rounded-sm ${intensity(v)} hover:ring-1 hover:ring-primary/60 transition-all flex items-center justify-center text-[10px] font-mono ${v > 0 ? "text-foreground" : "text-muted-foreground/70"}`}
               >{v}</div>
             ))}
           </Fragment>
