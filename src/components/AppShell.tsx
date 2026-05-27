@@ -187,7 +187,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="h-14 md:h-16 border-b border-border bg-card/30 flex items-center justify-between px-4 md:px-8 sticky top-0 backdrop-blur z-10 gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
                 <button
@@ -202,25 +202,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                 <SidebarContent onNavigate={() => setMobileOpen(false)} />
               </SheetContent>
             </Sheet>
-            <h1 className="font-display text-base md:text-lg font-bold tracking-tight truncate">{title}</h1>
-          </div>
-          <div className="hidden sm:flex items-center gap-3 shrink-0">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-              </span>
-              <span className="text-[11px] font-semibold tracking-wider text-emerald-300 uppercase">Online</span>
-            </div>
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/60 border border-border/50 backdrop-blur-sm">
-              <Clock className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-mono font-medium text-foreground/90 tabular-nums">
-                {now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-              </span>
-              <span className="text-xs font-mono text-muted-foreground capitalize hidden lg:inline">
-                {now.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
-              </span>
-            </div>
+            <GlobalSearch />
           </div>
           <Link
             to="/notificacoes"
