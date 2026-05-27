@@ -176,6 +176,7 @@ export type Database = {
           email: string | null
           endereco: string | null
           id: string
+          ip: string | null
           nome: string
           observacoes: string | null
           plano: string | null
@@ -192,6 +193,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           id?: string
+          ip?: string | null
           nome: string
           observacoes?: string | null
           plano?: string | null
@@ -208,6 +210,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           id?: string
+          ip?: string | null
           nome?: string
           observacoes?: string | null
           plano?: string | null
