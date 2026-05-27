@@ -4,11 +4,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
-import { ArrowLeft, Mail, Phone, MapPin, FileText, Plus, Ticket, Clock, CheckCircle2, AlertTriangle, Activity, Network, Loader2, Globe } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, FileText, Plus, Ticket, Clock, CheckCircle2, AlertTriangle, Activity, LineChart as LineChartIcon, Loader2, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { getSlaMap, calcSla, type SlaMap } from "@/lib/sla";
 import { pingHost } from "@/lib/ping.functions";
-import { tracerouteHost } from "@/lib/traceroute.functions";
+import { PingResult, type PingResultData } from "@/components/PingResult";
 
 export const Route = createFileRoute("/clientes_/$id")({
   beforeLoad: requireAuth,
@@ -65,29 +65,25 @@ function ClienteDetailPage() {
   const [slaMap, setSlaMap] = useState<SlaMap | null>(null);
   const [loading, setLoading] = useState(true);
   const [netOpen, setNetOpen] = useState(false);
-  const [netMode, setNetMode] = useState<"ping" | "traceroute">("ping");
+  const [netMode, setNetMode] = useState<"ping" | "latency">("ping");
   const [netLoading, setNetLoading] = useState(false);
-  const [netOutput, setNetOutput] = useState("");
+  const [netResult, setNetResult] = useState<PingResultData | null>(null);
+  const [netError, setNetError] = useState<string | null>(null);
   const runPing = useServerFn(pingHost);
-  const runTraceroute = useServerFn(tracerouteHost);
 
-  const runNet = async (mode: "ping" | "traceroute", ip: string) => {
+  const runNet = async (mode: "ping" | "latency", ip: string) => {
     setNetMode(mode);
     setNetOpen(true);
-    setNetOutput("");
+    setNetResult(null);
+    setNetError(null);
     setNetLoading(true);
     try {
-      const res = mode === "ping"
-        ? await runPing({ data: { host: ip, count: 4 } })
-        : await runTraceroute({ data: { host: ip, maxHops: 20 } });
-      if (res && typeof res === "object" && "output" in res) {
-        setNetOutput((res as { output: string }).output);
-      } else {
-        setNetOutput(`Resposta inesperada:\n${JSON.stringify(res, null, 2)}`);
-      }
+      const count = mode === "latency" ? 20 : 5;
+      const res = await runPing({ data: { host: ip, count } });
+      setNetResult(res as PingResultData);
     } catch (err) {
       const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-      setNetOutput(`Erro ao chamar o servidor:\n${msg}`);
+      setNetError(msg);
     } finally {
       setNetLoading(false);
     }
@@ -206,10 +202,10 @@ function ClienteDetailPage() {
                 <Activity className="h-3.5 w-3.5" /> Ping
               </button>
               <button
-                onClick={() => runNet("traceroute", cliente.ip!)}
+                onClick={() => runNet("latency", cliente.ip!)}
                 className="px-3 py-1.5 bg-violet-500 text-white text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:opacity-90"
               >
-                <Network className="h-3.5 w-3.5" /> Traceroute
+                <LineChartIcon className="h-3.5 w-3.5" /> Latência
               </button>
             </div>
           )}
@@ -270,21 +266,26 @@ function ClienteDetailPage() {
 
       {netOpen && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border max-w-2xl w-full max-h-[90vh] flex flex-col">
+          <div className="bg-card border border-border max-w-3xl w-full max-h-[90vh] flex flex-col">
             <div className="p-4 border-b border-border flex justify-between items-center">
               <h2 className="font-display text-base font-bold flex items-center gap-2">
-                {netMode === "ping" ? <Activity className="h-4 w-4" /> : <Network className="h-4 w-4" />}
-                {netMode === "ping" ? "Ping" : "Traceroute"} {cliente.ip}
+                {netMode === "ping" ? <Activity className="h-4 w-4" /> : <LineChartIcon className="h-4 w-4" />}
+                {netMode === "ping" ? "Ping" : "Teste de latência"} — {cliente.ip}
               </h2>
               <button onClick={() => setNetOpen(false)} className="text-muted-foreground hover:text-foreground">✕</button>
             </div>
             <div className="p-4 flex-1 overflow-auto">
               {netLoading ? (
                 <div className="flex items-center gap-2 text-sm font-mono text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Executando {netMode}…
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {netMode === "ping" ? "Executando ping…" : "Coletando 20 amostras de latência…"}
                 </div>
+              ) : netError ? (
+                <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed text-red-400">{netError}</pre>
+              ) : netResult ? (
+                <PingResult data={netResult} />
               ) : (
-                <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed">{netOutput}</pre>
+                <div className="text-xs font-mono text-muted-foreground">Sem resultado.</div>
               )}
             </div>
             <div className="p-4 border-t border-border flex justify-end gap-2">
