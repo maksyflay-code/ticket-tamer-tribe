@@ -7,6 +7,7 @@ import { requireAuth } from "@/lib/guard";
 import { Search, Activity, Terminal, Plus, Pencil, Trash2, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { pingHost } from "@/lib/ping.functions";
+import { PingResult, type PingResultData } from "@/components/PingResult";
 
 export const Route = createFileRoute("/equipamentos")({
   beforeLoad: requireAuth,
@@ -34,7 +35,8 @@ function EquipamentosPage() {
   const [pingOpen, setPingOpen] = useState(false);
   const [pingHostName, setPingHostName] = useState("");
   const [pingLoading, setPingLoading] = useState(false);
-  const [pingOutput, setPingOutput] = useState("");
+  const [pingResult, setPingResult] = useState<PingResultData | null>(null);
+  const [pingError, setPingError] = useState<string | null>(null);
   const runPing = useServerFn(pingHost);
 
   const load = async () => {
@@ -69,18 +71,15 @@ function EquipamentosPage() {
   const onPing = async (ip: string) => {
     setPingHostName(ip);
     setPingOpen(true);
-    setPingOutput("");
+    setPingResult(null);
+    setPingError(null);
     setPingLoading(true);
     try {
-      const res = await runPing({ data: { host: ip, count: 4 } });
-      if (res && typeof res === "object" && "output" in res) {
-        setPingOutput((res as { output: string }).output);
-      } else {
-        setPingOutput(`Resposta inesperada do servidor:\n${JSON.stringify(res, null, 2)}`);
-      }
+      const res = await runPing({ data: { host: ip, count: 8 } });
+      setPingResult(res as PingResultData);
     } catch (err) {
-      const msg = err instanceof Error ? `${err.name}: ${err.message}\n${err.stack ?? ""}` : String(err);
-      setPingOutput(`Erro ao chamar o servidor:\n${msg}`);
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      setPingError(msg);
     } finally {
       setPingLoading(false);
     }
@@ -225,7 +224,7 @@ function EquipamentosPage() {
 
       {pingOpen && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border max-w-2xl w-full max-h-[90vh] flex flex-col">
+          <div className="bg-card border border-border max-w-3xl w-full max-h-[90vh] flex flex-col">
             <div className="p-4 border-b border-border flex justify-between items-center">
               <h2 className="font-display text-base font-bold flex items-center gap-2">
                 <Activity className="h-4 w-4" /> Ping {pingHostName}
@@ -237,8 +236,12 @@ function EquipamentosPage() {
                 <div className="flex items-center gap-2 text-sm font-mono text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" /> Executando ping…
                 </div>
+              ) : pingError ? (
+                <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed text-red-400">{pingError}</pre>
+              ) : pingResult ? (
+                <PingResult data={pingResult} />
               ) : (
-                <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed">{pingOutput}</pre>
+                <div className="text-xs font-mono text-muted-foreground">Sem resultado.</div>
               )}
             </div>
             <div className="p-4 border-t border-border flex justify-between gap-2">
