@@ -8,6 +8,7 @@ import { AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: async () => {
+    if (typeof window === "undefined") return;
     const { data } = await supabase.auth.getSession();
     if (data.session) throw redirect({ to: "/dashboard" });
   },
