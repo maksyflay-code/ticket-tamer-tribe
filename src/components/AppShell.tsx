@@ -1,6 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock, Bell, Network, FolderArchive, ClipboardList, Sparkles, PieChart } from "lucide-react";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { SessionExpiryWarning } from "@/components/SessionExpiryWarning";
 import logo from "@/assets/ivi-logo.jpeg";
 import { useState, useEffect, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -181,6 +182,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
 
   return (
     <div className="min-h-screen flex bg-background text-foreground">
+      <SessionExpiryWarning />
       <aside className="hidden md:flex w-64 border-r border-border bg-sidebar shrink-0 flex-col sticky top-0 h-screen">
         <SidebarContent />
       </aside>
