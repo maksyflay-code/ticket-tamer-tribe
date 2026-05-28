@@ -13,6 +13,8 @@ type AuthCtx = {
   canWrite: boolean;
   signOut: () => Promise<void>;
   refreshRole: () => Promise<void>;
+  sessionExpiresAt: number | null;
+  extendSession: () => void;
 };
 
 const Ctx = createContext<AuthCtx>({
@@ -24,6 +26,8 @@ const Ctx = createContext<AuthCtx>({
   canWrite: false,
   signOut: async () => {},
   refreshRole: async () => {},
+  sessionExpiresAt: null,
+  extendSession: () => {},
 });
 
 const RANK: Record<AppRole, number> = { admin: 3, operador: 2, visualizador: 1 };
@@ -35,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
 
   const loadRole = async (userId: string | undefined) => {
     if (!userId) {
@@ -61,9 +66,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       if (typeof window !== "undefined") {
         if (event === "SIGNED_IN" && s) {
-          localStorage.setItem(SESSION_START_KEY, String(Date.now()));
+          const now = Date.now();
+          localStorage.setItem(SESSION_START_KEY, String(now));
+          setSessionStartedAt(now);
         } else if (event === "SIGNED_OUT") {
           localStorage.removeItem(SESSION_START_KEY);
+          setSessionStartedAt(null);
         }
       }
       // defer to avoid deadlock
@@ -75,7 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loadRole(data.session?.user?.id);
       if (typeof window !== "undefined" && data.session) {
         const existing = localStorage.getItem(SESSION_START_KEY);
-        if (!existing) localStorage.setItem(SESSION_START_KEY, String(Date.now()));
+        if (!existing) {
+          const now = Date.now();
+          localStorage.setItem(SESSION_START_KEY, String(now));
+          setSessionStartedAt(now);
+        } else {
+          setSessionStartedAt(Number(existing));
+        }
       }
     });
     return () => sub.subscription.unsubscribe();
@@ -83,10 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 4-hour auto logout
   useEffect(() => {
-    if (!session || typeof window === "undefined") return;
-    const startedAt = Number(localStorage.getItem(SESSION_START_KEY) || Date.now());
-    const elapsed = Date.now() - startedAt;
-    const remaining = MAX_SESSION_MS - elapsed;
+    if (!session || typeof window === "undefined" || !sessionStartedAt) return;
+    const remaining = MAX_SESSION_MS - (Date.now() - sessionStartedAt);
     if (remaining <= 0) {
       supabase.auth.signOut();
       return;
@@ -95,7 +107,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.auth.signOut();
     }, remaining);
     return () => clearTimeout(t);
-  }, [session]);
+  }, [session, sessionStartedAt]);
+
+  const extendSession = () => {
+    if (typeof window === "undefined") return;
+    const now = Date.now();
+    localStorage.setItem(SESSION_START_KEY, String(now));
+    setSessionStartedAt(now);
+  };
+
+  const sessionExpiresAt = sessionStartedAt ? sessionStartedAt + MAX_SESSION_MS : null;
 
   const isAdmin = role === "admin";
   const canWrite = role === "admin" || role === "operador";
@@ -113,6 +134,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await supabase.auth.signOut();
         },
         refreshRole: async () => loadRole(session?.user?.id),
+        sessionExpiresAt,
+        extendSession,
       }}
     >
       {children}
