@@ -28,6 +28,9 @@ const Ctx = createContext<AuthCtx>({
 
 const RANK: Record<AppRole, number> = { admin: 3, operador: 2, visualizador: 1 };
 
+const MAX_SESSION_MS = 4 * 60 * 60 * 1000; // 4 hours
+const SESSION_START_KEY = "ivi.session.startedAt";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
@@ -53,9 +56,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       setLoading(false);
+      if (typeof window !== "undefined") {
+        if (event === "SIGNED_IN" && s) {
+          localStorage.setItem(SESSION_START_KEY, String(Date.now()));
+        } else if (event === "SIGNED_OUT") {
+          localStorage.removeItem(SESSION_START_KEY);
+        }
+      }
       // defer to avoid deadlock
       setTimeout(() => loadRole(s?.user?.id), 0);
     });
@@ -63,9 +73,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session);
       setLoading(false);
       loadRole(data.session?.user?.id);
+      if (typeof window !== "undefined" && data.session) {
+        const existing = localStorage.getItem(SESSION_START_KEY);
+        if (!existing) localStorage.setItem(SESSION_START_KEY, String(Date.now()));
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  // 4-hour auto logout
+  useEffect(() => {
+    if (!session || typeof window === "undefined") return;
+    const startedAt = Number(localStorage.getItem(SESSION_START_KEY) || Date.now());
+    const elapsed = Date.now() - startedAt;
+    const remaining = MAX_SESSION_MS - elapsed;
+    if (remaining <= 0) {
+      supabase.auth.signOut();
+      return;
+    }
+    const t = setTimeout(() => {
+      supabase.auth.signOut();
+    }, remaining);
+    return () => clearTimeout(t);
+  }, [session]);
 
   const isAdmin = role === "admin";
   const canWrite = role === "admin" || role === "operador";
