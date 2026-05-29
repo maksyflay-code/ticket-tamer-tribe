@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
-import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck, ArrowRight, GitBranch, Wifi } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck, ArrowRight, GitBranch, Wifi, Wrench } from "lucide-react";
 import { totalDowntime, uptimePct, fmtUptime, fmtDowntime, type ChamadoUptime } from "@/lib/uptime";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
@@ -519,7 +519,7 @@ function DashboardPage() {
             if (typeof window !== "undefined") sessionStorage.setItem("chamados:open-id", id);
             navigate({ to: "/chamados" });
           }} />
-          <PlacarDoDiaCard />
+          <ManutencaoProgramadaCard />
         </div>
         <ChartCard title="Heatmap semanal (últimas 4 semanas)">
           {isLoading && !data ? <Skeleton className="h-[180px] w-full" /> : <Heatmap data={heat} />}
