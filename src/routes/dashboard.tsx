@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
-import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck, ArrowRight, GitBranch, Wifi } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck, ArrowRight, GitBranch, Wifi, Wrench } from "lucide-react";
 import { totalDowntime, uptimePct, fmtUptime, fmtDowntime, type ChamadoUptime } from "@/lib/uptime";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
@@ -519,7 +519,7 @@ function DashboardPage() {
             if (typeof window !== "undefined") sessionStorage.setItem("chamados:open-id", id);
             navigate({ to: "/chamados" });
           }} />
-          <PlacarDoDiaCard />
+          <ManutencaoProgramadaCard />
         </div>
         <ChartCard title="Heatmap semanal (últimas 4 semanas)">
           {isLoading && !data ? <Skeleton className="h-[180px] w-full" /> : <Heatmap data={heat} />}
@@ -1011,66 +1011,78 @@ function FilaCriticaCard({ onOpen }: { onOpen: (id: string) => void }) {
   );
 }
 
-function PlacarDoDiaCard() {
+type ManutencaoRow = {
+  id: string;
+  operadora: string;
+  trecho: string;
+  data_inicio: string;
+  data_fim: string | null;
+};
+
+function ManutencaoProgramadaCard() {
   const { data, isLoading } = useQuery({
-    queryKey: ["placar-do-dia"],
+    queryKey: ["manut-prog-card"],
     refetchInterval: 60_000,
     queryFn: async () => {
-      const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-      const iso = hoje.toISOString();
-      const [abertos, resolvidos] = await Promise.all([
-        supabase.from("chamados").select("id", { count: "exact", head: true }).gte("created_at", iso),
-        supabase.from("chamados").select("id", { count: "exact", head: true }).eq("status", "resolvido").gte("resolvido_at", iso),
-      ]);
-      return { abertos: abertos.count ?? 0, resolvidos: resolvidos.count ?? 0 };
+      const agora = new Date().toISOString();
+      const { data, error } = await supabase
+        .from("manutencoes_programadas" as never)
+        .select("id,operadora,trecho,data_inicio,data_fim")
+        .or(`data_fim.gte.${agora},and(data_fim.is.null,data_inicio.gte.${agora})`)
+        .order("data_inicio", { ascending: true })
+        .limit(4);
+      if (error) throw error;
+      return (data as unknown as ManutencaoRow[]) ?? [];
     },
   });
-  const abertos = data?.abertos ?? 0;
-  const resolvidos = data?.resolvidos ?? 0;
-  const total = abertos + resolvidos;
-  const pct = total > 0 ? (resolvidos / total) * 100 : 0;
-  const noAzul = resolvidos >= abertos && total > 0;
-  const diff = Math.max(0, abertos - resolvidos);
+  const items = data ?? [];
+  const now = Date.now();
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
   return (
-    <div className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 transition-all hover:border-primary/40 h-full flex flex-col">
+    <Link to="/manutencoes" className="group relative overflow-hidden border border-border bg-card p-3 md:p-5 transition-all hover:border-primary/40 h-full flex flex-col">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-60" />
       <div className="relative flex-1 flex flex-col">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-display text-sm font-bold tracking-tight flex items-center gap-2">
             <span className="inline-block w-1 h-3 bg-primary/70" />
-            Placar do Dia
+            Manutenção Programada
           </h3>
-          <Target className="h-4 w-4 text-primary/80" />
+          <Wrench className="h-4 w-4 text-primary/80" />
         </div>
-        {isLoading ? <Skeleton className="h-24 w-full" /> : (
-          <>
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="flex flex-col items-center justify-between border border-border bg-background/40 p-3 min-h-[110px]">
-                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground text-center min-h-[28px] flex items-center justify-center">Abertos hoje</div>
-                <div className="font-display text-4xl font-bold tabular-nums text-amber-400 leading-none">{abertos}</div>
-              </div>
-              <div className="flex flex-col items-center justify-between border border-border bg-background/40 p-3 min-h-[110px]">
-                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground text-center min-h-[28px] flex items-center justify-center">Resolvidos hoje</div>
-                <div className="font-display text-4xl font-bold tabular-nums text-emerald-400 leading-none">{resolvidos}</div>
-              </div>
-            </div>
-            <div className="h-2 bg-border/60 w-full overflow-hidden rounded-full mb-2">
-              <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all" style={{ width: `${pct}%` }} />
-            </div>
-            <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest mt-auto">
-              {total === 0 ? (
-                <span className="text-muted-foreground">Sem movimentação hoje</span>
-              ) : noAzul ? (
-                <span className="text-emerald-400">● Equipe no azul! ✅</span>
-              ) : (
-                <span className="text-amber-400">● Faltam {diff} para zerar a fila</span>
-              )}
-              <span className="text-muted-foreground tabular-nums">{pct.toFixed(0)}%</span>
-            </div>
-          </>
+        {isLoading ? <Skeleton className="h-24 w-full" /> : items.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground py-6">
+            Nenhuma manutenção programada.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {items.map((m) => {
+              const ini = new Date(m.data_inicio).getTime();
+              const fim = m.data_fim ? new Date(m.data_fim).getTime() : ini + 3600_000;
+              const emAndamento = now >= ini && now <= fim;
+              return (
+                <li key={m.id} className="border border-border bg-background/40 p-2.5 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{m.operadora}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{m.trecho}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[11px] font-mono tabular-nums">{fmt(m.data_inicio)}</div>
+                    <span className={`inline-block mt-0.5 px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-widest border ${
+                      emAndamento
+                        ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                        : "border-sky-500/30 bg-sky-500/10 text-sky-400"
+                    }`}>
+                      {emAndamento ? "Em andamento" : "Agendada"}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
-    </div>
+    </Link>
   );
 }
 
