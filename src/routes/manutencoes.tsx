@@ -81,8 +81,8 @@ function ManutencoesPage() {
       descricao: form.descricao?.trim() || null,
     };
     const res = editId
-      ? await supabase.from("manutencoes_programadas" as never).update(payload).eq("id", editId)
-      : await supabase.from("manutencoes_programadas" as never).insert(payload);
+      ? await supabase.from("manutencoes_programadas" as never).update(payload as never).eq("id", editId)
+      : await supabase.from("manutencoes_programadas" as never).insert(payload as never);
     setLoading(false);
     if (res.error) return toast.error(res.error.message);
     toast.success(editId ? "Manutenção atualizada." : "Manutenção cadastrada.");
