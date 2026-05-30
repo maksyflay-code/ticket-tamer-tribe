@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -16,7 +16,6 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,7 +29,12 @@ function LoginPage() {
       const { error: err } = await supabase.auth.signInWithPassword({ email, password });
       if (err) throw err;
       toast.success("Bem-vindo de volta!");
-      navigate({ to: "/dashboard" });
+      // Hard reload to guarantee a clean app state after sign-in.
+      // Avoids white-screen caused by stale providers/realtime channels
+      // from a previously expired session.
+      if (typeof window !== "undefined") {
+        window.location.assign("/dashboard");
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro de autenticação";
       const friendly = /invalid login credentials/i.test(msg)
