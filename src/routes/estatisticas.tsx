@@ -8,7 +8,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area,
 } from "recharts";
-import { Activity, AlertTriangle, CheckCircle2, Users, Ticket, Wifi, TrendingUp } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, Users, Ticket, Wifi, TrendingUp, Printer } from "lucide-react";
 import { monthWindow, downtimeByCliente, totalDowntime, uptimePct, fmtUptime, fmtDowntime, type ChamadoUptime } from "@/lib/uptime";
 
 export const Route = createFileRoute("/estatisticas")({
@@ -212,14 +212,18 @@ function EstatisticasPage() {
 
   return (
     <AppShell title="Estatísticas">
-      <div className="space-y-6">
+      <div className="space-y-6 print-area">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-2xl font-bold tracking-tight">Painel analítico</h2>
             <p className="text-sm text-muted-foreground">Visão geral de chamados, clientes e disponibilidade.</p>
+            <p className="hidden print:block text-xs text-muted-foreground mt-1">
+              Período: {PERIOD_LABEL[period]} — Gerado em {new Date().toLocaleString("pt-BR")}
+            </p>
           </div>
-          <div className="flex items-center gap-1 bg-card/60 border border-border/60 rounded-lg p-1">
+          <div className="flex items-center gap-2 no-print">
+            <div className="flex items-center gap-1 bg-card/60 border border-border/60 rounded-lg p-1">
             {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => (
               <button
                 key={p}
@@ -231,6 +235,15 @@ function EstatisticasPage() {
                 {PERIOD_LABEL[p]}
               </button>
             ))}
+            </div>
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+              title="Imprimir ou salvar como PDF"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Imprimir / PDF
+            </button>
           </div>
         </div>
 
