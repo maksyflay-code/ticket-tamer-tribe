@@ -324,31 +324,43 @@ export type Database = {
       }
       manutencoes_programadas: {
         Row: {
+          antecedencia_min: number
           created_at: string
           data_fim: string | null
           data_inicio: string
           descricao: string | null
           id: string
+          notificado_antes_at: string | null
+          notificado_inicio_at: string | null
+          notificar_telegram: boolean
           operadora: string
           trecho: string
           updated_at: string
         }
         Insert: {
+          antecedencia_min?: number
           created_at?: string
           data_fim?: string | null
           data_inicio: string
           descricao?: string | null
           id?: string
+          notificado_antes_at?: string | null
+          notificado_inicio_at?: string | null
+          notificar_telegram?: boolean
           operadora: string
           trecho: string
           updated_at?: string
         }
         Update: {
+          antecedencia_min?: number
           created_at?: string
           data_fim?: string | null
           data_inicio?: string
           descricao?: string | null
           id?: string
+          notificado_antes_at?: string | null
+          notificado_inicio_at?: string | null
+          notificar_telegram?: boolean
           operadora?: string
           trecho?: string
           updated_at?: string
