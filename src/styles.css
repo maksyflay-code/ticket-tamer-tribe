@@ -208,3 +208,30 @@
     background: oklch(0.55 0.20 230 / 0.5);
   }
 }
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+  html, body { background: #fff !important; color: #0f172a !important; }
+  /* Hide app chrome */
+  aside, header, .no-print { display: none !important; }
+  main { display: block !important; }
+  main > div { padding: 0 !important; }
+  /* Force light, printable surfaces */
+  .bg-background, .bg-card\/40, .bg-card\/30, .bg-card\/60, .bg-sidebar { background: #fff !important; }
+  .text-foreground, .text-muted-foreground { color: #0f172a !important; }
+  .text-muted-foreground { color: #475569 !important; }
+  .border-border\/60, .border-border\/30, .border-border { border-color: #cbd5e1 !important; }
+  .backdrop-blur-sm, .backdrop-blur { backdrop-filter: none !important; }
+  /* Layout tweaks */
+  .print-area { width: 100% !important; }
+  .print-area .grid { display: grid !important; }
+  .print-area .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .print-area .lg\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
+  .print-area .lg\:col-span-2 { grid-column: span 2 / span 2 !important; }
+  .print-area .lg\:col-span-3 { grid-column: span 3 / span 3 !important; }
+  /* Avoid breaking charts/cards across pages */
+  .print-area .rounded-xl { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
+  /* Recharts: ensure SVG colors print */
+  svg { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
