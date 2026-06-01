@@ -31,6 +31,7 @@ import { Route as NotificacoesPreferenciasRouteImport } from './routes/notificac
 import { Route as ConfiguracoesSlaRouteImport } from './routes/configuracoes.sla'
 import { Route as ClientesIdRouteImport } from './routes/clientes_.$id'
 import { Route as ApiPublicDiagRouteImport } from './routes/api/public/_diag'
+import { Route as ApiPublicHooksTelegramManutencaoRouteImport } from './routes/api/public/hooks/telegram-manutencao'
 
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
@@ -143,6 +144,12 @@ const ApiPublicDiagRoute = ApiPublicDiagRouteImport.update({
   path: '/api/public',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksTelegramManutencaoRoute =
+  ApiPublicHooksTelegramManutencaoRouteImport.update({
+    id: '/api/public/hooks/telegram-manutencao',
+    path: '/api/public/hooks/telegram-manutencao',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -167,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
   '/notificacoes/preferencias': typeof NotificacoesPreferenciasRoute
   '/api/public': typeof ApiPublicDiagRoute
+  '/api/public/hooks/telegram-manutencao': typeof ApiPublicHooksTelegramManutencaoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -191,6 +199,7 @@ export interface FileRoutesByTo {
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
   '/notificacoes/preferencias': typeof NotificacoesPreferenciasRoute
   '/api/public': typeof ApiPublicDiagRoute
+  '/api/public/hooks/telegram-manutencao': typeof ApiPublicHooksTelegramManutencaoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -216,6 +225,7 @@ export interface FileRoutesById {
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
   '/notificacoes/preferencias': typeof NotificacoesPreferenciasRoute
   '/api/public/_diag': typeof ApiPublicDiagRoute
+  '/api/public/hooks/telegram-manutencao': typeof ApiPublicHooksTelegramManutencaoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -242,6 +252,7 @@ export interface FileRouteTypes {
     | '/configuracoes/sla'
     | '/notificacoes/preferencias'
     | '/api/public'
+    | '/api/public/hooks/telegram-manutencao'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -266,6 +277,7 @@ export interface FileRouteTypes {
     | '/configuracoes/sla'
     | '/notificacoes/preferencias'
     | '/api/public'
+    | '/api/public/hooks/telegram-manutencao'
   id:
     | '__root__'
     | '/'
@@ -290,6 +302,7 @@ export interface FileRouteTypes {
     | '/configuracoes/sla'
     | '/notificacoes/preferencias'
     | '/api/public/_diag'
+    | '/api/public/hooks/telegram-manutencao'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -314,6 +327,7 @@ export interface RootRouteChildren {
   ClientesIdRoute: typeof ClientesIdRoute
   ConfiguracoesSlaRoute: typeof ConfiguracoesSlaRoute
   ApiPublicDiagRoute: typeof ApiPublicDiagRoute
+  ApiPublicHooksTelegramManutencaoRoute: typeof ApiPublicHooksTelegramManutencaoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -472,6 +486,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicDiagRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/telegram-manutencao': {
+      id: '/api/public/hooks/telegram-manutencao'
+      path: '/api/public/hooks/telegram-manutencao'
+      fullPath: '/api/public/hooks/telegram-manutencao'
+      preLoaderRoute: typeof ApiPublicHooksTelegramManutencaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -509,6 +530,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientesIdRoute: ClientesIdRoute,
   ConfiguracoesSlaRoute: ConfiguracoesSlaRoute,
   ApiPublicDiagRoute: ApiPublicDiagRoute,
+  ApiPublicHooksTelegramManutencaoRoute: ApiPublicHooksTelegramManutencaoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
