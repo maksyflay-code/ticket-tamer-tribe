@@ -11,6 +11,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
   XAxis, YAxis, CartesianGrid, AreaChart, Area, LineChart, Line,
@@ -32,14 +33,29 @@ function DashboardRoute() {
   );
 }
 
-type Period = "7d" | "30d" | "90d" | "year";
-const PERIOD_LABEL: Record<Period, string> = { "7d": "7d", "30d": "30d", "90d": "90d", year: "Este ano" };
-function periodStart(p: Period): Date {
-  const d = new Date(); d.setHours(0, 0, 0, 0);
-  if (p === "year") { d.setMonth(0, 1); return d; }
-  const days = p === "7d" ? 7 : p === "30d" ? 30 : 90;
-  d.setDate(d.getDate() - (days - 1));
-  return d;
+type Period = "month" | "60d" | "90d" | "custom";
+type CustomRange = { start: string; end: string }; // YYYY-MM-DD
+const PERIOD_LABEL: Record<Period, string> = { month: "Mês atual", "60d": "60d", "90d": "90d", custom: "Personalizado" };
+function periodRange(p: Period, custom: CustomRange): { start: Date; end: Date } {
+  const end = new Date(); end.setHours(23, 59, 59, 999);
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  if (p === "month") { start.setDate(1); return { start, end }; }
+  if (p === "60d") { start.setDate(start.getDate() - 59); return { start, end }; }
+  if (p === "90d") { start.setDate(start.getDate() - 89); return { start, end }; }
+  const s = new Date(`${custom.start}T00:00:00`);
+  const e = new Date(`${custom.end}T23:59:59`);
+  return { start: s, end: e };
+}
+function periodStart(p: Period, custom: CustomRange = { start: "", end: "" }): Date {
+  return periodRange(p, custom).start;
+}
+function todayISODate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function firstOfMonthISODate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
 type Stats = {
@@ -89,7 +105,10 @@ const prioridadeColor = (p: string) => {
 
 function DashboardPage() {
   const navigate = useNavigate();
-  const [period, setPeriod] = useState<Period>("30d");
+  const [period, setPeriod] = useState<Period>("month");
+  const [customRange, setCustomRange] = useState<CustomRange>({ start: firstOfMonthISODate(), end: todayISODate() });
+  const [customOpen, setCustomOpen] = useState(false);
+  const [draftRange, setDraftRange] = useState<CustomRange>({ start: firstOfMonthISODate(), end: todayISODate() });
   const [page, setPage] = useState(0);
   const [operators, setOperators] = useState<Array<{ email: string; name: string | null }>>([]);
   const queryClient = useQueryClient();
@@ -97,14 +116,14 @@ function DashboardPage() {
   const fetchAll = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const start = periodStart(period);
+    const { start, end: periodEnd } = periodRange(period, customRange);
     const startMonth = new Date(); startMonth.setDate(1); startMonth.setHours(0, 0, 0, 0);
     const startSpark = new Date(); startSpark.setHours(0,0,0,0); startSpark.setDate(startSpark.getDate() - 6);
 
     // Janela do período selecionado (substitui o cálculo fixo mensal para uptime)
     const mw = {
-      start: periodStart(period),
-      end: new Date(),
+      start,
+      end: periodEnd,
       get hours() { return Math.max(1 / 60, (this.end.getTime() - this.start.getTime()) / 3_600_000); },
     };
     const [a, e, r, c, novos, resolvidosPer, rec, abertosPri, todosStatus, todosPri, periodoSerie, resolvidosMes, reabertHist, sparkData, chamadosMesUp, clientesAtivosRes, solStatusAll, solPeriodoRes, solConcluidasPer] = await Promise.all([
@@ -219,7 +238,8 @@ function DashboardPage() {
 
     // Série diária no período
     const dayMs = 86_400_000;
-    const totalDays = Math.max(1, Math.round((today.getTime() - start.getTime()) / dayMs) + 1);
+    const endDay = new Date(periodEnd); endDay.setHours(0, 0, 0, 0);
+    const totalDays = Math.max(1, Math.round((endDay.getTime() - start.getTime()) / dayMs) + 1);
     const fmtDay = (d: Date) => `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
     const dailySerie: { dia: string; abertos: number; resolvidos: number }[] = [];
     for (let i = 0; i < totalDays; i++) {
@@ -251,11 +271,9 @@ function DashboardPage() {
       }
     });
 
-    // Heatmap 7x4 (últimas 4 semanas, dia 0=Dom...6=Sab) — usa periodoSerie quando period >=30d, senão sparkData
+    // Heatmap 7x4 (últimas 4 semanas, dia 0=Dom...6=Sab)
     const heatStart = new Date(); heatStart.setHours(0,0,0,0); heatStart.setDate(heatStart.getDate() - 27);
-    const heatSource = period === "7d"
-      ? await supabase.from("chamados").select("created_at").gte("created_at", heatStart.toISOString())
-      : { data: ((periodoSerie.data ?? []) as { created_at: string }[]).filter(x => new Date(x.created_at) >= heatStart) };
+    const heatSource = await supabase.from("chamados").select("created_at").gte("created_at", heatStart.toISOString());
     const heat: number[][] = Array.from({ length: 4 }, () => Array(7).fill(0));
     ((heatSource.data ?? []) as { created_at: string }[]).forEach((x) => {
       const d = new Date(x.created_at); d.setHours(0,0,0,0);
@@ -288,7 +306,7 @@ function DashboardPage() {
   };
 
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard", period],
+    queryKey: ["dashboard", period, customRange.start, customRange.end],
     queryFn: fetchAll,
   });
 
@@ -422,16 +440,76 @@ function DashboardPage() {
           <div className="text-[10px] uppercase tracking-widest font-mono text-primary">Período</div>
           <div className="text-xs font-mono text-muted-foreground mt-0.5">Dados filtrados para os últimos {PERIOD_LABEL[period]}</div>
         </div>
-        <div className="inline-flex border border-border bg-card/60 backdrop-blur-md overflow-hidden rounded-xl">
-          {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all ${period === p ? "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-[0_0_20px_-4px_var(--primary)]" : "text-muted-foreground hover:bg-secondary/50"}`}
-            >
-              {PERIOD_LABEL[p]}
-            </button>
-          ))}
+        <div className="inline-flex items-stretch border border-border bg-card/60 backdrop-blur-md overflow-hidden rounded-xl">
+          {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => {
+            if (p === "custom") {
+              return (
+                <Popover key={p} open={customOpen} onOpenChange={(o) => { setCustomOpen(o); if (o) setDraftRange(customRange); }}>
+                  <PopoverTrigger asChild>
+                    <button
+                      className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all ${period === p ? "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-[0_0_20px_-4px_var(--primary)]" : "text-muted-foreground hover:bg-secondary/50"}`}
+                    >
+                      {period === "custom"
+                        ? `${draftRange.start || customRange.start} → ${draftRange.end || customRange.end}`
+                        : PERIOD_LABEL[p]}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-72 p-3 space-y-3">
+                    <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Selecionar período</div>
+                    <div className="space-y-2">
+                      <label className="block text-xs">
+                        <span className="text-muted-foreground">Início</span>
+                        <input
+                          type="date"
+                          value={draftRange.start}
+                          max={draftRange.end || todayISODate()}
+                          onChange={(ev) => setDraftRange((d) => ({ ...d, start: ev.target.value }))}
+                          className="mt-1 w-full bg-background border border-border rounded-md px-2 py-1.5 text-sm"
+                        />
+                      </label>
+                      <label className="block text-xs">
+                        <span className="text-muted-foreground">Fim</span>
+                        <input
+                          type="date"
+                          value={draftRange.end}
+                          min={draftRange.start}
+                          max={todayISODate()}
+                          onChange={(ev) => setDraftRange((d) => ({ ...d, end: ev.target.value }))}
+                          className="mt-1 w-full bg-background border border-border rounded-md px-2 py-1.5 text-sm"
+                        />
+                      </label>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setCustomOpen(false)}
+                        className="px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground hover:bg-secondary/50"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!draftRange.start || !draftRange.end || draftRange.start > draftRange.end}
+                        onClick={() => { setCustomRange(draftRange); setPeriod("custom"); setCustomOpen(false); }}
+                        className="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground disabled:opacity-50"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              );
+            }
+            return (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all ${period === p ? "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-[0_0_20px_-4px_var(--primary)]" : "text-muted-foreground hover:bg-secondary/50"}`}
+              >
+                {PERIOD_LABEL[p]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -634,7 +712,7 @@ function DashboardPage() {
           if (typeof window !== "undefined") sessionStorage.setItem("chamados:open-id", id);
           navigate({ to: "/chamados" });
         }} />
-        <FluxoStatusCard period={period} />
+        <FluxoStatusCard period={period} customRange={customRange} />
       </section>
 
       <section>
@@ -1441,13 +1519,13 @@ const FLUXO_STEPS: { key: StatusKey; label: string; bar: string; text: string; b
   { key: "resolvido",           label: "Resolvido",  bar: "bg-emerald-500", text: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
 ];
 
-function FluxoStatusCard({ period }: { period: Period }) {
+function FluxoStatusCard({ period, customRange }: { period: Period; customRange: CustomRange }) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
-    queryKey: ["fluxo-status", period],
+    queryKey: ["fluxo-status", period, customRange.start, customRange.end],
     refetchInterval: 60_000,
     queryFn: async () => {
-      const start = periodStart(period);
+      const start = periodStart(period, customRange);
       const [hist, atuais, stagn] = await Promise.all([
         supabase
           .from("chamado_historico")
