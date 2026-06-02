@@ -32,14 +32,29 @@ function DashboardRoute() {
   );
 }
 
-type Period = "7d" | "30d" | "90d" | "year";
-const PERIOD_LABEL: Record<Period, string> = { "7d": "7d", "30d": "30d", "90d": "90d", year: "Este ano" };
-function periodStart(p: Period): Date {
-  const d = new Date(); d.setHours(0, 0, 0, 0);
-  if (p === "year") { d.setMonth(0, 1); return d; }
-  const days = p === "7d" ? 7 : p === "30d" ? 30 : 90;
-  d.setDate(d.getDate() - (days - 1));
-  return d;
+type Period = "month" | "60d" | "90d" | "custom";
+type CustomRange = { start: string; end: string }; // YYYY-MM-DD
+const PERIOD_LABEL: Record<Period, string> = { month: "Mês atual", "60d": "60d", "90d": "90d", custom: "Personalizado" };
+function periodRange(p: Period, custom: CustomRange): { start: Date; end: Date } {
+  const end = new Date(); end.setHours(23, 59, 59, 999);
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  if (p === "month") { start.setDate(1); return { start, end }; }
+  if (p === "60d") { start.setDate(start.getDate() - 59); return { start, end }; }
+  if (p === "90d") { start.setDate(start.getDate() - 89); return { start, end }; }
+  const s = new Date(`${custom.start}T00:00:00`);
+  const e = new Date(`${custom.end}T23:59:59`);
+  return { start: s, end: e };
+}
+function periodStart(p: Period, custom: CustomRange = { start: "", end: "" }): Date {
+  return periodRange(p, custom).start;
+}
+function todayISODate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function firstOfMonthISODate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
 type Stats = {
