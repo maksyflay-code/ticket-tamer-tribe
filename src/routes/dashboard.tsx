@@ -11,6 +11,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
   XAxis, YAxis, CartesianGrid, AreaChart, Area, LineChart, Line,
