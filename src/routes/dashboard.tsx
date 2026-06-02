@@ -439,16 +439,76 @@ function DashboardPage() {
           <div className="text-[10px] uppercase tracking-widest font-mono text-primary">Período</div>
           <div className="text-xs font-mono text-muted-foreground mt-0.5">Dados filtrados para os últimos {PERIOD_LABEL[period]}</div>
         </div>
-        <div className="inline-flex border border-border bg-card/60 backdrop-blur-md overflow-hidden rounded-xl">
-          {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all ${period === p ? "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-[0_0_20px_-4px_var(--primary)]" : "text-muted-foreground hover:bg-secondary/50"}`}
-            >
-              {PERIOD_LABEL[p]}
-            </button>
-          ))}
+        <div className="inline-flex items-stretch border border-border bg-card/60 backdrop-blur-md overflow-hidden rounded-xl">
+          {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => {
+            if (p === "custom") {
+              return (
+                <Popover key={p} open={customOpen} onOpenChange={(o) => { setCustomOpen(o); if (o) setDraftRange(customRange); }}>
+                  <PopoverTrigger asChild>
+                    <button
+                      className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all ${period === p ? "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-[0_0_20px_-4px_var(--primary)]" : "text-muted-foreground hover:bg-secondary/50"}`}
+                    >
+                      {period === "custom"
+                        ? `${draftRange.start || customRange.start} → ${draftRange.end || customRange.end}`
+                        : PERIOD_LABEL[p]}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-72 p-3 space-y-3">
+                    <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Selecionar período</div>
+                    <div className="space-y-2">
+                      <label className="block text-xs">
+                        <span className="text-muted-foreground">Início</span>
+                        <input
+                          type="date"
+                          value={draftRange.start}
+                          max={draftRange.end || todayISODate()}
+                          onChange={(ev) => setDraftRange((d) => ({ ...d, start: ev.target.value }))}
+                          className="mt-1 w-full bg-background border border-border rounded-md px-2 py-1.5 text-sm"
+                        />
+                      </label>
+                      <label className="block text-xs">
+                        <span className="text-muted-foreground">Fim</span>
+                        <input
+                          type="date"
+                          value={draftRange.end}
+                          min={draftRange.start}
+                          max={todayISODate()}
+                          onChange={(ev) => setDraftRange((d) => ({ ...d, end: ev.target.value }))}
+                          className="mt-1 w-full bg-background border border-border rounded-md px-2 py-1.5 text-sm"
+                        />
+                      </label>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setCustomOpen(false)}
+                        className="px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground hover:bg-secondary/50"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!draftRange.start || !draftRange.end || draftRange.start > draftRange.end}
+                        onClick={() => { setCustomRange(draftRange); setPeriod("custom"); setCustomOpen(false); }}
+                        className="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground disabled:opacity-50"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              );
+            }
+            return (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all ${period === p ? "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-[0_0_20px_-4px_var(--primary)]" : "text-muted-foreground hover:bg-secondary/50"}`}
+              >
+                {PERIOD_LABEL[p]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -651,7 +711,7 @@ function DashboardPage() {
           if (typeof window !== "undefined") sessionStorage.setItem("chamados:open-id", id);
           navigate({ to: "/chamados" });
         }} />
-        <FluxoStatusCard period={period} />
+        <FluxoStatusCard period={period} customRange={customRange} />
       </section>
 
       <section>
@@ -1458,13 +1518,13 @@ const FLUXO_STEPS: { key: StatusKey; label: string; bar: string; text: string; b
   { key: "resolvido",           label: "Resolvido",  bar: "bg-emerald-500", text: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
 ];
 
-function FluxoStatusCard({ period }: { period: Period }) {
+function FluxoStatusCard({ period, customRange }: { period: Period; customRange: CustomRange }) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
-    queryKey: ["fluxo-status", period],
+    queryKey: ["fluxo-status", period, customRange.start, customRange.end],
     refetchInterval: 60_000,
     queryFn: async () => {
-      const start = periodStart(period);
+      const start = periodStart(period, customRange);
       const [hist, atuais, stagn] = await Promise.all([
         supabase
           .from("chamado_historico")
