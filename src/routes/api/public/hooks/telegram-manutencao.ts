@@ -59,11 +59,11 @@ export const Route = createFileRoute('/api/public/hooks/telegram-manutencao')({
           if (!m.notificado_antes_at && now >= avisoQuando && now < inicio) {
             const txt =
               `⚠️ <b>Manutenção programada em ${m.antecedencia_min ?? 30} min</b>\n` +
-              `<b>Operadora:</b> ${m.operadora}\n` +
-              `<b>Trecho:</b> ${m.trecho}\n` +
-              `<b>Início:</b> ${fmt(m.data_inicio as string)}\n` +
-              (m.data_fim ? `<b>Fim:</b> ${fmt(m.data_fim as string)}\n` : '') +
-              (m.descricao ? `\n${m.descricao}` : '');
+              `📡 <b>Operadora:</b> ${m.operadora}\n` +
+              `🛣️ <b>Trecho:</b> ${m.trecho}\n` +
+              `🕐 <b>Início:</b> ${fmt(m.data_inicio as string)}\n` +
+              (m.data_fim ? `🏁 <b>Fim:</b> ${fmt(m.data_fim as string)}\n` : '') +
+              (m.descricao ? `\n📝 ${m.descricao}` : '');
             try {
               await sendTelegram(txt);
               await supabaseAdmin
@@ -80,11 +80,11 @@ export const Route = createFileRoute('/api/public/hooks/telegram-manutencao')({
           if (!m.notificado_inicio_at && now >= inicio) {
             const txt =
               `🔧 <b>Manutenção iniciada agora</b>\n` +
-              `<b>Operadora:</b> ${m.operadora}\n` +
-              `<b>Trecho:</b> ${m.trecho}\n` +
-              `<b>Início:</b> ${fmt(m.data_inicio as string)}\n` +
-              (m.data_fim ? `<b>Previsão fim:</b> ${fmt(m.data_fim as string)}\n` : '') +
-              (m.descricao ? `\n${m.descricao}` : '');
+              `📡 <b>Operadora:</b> ${m.operadora}\n` +
+              `🛣️ <b>Trecho:</b> ${m.trecho}\n` +
+              `🕐 <b>Início:</b> ${fmt(m.data_inicio as string)}\n` +
+              (m.data_fim ? `🏁 <b>Previsão fim:</b> ${fmt(m.data_fim as string)}\n` : '') +
+              (m.descricao ? `\n📝 ${m.descricao}` : '');
             try {
               await sendTelegram(txt);
               await supabaseAdmin
