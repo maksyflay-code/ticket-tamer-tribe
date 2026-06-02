@@ -104,7 +104,10 @@ const prioridadeColor = (p: string) => {
 
 function DashboardPage() {
   const navigate = useNavigate();
-  const [period, setPeriod] = useState<Period>("30d");
+  const [period, setPeriod] = useState<Period>("month");
+  const [customRange, setCustomRange] = useState<CustomRange>({ start: firstOfMonthISODate(), end: todayISODate() });
+  const [customOpen, setCustomOpen] = useState(false);
+  const [draftRange, setDraftRange] = useState<CustomRange>({ start: firstOfMonthISODate(), end: todayISODate() });
   const [page, setPage] = useState(0);
   const [operators, setOperators] = useState<Array<{ email: string; name: string | null }>>([]);
   const queryClient = useQueryClient();
