@@ -237,7 +237,8 @@ function DashboardPage() {
 
     // Série diária no período
     const dayMs = 86_400_000;
-    const totalDays = Math.max(1, Math.round((today.getTime() - start.getTime()) / dayMs) + 1);
+    const endDay = new Date(periodEnd); endDay.setHours(0, 0, 0, 0);
+    const totalDays = Math.max(1, Math.round((endDay.getTime() - start.getTime()) / dayMs) + 1);
     const fmtDay = (d: Date) => `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
     const dailySerie: { dia: string; abertos: number; resolvidos: number }[] = [];
     for (let i = 0; i < totalDays; i++) {
@@ -269,11 +270,9 @@ function DashboardPage() {
       }
     });
 
-    // Heatmap 7x4 (últimas 4 semanas, dia 0=Dom...6=Sab) — usa periodoSerie quando period >=30d, senão sparkData
+    // Heatmap 7x4 (últimas 4 semanas, dia 0=Dom...6=Sab)
     const heatStart = new Date(); heatStart.setHours(0,0,0,0); heatStart.setDate(heatStart.getDate() - 27);
-    const heatSource = period === "7d"
-      ? await supabase.from("chamados").select("created_at").gte("created_at", heatStart.toISOString())
-      : { data: ((periodoSerie.data ?? []) as { created_at: string }[]).filter(x => new Date(x.created_at) >= heatStart) };
+    const heatSource = await supabase.from("chamados").select("created_at").gte("created_at", heatStart.toISOString());
     const heat: number[][] = Array.from({ length: 4 }, () => Array(7).fill(0));
     ((heatSource.data ?? []) as { created_at: string }[]).forEach((x) => {
       const d = new Date(x.created_at); d.setHours(0,0,0,0);
@@ -306,7 +305,7 @@ function DashboardPage() {
   };
 
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard", period],
+    queryKey: ["dashboard", period, customRange.start, customRange.end],
     queryFn: fetchAll,
   });
 
