@@ -20,7 +20,7 @@ export const Route = createFileRoute("/chamados")({
 
 type Status = "aberto" | "aguardando_cliente" | "resolvido" | "fechado";
 type Prioridade = "baixa" | "media" | "alta" | "urgente";
-type TipoProblema = "ROMPIMENTO" | "ATENUACAO" | "OUTROS";
+type TipoProblema = "ROMPIMENTO" | "ATENUACAO" | "FALHA_ELETRICA" | "FLAP" | "OUTROS";
 
 type Chamado = {
   id: string;
