@@ -185,8 +185,10 @@ function EstatisticasPage() {
 
   const uptimePorCliente = useMemo(() => {
     const { start, end, hours } = monthWindow();
+    const isAtenuacao = (s: string | null) =>
+      (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase() === "ATENUACAO";
     const chamadosUp: ChamadoUptime[] = rows
-      .filter((r) => r.cliente_id && (r.tipo_problema ?? "").trim().toUpperCase() !== "ATENUACAO")
+      .filter((r) => r.cliente_id && !isAtenuacao(r.tipo_problema))
       .map((r) => ({ cliente_id: r.cliente_id, created_at: r.created_at, resolvido_at: r.resolvido_at }));
     const nomeById = new Map<string, string>();
     for (const r of rows) if (r.cliente_id) nomeById.set(r.cliente_id, r.clientes?.nome ?? "—");
@@ -203,8 +205,10 @@ function EstatisticasPage() {
 
   const uptimeGeral = useMemo(() => {
     const { start, end, hours } = monthWindow();
+    const isAtenuacao = (s: string | null) =>
+      (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase() === "ATENUACAO";
     const chamadosUp: ChamadoUptime[] = rows
-      .filter((r) => r.cliente_id && (r.tipo_problema ?? "").trim().toUpperCase() !== "ATENUACAO")
+      .filter((r) => r.cliente_id && !isAtenuacao(r.tipo_problema))
       .map((r) => ({ cliente_id: r.cliente_id, created_at: r.created_at, resolvido_at: r.resolvido_at }));
     const dt = totalDowntime(chamadosUp, start, end);
     return uptimePct(dt, hours, Math.max(1, clientesAtivos));
