@@ -52,6 +52,8 @@ const empty: Partial<Chamado> = { status: "aberto", prioridade: "media" };
 const TIPOS_PROBLEMA: { value: TipoProblema; label: string }[] = [
   { value: "ROMPIMENTO", label: "Rompimento" },
   { value: "ATENUACAO", label: "Atenuação" },
+  { value: "FALHA_ELETRICA", label: "Falha Elétrica" },
+  { value: "FLAP", label: "Flap" },
   { value: "OUTROS", label: "Outros" },
 ];
 
