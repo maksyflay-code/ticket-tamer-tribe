@@ -20,7 +20,7 @@ export const Route = createFileRoute("/chamados")({
 
 type Status = "aberto" | "aguardando_cliente" | "resolvido" | "fechado";
 type Prioridade = "baixa" | "media" | "alta" | "urgente";
-type TipoProblema = "ROMPIMENTO" | "ATENUACAO" | "OUTROS";
+type TipoProblema = "ROMPIMENTO" | "ATENUACAO" | "FALHA_ELETRICA" | "FLAP" | "OUTROS";
 
 type Chamado = {
   id: string;
@@ -52,6 +52,8 @@ const empty: Partial<Chamado> = { status: "aberto", prioridade: "media" };
 const TIPOS_PROBLEMA: { value: TipoProblema; label: string }[] = [
   { value: "ROMPIMENTO", label: "Rompimento" },
   { value: "ATENUACAO", label: "Atenuação" },
+  { value: "FALHA_ELETRICA", label: "Falha Elétrica" },
+  { value: "FLAP", label: "Flap" },
   { value: "OUTROS", label: "Outros" },
 ];
 
