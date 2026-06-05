@@ -78,7 +78,24 @@ function RootComponent() {
   return (
     <AuthProvider>
       <Outlet />
-      <Toaster theme="dark" richColors position="top-right" duration={10000} visibleToasts={6} expand />
+      <Toaster
+        theme="dark"
+        richColors
+        position="top-right"
+        duration={3500}
+        visibleToasts={3}
+        closeButton
+        toastOptions={{
+          classNames: {
+            toast:
+              "group !rounded-md !border !border-border !bg-card/95 !backdrop-blur-sm !shadow-lg !text-sm !py-2 !px-3 !min-h-0",
+            title: "!text-xs !font-semibold !leading-tight",
+            description: "!text-[11px] !text-muted-foreground !leading-snug",
+            closeButton:
+              "!bg-transparent !border-0 !text-muted-foreground hover:!text-foreground",
+          },
+        }}
+      />
     </AuthProvider>
   );
 }
