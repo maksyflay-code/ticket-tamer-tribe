@@ -7,6 +7,7 @@ import {
   KeyRound,
   Receipt,
   Car,
+  FileSpreadsheet,
 } from "lucide-react";
 
 export type SolicitacaoTipo =
@@ -16,7 +17,8 @@ export type SolicitacaoTipo =
   | "manutencao"
   | "acesso"
   | "reembolso"
-  | "veiculo";
+  | "veiculo"
+  | "cotacao";
 
 export type SolicitacaoStatus =
   | "aberta"
@@ -89,6 +91,14 @@ export const TIPOS: TipoMeta[] = [
     icon: Car,
     color: "text-cyan-400",
     description: "Reserva de veículo da empresa",
+  },
+  {
+    value: "cotacao",
+    label: "Cotação / Orçamento",
+    short: "Cotação",
+    icon: FileSpreadsheet,
+    color: "text-lime-400",
+    description: "Solicitar cotação de preços a fornecedores",
   },
 ];
 
@@ -200,6 +210,16 @@ export const CAMPOS_POR_TIPO: Record<SolicitacaoTipo, CampoDef[]> = {
     { name: "destino", label: "Destino", type: "text", required: true },
     { name: "motivo", label: "Motivo", type: "textarea", required: true, rows: 3 },
   ],
+  cotacao: [
+    { name: "objeto", label: "Objeto da cotação", type: "text", required: true, placeholder: "Ex.: Switch 24 portas PoE" },
+    { name: "itens", label: "Itens / especificações (um por linha)", type: "textarea", required: true, rows: 5, placeholder: "Ex.: 2x Switch Datacom DM4100\n10x SFP 1G monomodo 20km" },
+    { name: "fornecedores", label: "Fornecedores a cotar", type: "textarea", rows: 3, placeholder: "Liste fornecedores sugeridos (um por linha)" },
+    { name: "quantidade_cotacoes", label: "Nº mínimo de cotações", type: "number", min: 1, step: "1" },
+    { name: "prazo_resposta", label: "Prazo para resposta", type: "date" },
+    { name: "valor_referencia", label: "Valor de referência (R$)", type: "number", min: 0, step: "0.01" },
+    { name: "finalidade", label: "Finalidade / justificativa", type: "textarea", required: true, rows: 3 },
+    { name: "observacoes", label: "Observações", type: "textarea", rows: 3 },
+  ],
 };
 
 export function defaultTituloForTipo(tipo: SolicitacaoTipo, dados: Record<string, unknown>): string {
@@ -219,6 +239,8 @@ export function defaultTituloForTipo(tipo: SolicitacaoTipo, dados: Record<string
       return `Reembolso ${dados.categoria ?? ""} — R$ ${dados.valor ?? "0"}`;
     case "veiculo":
       return `Veículo — ${dados.destino ?? "destino"}`;
+    case "cotacao":
+      return `Cotação — ${dados.objeto ?? "objeto"}`;
     default:
       return meta.label;
   }
