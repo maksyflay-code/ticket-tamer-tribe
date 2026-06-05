@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { requireAuth } from "@/lib/guard";
@@ -73,7 +73,6 @@ function formatDateTimeBr(value: string): string {
 
 function RfoPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState<RfoForm>({
     cliente: "",
