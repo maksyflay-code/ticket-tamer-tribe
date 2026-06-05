@@ -327,7 +327,6 @@ function RfoPage() {
             });
           } else {
             toast.success(`Solicitação #${sol.numero} aberta para registro`);
-            navigate({ to: "/solicitacoes" });
           }
         } catch (err) {
           console.error("[RFO] exceção ao abrir solicitação:", err);
