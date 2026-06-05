@@ -211,14 +211,23 @@ export const CAMPOS_POR_TIPO: Record<SolicitacaoTipo, CampoDef[]> = {
     { name: "motivo", label: "Motivo", type: "textarea", required: true, rows: 3 },
   ],
   cotacao: [
-    { name: "objeto", label: "Objeto da cotação", type: "text", required: true, placeholder: "Ex.: Switch 24 portas PoE" },
-    { name: "itens", label: "Itens / especificações (um por linha)", type: "textarea", required: true, rows: 5, placeholder: "Ex.: 2x Switch Datacom DM4100\n10x SFP 1G monomodo 20km" },
-    { name: "fornecedores", label: "Fornecedores a cotar", type: "textarea", rows: 3, placeholder: "Liste fornecedores sugeridos (um por linha)" },
-    { name: "quantidade_cotacoes", label: "Nº mínimo de cotações", type: "number", min: 1, step: "1" },
-    { name: "prazo_resposta", label: "Prazo para resposta", type: "date" },
-    { name: "valor_referencia", label: "Valor de referência (R$)", type: "number", min: 0, step: "0.01" },
-    { name: "finalidade", label: "Finalidade / justificativa", type: "textarea", required: true, rows: 3 },
-    { name: "observacoes", label: "Observações", type: "textarea", rows: 3 },
+    { name: "cliente_nome", label: "Cliente / prospect", type: "text", required: true, placeholder: "Razão social ou nome" },
+    { name: "cliente_contato", label: "Contato (nome / e-mail / telefone)", type: "text", required: true },
+    { name: "servico", label: "Serviço solicitado", type: "select", required: true, options: [
+      { value: "transito_ip", label: "Trânsito IP" },
+      { value: "transporte_dados", label: "Transporte de Dados" },
+      { value: "link_dedicado", label: "Link Dedicado" },
+      { value: "colocation", label: "Colocation" },
+      { value: "ptt", label: "Conexão ao PTT" },
+      { value: "ddos", label: "Proteção DDoS" },
+      { value: "outro", label: "Outro / combinado" },
+    ]},
+    { name: "capacidade", label: "Capacidade / banda", type: "text", placeholder: "Ex.: 10 Gbps, 1U, /29 IPv4" },
+    { name: "endereco_instalacao", label: "Endereço de instalação / POP", type: "text", required: true },
+    { name: "prazo_ativacao", label: "Prazo desejado de ativação", type: "date" },
+    { name: "sla", label: "SLA / disponibilidade desejada", type: "text", placeholder: "Ex.: 99,9%" },
+    { name: "concorrencia", label: "Concorrência / valor praticado hoje", type: "text", placeholder: "Operadora atual e valor, se houver" },
+    { name: "detalhes", label: "Detalhes técnicos / observações", type: "textarea", required: true, rows: 4 },
   ],
 };
 
@@ -240,7 +249,7 @@ export function defaultTituloForTipo(tipo: SolicitacaoTipo, dados: Record<string
     case "veiculo":
       return `Veículo — ${dados.destino ?? "destino"}`;
     case "cotacao":
-      return `Cotação — ${dados.objeto ?? "objeto"}`;
+      return `Cotação ${dados.servico ?? ""} — ${dados.cliente_nome ?? "cliente"}`.trim();
     default:
       return meta.label;
   }
