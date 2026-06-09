@@ -1327,6 +1327,31 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                   <span>Ao finalizar, você será definido como responsável e o relato abaixo (se houver) será registrado.</span>
                 </div>
               )}
+              {dirty && status === "resolvido" && (
+                <div className="md:col-span-3">
+                  <Lbl>Data/hora da resolução (opcional)</Lbl>
+                  <div className="mt-1 flex items-center gap-2 flex-wrap">
+                    <input
+                      type="datetime-local"
+                      value={finalizadoAtOverride}
+                      onChange={(e) => setFinalizadoAtOverride(e.target.value)}
+                      className="bg-card border border-border rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-primary transition"
+                    />
+                    {finalizadoAtOverride && (
+                      <button
+                        type="button"
+                        onClick={() => setFinalizadoAtOverride("")}
+                        className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground px-2 py-1 border border-border rounded"
+                      >
+                        Limpar
+                      </button>
+                    )}
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      Em branco = usa data/hora atual ao finalizar.
+                    </span>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
