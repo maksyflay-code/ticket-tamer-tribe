@@ -1060,6 +1060,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
   const [savingQuick, setSavingQuick] = useState(false);
   const [slaMap, setSlaMap] = useState<SlaMap | null>(null);
   const [nowTick, setNowTick] = useState(0);
+  const [finalizadoAtOverride, setFinalizadoAtOverride] = useState<string>("");
 
   useEffect(() => { getSlaMap().then(setSlaMap); }, []);
   const authorName =
@@ -1077,6 +1078,7 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
     setStatus(chamado.status);
     setPrioridade(chamado.prioridade);
     setResponsavelId(chamado.responsavel_id ?? "");
+    setFinalizadoAtOverride("");
   }, [chamado.id, chamado.status, chamado.prioridade, chamado.responsavel_id]);
 
   const dirty = status !== chamado.status || prioridade !== chamado.prioridade || (responsavelId || null) !== (chamado.responsavel_id || null);
@@ -1096,10 +1098,12 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
       responsavel_id: effectiveRespId,
       tecnico_responsavel: effectiveTecnico,
     };
-    if (status === "resolvido" && !chamado.resolvido_at) payload.resolvido_at = new Date().toISOString();
+    const overrideIso = finalizadoAtOverride ? localInputToIso(finalizadoAtOverride) : null;
+    const finalizadoIso = overrideIso ?? new Date().toISOString();
+    if (status === "resolvido" && (!chamado.resolvido_at || overrideIso)) payload.resolvido_at = finalizadoIso;
     if (status !== "resolvido" && status !== "fechado") payload.resolvido_at = null;
     if (status === "aberto" && !chamado.iniciado_at) payload.iniciado_at = new Date().toISOString();
-    if (status === "resolvido" && !chamado.finalizado_at) payload.finalizado_at = new Date().toISOString();
+    if (status === "resolvido" && (!chamado.finalizado_at || overrideIso)) payload.finalizado_at = finalizadoIso;
     // Se houver texto no relato, grava junto (ideal no fechamento)
     if (comentario.trim()) {
       await supabase.from("chamado_historico").insert({
@@ -1321,6 +1325,31 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                 <div className="md:col-span-3 flex items-start gap-2 text-[10px] font-mono text-emerald-300 bg-emerald-500/5 border border-emerald-500/20 rounded px-2.5 py-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5 mt-px shrink-0" />
                   <span>Ao finalizar, você será definido como responsável e o relato abaixo (se houver) será registrado.</span>
+                </div>
+              )}
+              {dirty && status === "resolvido" && (
+                <div className="md:col-span-3">
+                  <Lbl>Data/hora da resolução (opcional)</Lbl>
+                  <div className="mt-1 flex items-center gap-2 flex-wrap">
+                    <input
+                      type="datetime-local"
+                      value={finalizadoAtOverride}
+                      onChange={(e) => setFinalizadoAtOverride(e.target.value)}
+                      className="bg-card border border-border rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-primary transition"
+                    />
+                    {finalizadoAtOverride && (
+                      <button
+                        type="button"
+                        onClick={() => setFinalizadoAtOverride("")}
+                        className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground px-2 py-1 border border-border rounded"
+                      >
+                        Limpar
+                      </button>
+                    )}
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      Em branco = usa data/hora atual ao finalizar.
+                    </span>
+                  </div>
                 </div>
               )}
             </section>
