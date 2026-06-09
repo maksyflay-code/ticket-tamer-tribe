@@ -1327,31 +1327,6 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
                   <span>Ao finalizar, você será definido como responsável e o relato abaixo (se houver) será registrado.</span>
                 </div>
               )}
-              {dirty && status === "resolvido" && (
-                <div className="md:col-span-3">
-                  <Lbl>Data/hora da resolução (opcional)</Lbl>
-                  <div className="mt-1 flex items-center gap-2 flex-wrap">
-                    <input
-                      type="datetime-local"
-                      value={finalizadoAtOverride}
-                      onChange={(e) => setFinalizadoAtOverride(e.target.value)}
-                      className="bg-card border border-border rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-primary transition"
-                    />
-                    {finalizadoAtOverride && (
-                      <button
-                        type="button"
-                        onClick={() => setFinalizadoAtOverride("")}
-                        className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground px-2 py-1 border border-border rounded"
-                      >
-                        Limpar
-                      </button>
-                    )}
-                    <span className="text-[10px] font-mono text-muted-foreground">
-                      Em branco = usa data/hora atual ao finalizar.
-                    </span>
-                  </div>
-                </div>
-              )}
             </section>
           )}
 
@@ -1362,7 +1337,38 @@ function DetailDrawer({ chamado, onClose, autor, operators, canWrite }: { chamad
             <Info icon={User} label="Responsável" value={chamado.tecnico_responsavel ?? (chamado.responsavel_id ? "atribuído" : "não atribuído")} />
             <Info icon={CalendarClock} label="Aberto em" value={new Date(chamado.created_at).toLocaleString("pt-BR")} />
             <Info icon={PlayCircle} label="Horário inicial" value={chamado.iniciado_at ? new Date(chamado.iniciado_at).toLocaleString("pt-BR") : "—"} />
-            <Info icon={StopCircle} label="Horário final" value={chamado.finalizado_at ? new Date(chamado.finalizado_at).toLocaleString("pt-BR") : "—"} />
+            {canWrite && status === "resolvido" && !chamado.finalizado_at ? (
+              <div className="group flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 transition">
+                <div className="mt-0.5 shrink-0 rounded p-1 bg-primary/20 text-primary">
+                  <StopCircle className="h-3 w-3" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[9px] uppercase tracking-wider font-mono text-muted-foreground leading-tight">
+                    Horário final {finalizadoAtOverride ? "" : "(auto ao finalizar)"}
+                  </div>
+                  <div className="mt-1 flex items-center gap-1">
+                    <input
+                      type="datetime-local"
+                      value={finalizadoAtOverride}
+                      onChange={(e) => setFinalizadoAtOverride(e.target.value)}
+                      className="flex-1 min-w-0 bg-card border border-border rounded px-1.5 py-1 text-[11px] font-mono focus:outline-none focus:border-primary transition"
+                    />
+                    {finalizadoAtOverride && (
+                      <button
+                        type="button"
+                        title="Usar data/hora atual ao finalizar"
+                        onClick={() => setFinalizadoAtOverride("")}
+                        className="shrink-0 text-[10px] font-mono text-muted-foreground hover:text-foreground px-1.5 py-1 border border-border rounded"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Info icon={StopCircle} label="Horário final" value={chamado.finalizado_at ? new Date(chamado.finalizado_at).toLocaleString("pt-BR") : "—"} />
+            )}
             <Info icon={Timer} label="Duração do atendimento" value={formatDuracao(chamado.iniciado_at ?? chamado.created_at, chamado.finalizado_at, { emAndamento: true })} highlight />
             {chamado.finalizado_at && (
               <Info
