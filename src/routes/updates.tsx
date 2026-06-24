@@ -319,7 +319,7 @@ function UpdatesPage() {
   const filterKeys: Array<Kind | "all"> = ["all", "feat", "fix", "perf", "refactor"];
 
   return (
-    <AppShell title="Updates & Fixes">
+    <AppShell title="Updates">
       <div className="max-w-5xl space-y-6">
         {/* Header */}
         <div className="border border-border bg-card p-6">
