@@ -16,13 +16,46 @@ export const Route = createFileRoute("/estatisticas")({
   component: EstatisticasPage,
 });
 
-type Period = "7d" | "30d" | "90d";
-const PERIOD_LABEL: Record<Period, string> = { "7d": "Últimos 7 dias", "30d": "Últimos 30 dias", "90d": "Últimos 90 dias" };
-function periodStart(p: Period): Date {
+type Period = "7d" | "30d" | "90d" | "mtd" | "custom";
+const PERIOD_LABEL: Record<Period, string> = {
+  "7d": "Últimos 7 dias",
+  "30d": "Últimos 30 dias",
+  "90d": "Últimos 90 dias",
+  mtd: "Este mês",
+  custom: "Personalizado",
+};
+const PRESET_PERIODS: Period[] = ["7d", "30d", "90d", "mtd"];
+function todayStr() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+function firstOfMonthStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+}
+function periodStart(p: Period, customFrom?: string): Date {
+  if (p === "custom" && customFrom) {
+    const d = new Date(customFrom + "T00:00:00");
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  if (p === "mtd") {
+    const n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), 1, 0, 0, 0, 0);
+  }
   const d = new Date(); d.setHours(0, 0, 0, 0);
   const days = p === "7d" ? 7 : p === "30d" ? 30 : 90;
   d.setDate(d.getDate() - (days - 1));
   return d;
+}
+function periodEnd(p: Period, customTo?: string): Date {
+  if (p === "custom" && customTo) {
+    const d = new Date(customTo + "T23:59:59");
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  return new Date();
 }
 
 type ChamadoRow = {
@@ -58,6 +91,8 @@ function fmtDayLabel(d: Date) {
 
 function EstatisticasPage() {
   const [period, setPeriod] = useState<Period>("30d");
+  const [customFrom, setCustomFrom] = useState<string>(firstOfMonthStr());
+  const [customTo, setCustomTo] = useState<string>(todayStr());
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<ChamadoRow[]>([]);
   const [clientesAtivos, setClientesAtivos] = useState(0);
@@ -68,12 +103,14 @@ function EstatisticasPage() {
     (async () => {
       setLoading(true);
       try {
-        const start = periodStart(period);
+        const start = periodStart(period, customFrom);
+        const end = periodEnd(period, customTo);
         const [chamadosRes, clientesRes, novosRes] = await Promise.all([
           supabase
             .from("chamados")
             .select("id,status,prioridade,categoria,tipo_problema,cliente_id,created_at,resolvido_at,clientes(nome)")
             .gte("created_at", start.toISOString())
+            .lte("created_at", end.toISOString())
             .order("created_at", { ascending: false })
             .limit(1000),
           supabase.from("clientes").select("id", { count: "exact", head: true }).eq("status", "ativo"),
@@ -88,7 +125,7 @@ function EstatisticasPage() {
       }
     })();
     return () => { active = false; };
-  }, [period]);
+  }, [period, customFrom, customTo]);
 
   const stats = useMemo(() => {
     const abertos = rows.filter((r) => r.status === "aberto" || r.status === "em_andamento").length;
@@ -148,8 +185,9 @@ function EstatisticasPage() {
   }, [rows]);
 
   const evolucao = useMemo(() => {
-    const start = periodStart(period);
-    const days = Math.ceil((Date.now() - start.getTime()) / 86_400_000) + 1;
+    const start = periodStart(period, customFrom);
+    const end = periodEnd(period, customTo);
+    const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86_400_000) + 1);
     const buckets: Array<{ date: string; abertos: number; resolvidos: number }> = [];
     const idx = new Map<string, number>();
     for (let i = 0; i < days; i++) {
@@ -169,7 +207,7 @@ function EstatisticasPage() {
       }
     }
     return buckets;
-  }, [rows, period]);
+  }, [rows, period, customFrom, customTo]);
 
   const topClientes = useMemo(() => {
     const map = new Map<string, number>();
@@ -228,7 +266,7 @@ function EstatisticasPage() {
           </div>
           <div className="flex items-center gap-2 no-print">
             <div className="flex items-center gap-1 bg-card/60 border border-border/60 rounded-lg p-1">
-            {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => (
+            {PRESET_PERIODS.map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
@@ -239,7 +277,35 @@ function EstatisticasPage() {
                 {PERIOD_LABEL[p]}
               </button>
             ))}
+              <button
+                onClick={() => setPeriod("custom")}
+                className={`px-3 py-1.5 text-xs font-mono rounded-md transition-colors ${
+                  period === "custom" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Personalizado
+              </button>
             </div>
+            {period === "custom" && (
+              <div className="flex items-center gap-1 bg-card/60 border border-border/60 rounded-lg p-1">
+                <input
+                  type="date"
+                  value={customFrom}
+                  max={customTo || undefined}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  className="bg-transparent px-2 py-1 text-xs font-mono text-foreground focus:outline-none"
+                />
+                <span className="text-xs text-muted-foreground">→</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  min={customFrom || undefined}
+                  max={todayStr()}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  className="bg-transparent px-2 py-1 text-xs font-mono text-foreground focus:outline-none"
+                />
+              </div>
+            )}
             <button
               onClick={() => window.print()}
               className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
