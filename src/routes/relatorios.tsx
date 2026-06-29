@@ -63,8 +63,19 @@ function RelatoriosPage() {
   }, []);
 
   useEffect(() => {
-    const fromIso = new Date(dateFrom + "T00:00:00").toISOString();
-    const toIso = new Date(dateTo + "T23:59:59").toISOString();
+    // Validar datas — enquanto o usuário digita o campo pode ficar incompleto
+    // (ex.: "30/05/202") e new Date(...).toISOString() lança RangeError,
+    // quebrando a página com "Something went wrong".
+    const fromDate = new Date(dateFrom + "T00:00:00");
+    const toDate = new Date(dateTo + "T23:59:59");
+    if (
+      !dateFrom || !dateTo ||
+      Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())
+    ) {
+      return;
+    }
+    const fromIso = fromDate.toISOString();
+    const toIso = toDate.toISOString();
     let q = supabase
       .from("chamados")
       .select("id,numero,titulo,status,prioridade,categoria,tecnico_responsavel,cliente_id,created_at,resolvido_at,clientes(nome)")
