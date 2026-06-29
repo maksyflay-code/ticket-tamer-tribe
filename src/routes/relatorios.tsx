@@ -63,34 +63,40 @@ function RelatoriosPage() {
   }, []);
 
   useEffect(() => {
-    // Validar datas — enquanto o usuário digita o campo pode ficar incompleto
-    // (ex.: "30/05/202") e new Date(...).toISOString() lança RangeError,
-    // quebrando a página com "Something went wrong".
-    const fromDate = new Date(dateFrom + "T00:00:00");
-    const toDate = new Date(dateTo + "T23:59:59");
-    if (
-      !dateFrom || !dateTo ||
-      Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())
-    ) {
-      return;
-    }
-    const fromIso = fromDate.toISOString();
-    const toIso = toDate.toISOString();
-    let q = supabase
-      .from("chamados")
-      .select("id,numero,titulo,status,prioridade,categoria,tecnico_responsavel,cliente_id,created_at,resolvido_at,clientes(nome)")
-      .gte("created_at", fromIso)
-      .lte("created_at", toIso)
-      .order("created_at", { ascending: false });
-    if (statusFilter !== "todos") q = q.eq("status", statusFilter as never);
-    if (prioridadeFilter !== "todos") q = q.eq("prioridade", prioridadeFilter as never);
-    if (clienteFilter !== "todos") q = q.eq("cliente_id", clienteFilter);
-    if (responsavelFilter === "nao_atribuidos") q = q.is("responsavel_id", null);
-    else if (responsavelFilter !== "todos") q = q.eq("responsavel_id", responsavelFilter);
-    q.then(({ data, error }) => {
-      if (error) toast.error(error.message);
-      setRows((data as unknown as Row[]) ?? []);
-    });
+    // Validar datas — enquanto o usuário digita o ano pode passar por valores
+    // intermediários ("0020", "0202") que disparam queries enormes e travam a UI.
+    // Exigimos formato YYYY-MM-DD com ano entre 2000 e 2100 antes de consultar.
+    const isValidDateStr = (s: string) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+      const y = Number(s.slice(0, 4));
+      if (y < 2000 || y > 2100) return false;
+      const d = new Date(s + "T00:00:00");
+      return !Number.isNaN(d.getTime());
+    };
+    if (!isValidDateStr(dateFrom) || !isValidDateStr(dateTo)) return;
+    if (dateFrom > dateTo) return;
+
+    // Debounce para evitar disparar uma query a cada tecla digitada.
+    const handle = setTimeout(() => {
+      const fromIso = new Date(dateFrom + "T00:00:00").toISOString();
+      const toIso = new Date(dateTo + "T23:59:59").toISOString();
+      let q = supabase
+        .from("chamados")
+        .select("id,numero,titulo,status,prioridade,categoria,tecnico_responsavel,cliente_id,created_at,resolvido_at,clientes(nome)")
+        .gte("created_at", fromIso)
+        .lte("created_at", toIso)
+        .order("created_at", { ascending: false });
+      if (statusFilter !== "todos") q = q.eq("status", statusFilter as never);
+      if (prioridadeFilter !== "todos") q = q.eq("prioridade", prioridadeFilter as never);
+      if (clienteFilter !== "todos") q = q.eq("cliente_id", clienteFilter);
+      if (responsavelFilter === "nao_atribuidos") q = q.is("responsavel_id", null);
+      else if (responsavelFilter !== "todos") q = q.eq("responsavel_id", responsavelFilter);
+      q.then(({ data, error }) => {
+        if (error) toast.error(error.message);
+        setRows((data as unknown as Row[]) ?? []);
+      });
+    }, 400);
+    return () => clearTimeout(handle);
   }, [dateFrom, dateTo, statusFilter, prioridadeFilter, clienteFilter, responsavelFilter]);
 
   const stats = useMemo(() => {
