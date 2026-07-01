@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock, Bell, Network, FolderArchive, ClipboardList, Sparkles, PieChart, Wrench } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock, Bell, Network, FolderArchive, ClipboardList, PieChart, Wrench } from "lucide-react";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { SessionExpiryWarning } from "@/components/SessionExpiryWarning";
 import logo from "@/assets/ivi-logo.jpeg";
@@ -146,19 +146,6 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
                 </Link>
               );
             })}
-            <Link
-              to="/updates"
-              onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 text-sm font-mono transition-colors border-l-2",
-                path.startsWith("/updates")
-                  ? "bg-accent text-primary border-primary"
-                  : "text-muted-foreground border-transparent hover:text-foreground hover:bg-secondary/50",
-              )}
-            >
-              <Sparkles className="h-4 w-4" />
-              <span>Updates & Fixes</span>
-            </Link>
           </div>
         </nav>
         <div className="p-4 border-t border-sidebar-border">
