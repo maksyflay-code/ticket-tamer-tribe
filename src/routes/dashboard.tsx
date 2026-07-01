@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { toast } from "sonner";
 import { ArrowUpRight, Clock, CheckCircle2, AlertTriangle, Users, Target, UserPlus, Trophy, Medal, Award, TrendingUp, Zap, Activity, RotateCcw, Inbox, ChevronLeft, ChevronRight, Flame, MessageSquare, UserCheck, ArrowRight, GitBranch, Wifi, Wrench } from "lucide-react";
-import { totalDowntime, uptimePct, fmtUptime, fmtDowntime, type ChamadoUptime } from "@/lib/uptime";
+import { totalDowntime, uptimePct, fmtUptime, fmtDowntime, isNonDowntimeTipo, type ChamadoUptime } from "@/lib/uptime";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { listAssignableOperators } from "@/lib/operators.functions";
 import { authHeaders } from "@/lib/server-call";
@@ -146,7 +146,7 @@ function DashboardPage() {
       supabase.from("chamado_historico").select("chamado_id,status_anterior,status_novo,created_at,tipo").eq("tipo","mudanca_status").gte("created_at", start.toISOString()),
       supabase.from("chamados").select("created_at,resolvido_at").gte("created_at", startSpark.toISOString()),
       // Para uptime do mês: pega chamados que se sobrepõem ao mês corrente
-      supabase.from("chamados").select("cliente_id,created_at,resolvido_at")
+      supabase.from("chamados").select("cliente_id,created_at,resolvido_at,tipo_problema")
         .or(`resolvido_at.is.null,resolvido_at.gte.${mw.start.toISOString()}`),
       supabase.from("clientes").select("id", { count: "exact", head: true }).eq("status", "ativo"),
       // Métricas de solicitações
@@ -199,7 +199,8 @@ function DashboardPage() {
     };
 
     // Uptime do mês corrente
-    const upChamados = ((chamadosMesUp.data ?? []) as ChamadoUptime[]);
+    const upChamadosRaw = ((chamadosMesUp.data ?? []) as (ChamadoUptime & { tipo_problema: string | null })[]);
+    const upChamados: ChamadoUptime[] = upChamadosRaw.filter((c) => !isNonDowntimeTipo(c.tipo_problema));
     const downH = totalDowntime(upChamados, mw.start, mw.end);
     const clientesAtivos = clientesAtivosRes.count ?? 0;
     stats.downtimeMesH = downH;

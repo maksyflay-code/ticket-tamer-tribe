@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { requireAuth } from "@/lib/guard";
 import { Plus, Search, Trash2, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { monthWindow, downtimeByCliente, uptimePct, fmtUptime, type ChamadoUptime } from "@/lib/uptime";
+import { monthWindow, downtimeByCliente, uptimePct, fmtUptime, isNonDowntimeTipo, type ChamadoUptime } from "@/lib/uptime";
 
 export const Route = createFileRoute("/clientes")({
   beforeLoad: requireAuth,
@@ -78,10 +78,12 @@ function ClientesPage() {
       const mw = monthWindow();
       const { data } = await supabase
         .from("chamados")
-        .select("cliente_id,created_at,resolvido_at")
+        .select("cliente_id,created_at,resolvido_at,tipo_problema")
         .or(`resolvido_at.is.null,resolvido_at.gte.${mw.start.toISOString()}`);
       if (!active) return;
-      const map = downtimeByCliente((data ?? []) as ChamadoUptime[], mw.start, mw.end);
+      const raw = (data ?? []) as (ChamadoUptime & { tipo_problema: string | null })[];
+      const filtered = raw.filter((c) => !isNonDowntimeTipo(c.tipo_problema));
+      const map = downtimeByCliente(filtered, mw.start, mw.end);
       setUptimeMap(map);
       setMwHours(mw.hours);
     })();

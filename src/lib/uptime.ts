@@ -9,6 +9,17 @@ export type ChamadoUptime = {
   resolvido_at: string | null;
 };
 
+// Tipos de problema que NÃO contam como downtime (cliente não está off).
+// Normaliza removendo acentos, espaços e caixa.
+export function isNonDowntimeTipo(tipo: string | null | undefined): boolean {
+  const norm = (tipo ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toUpperCase();
+  return norm === "ATENUACAO" || norm === "VERIFICACAO DE ROTAS";
+}
+
 export function monthWindow(now: Date = new Date()): { start: Date; end: Date; hours: number } {
   const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
   const end = now;
