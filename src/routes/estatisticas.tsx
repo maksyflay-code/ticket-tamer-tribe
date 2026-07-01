@@ -25,6 +25,7 @@ const PERIOD_LABEL: Record<Period, string> = {
   custom: "Personalizado",
 };
 const PRESET_PERIODS: Period[] = ["7d", "30d", "90d", "mtd"];
+// Filtros de período: 7d, 30d, 90d, Este mês (mtd) e Personalizado (custom).
 function todayStr() {
   const d = new Date();
   const y = d.getFullYear();
