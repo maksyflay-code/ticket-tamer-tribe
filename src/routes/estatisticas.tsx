@@ -91,7 +91,7 @@ function fmtDayLabel(d: Date) {
 }
 
 function EstatisticasPage() {
-  const [period, setPeriod] = useState<Period>("30d");
+  const [period, setPeriod] = useState<Period>("mtd");
   const [customFrom, setCustomFrom] = useState<string>(firstOfMonthStr());
   const [customTo, setCustomTo] = useState<string>(todayStr());
   const [loading, setLoading] = useState(true);
@@ -261,19 +261,19 @@ function EstatisticasPage() {
               Período: {PERIOD_LABEL[period]} — Gerado em {new Date().toLocaleString("pt-BR")}
             </p>
           </div>
-          <div className="flex items-center gap-2 no-print">
-            <div className="flex items-center gap-1 bg-card/60 border border-border/60 rounded-lg p-1">
-            {PRESET_PERIODS.map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 text-xs font-mono rounded-md transition-colors ${
-                  period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {PERIOD_LABEL[p]}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center justify-end gap-2 no-print">
+            <div className="flex flex-wrap items-center gap-1 bg-card/60 border border-border/60 rounded-lg p-1">
+              {PRESET_PERIODS.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`px-3 py-1.5 text-xs font-mono rounded-md transition-colors ${
+                    period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {PERIOD_LABEL[p]}
+                </button>
+              ))}
               <button
                 onClick={() => setPeriod("custom")}
                 className={`px-3 py-1.5 text-xs font-mono rounded-md transition-colors ${
@@ -283,26 +283,31 @@ function EstatisticasPage() {
                 Personalizado
               </button>
             </div>
-            {period === "custom" && (
-              <div className="flex items-center gap-1 bg-card/60 border border-border/60 rounded-lg p-1">
-                <input
-                  type="date"
-                  value={customFrom}
-                  max={customTo || undefined}
-                  onChange={(e) => setCustomFrom(e.target.value)}
-                  className="bg-transparent px-2 py-1 text-xs font-mono text-foreground focus:outline-none"
-                />
-                <span className="text-xs text-muted-foreground">→</span>
-                <input
-                  type="date"
-                  value={customTo}
-                  min={customFrom || undefined}
-                  max={todayStr()}
-                  onChange={(e) => setCustomTo(e.target.value)}
-                  className="bg-transparent px-2 py-1 text-xs font-mono text-foreground focus:outline-none"
-                />
-              </div>
-            )}
+            <div className="flex flex-wrap items-center gap-2 bg-card/60 border border-border/60 rounded-lg p-1.5">
+              <span className="px-1 text-[11px] font-mono uppercase text-muted-foreground">De</span>
+              <input
+                type="date"
+                value={customFrom}
+                max={customTo || undefined}
+                onChange={(e) => {
+                  setCustomFrom(e.target.value);
+                  setPeriod("custom");
+                }}
+                className="bg-transparent px-2 py-1 text-xs font-mono text-foreground focus:outline-none"
+              />
+              <span className="px-1 text-[11px] font-mono uppercase text-muted-foreground">Até</span>
+              <input
+                type="date"
+                value={customTo}
+                min={customFrom || undefined}
+                max={todayStr()}
+                onChange={(e) => {
+                  setCustomTo(e.target.value);
+                  setPeriod("custom");
+                }}
+                className="bg-transparent px-2 py-1 text-xs font-mono text-foreground focus:outline-none"
+              />
+            </div>
             <button
               onClick={() => window.print()}
               className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
