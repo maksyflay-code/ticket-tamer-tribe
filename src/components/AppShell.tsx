@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Activity, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock, Bell, Network, FolderArchive, ClipboardList, PieChart, Wrench } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, BarChart3, LogOut, Package, UserCog, UserCircle, ShieldCheck, Shield, Eye, Server, Menu, FileText, Clock, Bell, Network, FolderArchive, ClipboardList, PieChart, Wrench } from "lucide-react";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { SessionExpiryWarning } from "@/components/SessionExpiryWarning";
 import logo from "@/assets/ivi-logo.jpeg";
