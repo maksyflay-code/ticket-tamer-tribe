@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
-import { Route as UpdatesRouteImport } from './routes/updates'
 import { Route as TransitoVtalRouteImport } from './routes/transito-vtal'
 import { Route as SolicitacoesRouteImport } from './routes/solicitacoes'
 import { Route as RfoRouteImport } from './routes/rfo'
@@ -36,11 +35,6 @@ import { Route as ApiPublicHooksTelegramManutencaoRouteImport } from './routes/a
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UpdatesRoute = UpdatesRouteImport.update({
-  id: '/updates',
-  path: '/updates',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TransitoVtalRoute = TransitoVtalRouteImport.update({
@@ -168,7 +162,6 @@ export interface FileRoutesByFullPath {
   '/rfo': typeof RfoRoute
   '/solicitacoes': typeof SolicitacoesRoute
   '/transito-vtal': typeof TransitoVtalRoute
-  '/updates': typeof UpdatesRoute
   '/usuarios': typeof UsuariosRoute
   '/clientes/$id': typeof ClientesIdRoute
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
@@ -193,7 +186,6 @@ export interface FileRoutesByTo {
   '/rfo': typeof RfoRoute
   '/solicitacoes': typeof SolicitacoesRoute
   '/transito-vtal': typeof TransitoVtalRoute
-  '/updates': typeof UpdatesRoute
   '/usuarios': typeof UsuariosRoute
   '/clientes/$id': typeof ClientesIdRoute
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
@@ -219,7 +211,6 @@ export interface FileRoutesById {
   '/rfo': typeof RfoRoute
   '/solicitacoes': typeof SolicitacoesRoute
   '/transito-vtal': typeof TransitoVtalRoute
-  '/updates': typeof UpdatesRoute
   '/usuarios': typeof UsuariosRoute
   '/clientes_/$id': typeof ClientesIdRoute
   '/configuracoes/sla': typeof ConfiguracoesSlaRoute
@@ -246,7 +237,6 @@ export interface FileRouteTypes {
     | '/rfo'
     | '/solicitacoes'
     | '/transito-vtal'
-    | '/updates'
     | '/usuarios'
     | '/clientes/$id'
     | '/configuracoes/sla'
@@ -271,7 +261,6 @@ export interface FileRouteTypes {
     | '/rfo'
     | '/solicitacoes'
     | '/transito-vtal'
-    | '/updates'
     | '/usuarios'
     | '/clientes/$id'
     | '/configuracoes/sla'
@@ -296,7 +285,6 @@ export interface FileRouteTypes {
     | '/rfo'
     | '/solicitacoes'
     | '/transito-vtal'
-    | '/updates'
     | '/usuarios'
     | '/clientes_/$id'
     | '/configuracoes/sla'
@@ -322,7 +310,6 @@ export interface RootRouteChildren {
   RfoRoute: typeof RfoRoute
   SolicitacoesRoute: typeof SolicitacoesRoute
   TransitoVtalRoute: typeof TransitoVtalRoute
-  UpdatesRoute: typeof UpdatesRoute
   UsuariosRoute: typeof UsuariosRoute
   ClientesIdRoute: typeof ClientesIdRoute
   ConfiguracoesSlaRoute: typeof ConfiguracoesSlaRoute
@@ -337,13 +324,6 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof UsuariosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/updates': {
-      id: '/updates'
-      path: '/updates'
-      fullPath: '/updates'
-      preLoaderRoute: typeof UpdatesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/transito-vtal': {
@@ -525,7 +505,6 @@ const rootRouteChildren: RootRouteChildren = {
   RfoRoute: RfoRoute,
   SolicitacoesRoute: SolicitacoesRoute,
   TransitoVtalRoute: TransitoVtalRoute,
-  UpdatesRoute: UpdatesRoute,
   UsuariosRoute: UsuariosRoute,
   ClientesIdRoute: ClientesIdRoute,
   ConfiguracoesSlaRoute: ConfiguracoesSlaRoute,
@@ -535,3 +514,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
