@@ -101,11 +101,20 @@ function EstatisticasPage() {
 
   useEffect(() => {
     let active = true;
-    (async () => {
+    const run = async () => {
       setLoading(true);
       try {
         const start = periodStart(period, customFrom);
         const end = periodEnd(period, customTo);
+        // Ignora datas inválidas / anos incompletos digitados (ex: 01/06/2)
+        if (period === "custom") {
+          const y1 = Number((customFrom || "").slice(0, 4));
+          const y2 = Number((customTo || "").slice(0, 4));
+          if (!y1 || !y2 || y1 < 2000 || y2 < 2000 || start > end) {
+            if (active) setLoading(false);
+            return;
+          }
+        }
         const [chamadosRes, clientesRes, novosRes] = await Promise.all([
           supabase
             .from("chamados")
@@ -124,8 +133,11 @@ function EstatisticasPage() {
       } finally {
         if (active) setLoading(false);
       }
-    })();
-    return () => { active = false; };
+    };
+    // Debounce enquanto o usuário digita a data
+    const delay = period === "custom" ? 450 : 0;
+    const t = setTimeout(run, delay);
+    return () => { active = false; clearTimeout(t); };
   }, [period, customFrom, customTo]);
 
   const stats = useMemo(() => {
