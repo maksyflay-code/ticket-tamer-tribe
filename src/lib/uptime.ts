@@ -1,5 +1,8 @@
 // Cálculo de uptime/downtime baseado em chamados.
-// Downtime = soma da sobreposição [created_at, resolvido_at|now] com a janela.
+// Downtime = soma da sobreposição [iniciado_at|created_at, finalizado_at|resolvido_at|now] com a janela.
+// Quando o operador ajusta o horário real de início/fim do atendimento
+// (iniciado_at / finalizado_at) o cálculo prioriza esses valores em vez do
+// created_at/resolvido_at do chamado.
 // Uptime global = 1 - (downtimeTotal / (clientesAtivos * janelaHoras)).
 // Uptime por cliente = 1 - (downtimeCliente / janelaHoras), limitado a [0,1].
 
@@ -7,6 +10,8 @@ export type ChamadoUptime = {
   cliente_id: string | null;
   created_at: string;
   resolvido_at: string | null;
+  iniciado_at?: string | null;
+  finalizado_at?: string | null;
 };
 
 // Tipos de problema que NÃO contam como downtime (cliente não está off).
@@ -28,8 +33,13 @@ export function monthWindow(now: Date = new Date()): { start: Date; end: Date; h
 }
 
 function overlapHours(c: ChamadoUptime, start: Date, end: Date): number {
-  const cs = new Date(c.created_at).getTime();
-  const ce = c.resolvido_at ? new Date(c.resolvido_at).getTime() : end.getTime();
+  const cs = new Date(c.iniciado_at ?? c.created_at).getTime();
+  const ce = c.finalizado_at
+    ? new Date(c.finalizado_at).getTime()
+    : c.resolvido_at
+      ? new Date(c.resolvido_at).getTime()
+      : end.getTime();
+  if (!Number.isFinite(cs) || !Number.isFinite(ce) || ce <= cs) return 0;
   const s = Math.max(cs, start.getTime());
   const e = Math.min(ce, end.getTime());
   return Math.max(0, (e - s) / 3_600_000);
