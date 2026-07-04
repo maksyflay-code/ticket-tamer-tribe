@@ -774,6 +774,72 @@ function fmtDelta(curr: number, prev: number): string {
   return `${sign}${Math.abs(diff)} (${pct.toFixed(0)}%)`;
 }
 
+function KpiCompare({
+  icon: Icon, label, hint, value, prev, format, lowerIsBetter, loading, tone,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  hint?: string;
+  value: number | null;
+  prev: number | null;
+  format: (n: number) => string;
+  lowerIsBetter: boolean;
+  loading?: boolean;
+  tone: "primary" | "emerald" | "amber" | "indigo" | "cyan";
+}) {
+  const tones: Record<string, string> = {
+    primary: "text-primary bg-primary/10 border-primary/20",
+    emerald: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+    amber: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+    indigo: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
+    cyan: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
+  };
+  let delta: { pct: number; up: boolean; flat: boolean; good: boolean } | null = null;
+  if (value != null && prev != null && Number.isFinite(value) && Number.isFinite(prev)) {
+    const diff = value - prev;
+    const flat = Math.abs(diff) < 1e-6 || (prev === 0 && value === 0);
+    const pct = prev === 0 ? (value === 0 ? 0 : 100) : Math.abs(diff / prev) * 100;
+    const up = diff > 0;
+    const good = flat ? true : lowerIsBetter ? !up : up;
+    delta = { pct, up, flat, good };
+  }
+  return (
+    <div className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-sm p-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">{label}</span>
+        <span className={`h-7 w-7 rounded-md border flex items-center justify-center ${tones[tone]}`}>
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+      </div>
+      {loading ? (
+        <Skeleton className="h-7 w-24" />
+      ) : (
+        <div className="flex items-baseline gap-2">
+          <div className="font-display text-2xl font-bold tabular-nums">
+            {value != null ? format(value) : "—"}
+          </div>
+          {delta && (
+            <span
+              className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-mono ${
+                delta.flat
+                  ? "text-muted-foreground bg-secondary/60"
+                  : delta.good
+                    ? "text-emerald-400 bg-emerald-500/10"
+                    : "text-red-400 bg-red-500/10"
+              }`}
+              title={prev != null ? `Antes: ${format(prev)}` : ""}
+            >
+              {delta.flat ? <Minus className="h-3 w-3" /> : delta.up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+              {delta.pct.toFixed(0)}%
+            </span>
+          )}
+        </div>
+      )}
+      {hint && <div className="text-[11px] text-muted-foreground mt-0.5">{hint}{prev != null && value != null ? ` — antes ${format(prev)}` : ""}</div>}
+    </div>
+  );
+}
+
 const AXIS_COLOR = "#94a3b8"; // slate-400 — legível no fundo escuro
 const GRID_COLOR = "#1e293b"; // slate-800
 const tooltipStyle = {
