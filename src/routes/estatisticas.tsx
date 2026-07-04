@@ -98,6 +98,11 @@ function EstatisticasPage() {
   const [rows, setRows] = useState<ChamadoRow[]>([]);
   const [clientesAtivos, setClientesAtivos] = useState(0);
   const [novosClientes, setNovosClientes] = useState(0);
+  // Janela validada (só atualiza após debounce + validação) — evita travar a UI com datas parciais
+  const [range, setRange] = useState<{ start: Date; end: Date }>(() => ({
+    start: periodStart("mtd"),
+    end: periodEnd("mtd"),
+  }));
 
   useEffect(() => {
     let active = true;
@@ -127,6 +132,7 @@ function EstatisticasPage() {
           supabase.from("clientes").select("id", { count: "exact", head: true }).gte("created_at", start.toISOString()),
         ]);
         if (!active) return;
+        setRange({ start, end });
         setRows((chamadosRes.data ?? []) as ChamadoRow[]);
         setClientesAtivos(clientesRes.count ?? 0);
         setNovosClientes(novosRes.count ?? 0);
