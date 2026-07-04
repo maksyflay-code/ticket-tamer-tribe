@@ -8,7 +8,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area,
 } from "recharts";
-import { Activity, AlertTriangle, CheckCircle2, Users, Ticket, Wifi, TrendingUp, Printer } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, Users, Ticket, Wifi, TrendingUp, Printer, Timer, Zap, ArrowDown, ArrowUp, Minus } from "lucide-react";
 import { downtimeByCliente, totalDowntime, uptimePct, fmtUptime, fmtDowntime, isNonDowntimeTipo, type ChamadoUptime } from "@/lib/uptime";
 
 export const Route = createFileRoute("/estatisticas")({
@@ -98,6 +98,8 @@ function EstatisticasPage() {
   const [customTo, setCustomTo] = useState<string>(todayStr());
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<ChamadoRow[]>([]);
+  const [prevRows, setPrevRows] = useState<ChamadoRow[]>([]);
+  const [prevRange, setPrevRange] = useState<{ start: Date; end: Date } | null>(null);
   const [clientesAtivos, setClientesAtivos] = useState(0);
   const [novosClientes, setNovosClientes] = useState(0);
   // Janela validada (só atualiza após debounce + validação) — evita travar a UI com datas parciais
@@ -122,7 +124,10 @@ function EstatisticasPage() {
             return;
           }
         }
-        const [chamadosRes, clientesRes, novosRes] = await Promise.all([
+        const spanMs = end.getTime() - start.getTime();
+        const prevEnd = new Date(start.getTime() - 1);
+        const prevStart = new Date(prevEnd.getTime() - spanMs);
+        const [chamadosRes, clientesRes, novosRes, prevChamadosRes] = await Promise.all([
           supabase
             .from("chamados")
             .select("id,status,prioridade,categoria,tipo_problema,cliente_id,created_at,resolvido_at,iniciado_at,finalizado_at,clientes(nome)")
@@ -132,10 +137,19 @@ function EstatisticasPage() {
             .limit(1000),
           supabase.from("clientes").select("id", { count: "exact", head: true }).eq("status", "ativo"),
           supabase.from("clientes").select("id", { count: "exact", head: true }).gte("created_at", start.toISOString()),
+          supabase
+            .from("chamados")
+            .select("id,status,prioridade,categoria,tipo_problema,cliente_id,created_at,resolvido_at,iniciado_at,finalizado_at,clientes(nome)")
+            .gte("created_at", prevStart.toISOString())
+            .lte("created_at", prevEnd.toISOString())
+            .order("created_at", { ascending: false })
+            .limit(1000),
         ]);
         if (!active) return;
         setRange({ start, end });
+        setPrevRange({ start: prevStart, end: prevEnd });
         setRows((chamadosRes.data ?? []) as ChamadoRow[]);
+        setPrevRows((prevChamadosRes.data ?? []) as ChamadoRow[]);
         setClientesAtivos(clientesRes.count ?? 0);
         setNovosClientes(novosRes.count ?? 0);
       } finally {
@@ -160,6 +174,68 @@ function EstatisticasPage() {
     }
     const tempoMedio = count > 0 ? tempoTotal / count : 0;
     return { abertos, resolvidos, total: rows.length, tempoMedio };
+  }, [rows]);
+
+  // MTTR/TTFR agregado do período
+  const mttrTtfr = useMemo(() => computeMttrTtfr(rows), [rows]);
+  const prevMttrTtfr = useMemo(() => computeMttrTtfr(prevRows), [prevRows]);
+  const prevStats = useMemo(() => {
+    let tempoTotal = 0; let count = 0;
+    for (const r of prevRows) {
+      if (r.resolvido_at) {
+        const h = (new Date(r.resolvido_at).getTime() - new Date(r.created_at).getTime()) / 3_600_000;
+        if (h >= 0) { tempoTotal += h; count++; }
+      }
+    }
+    return { total: prevRows.length, tempoMedio: count > 0 ? tempoTotal / count : 0 };
+  }, [prevRows]);
+
+  const prevUptimeGeral = useMemo(() => {
+    if (!prevRange) return null;
+    const { start, end } = prevRange;
+    const hours = Math.max(1 / 60, (end.getTime() - start.getTime()) / 3_600_000);
+    const chamadosUp: ChamadoUptime[] = prevRows
+      .filter((r) => r.cliente_id && !isNonDowntimeTipo(r.tipo_problema))
+      .map((r) => ({
+        cliente_id: r.cliente_id,
+        created_at: r.created_at,
+        resolvido_at: r.resolvido_at,
+        iniciado_at: r.iniciado_at,
+        finalizado_at: r.finalizado_at,
+      }));
+    const dt = totalDowntime(chamadosUp, start, end);
+    return uptimePct(dt, hours, Math.max(1, clientesAtivos));
+  }, [prevRows, prevRange, clientesAtivos]);
+
+  const mttrTtfrPorCliente = useMemo(() => {
+    type Agg = { nome: string; mttrH: number; ttfrH: number; mttrN: number; ttfrN: number };
+    const map = new Map<string, Agg>();
+    for (const r of rows) {
+      if (!r.cliente_id) continue;
+      const nome = r.clientes?.nome ?? "—";
+      const a = map.get(r.cliente_id) ?? { nome, mttrH: 0, ttfrH: 0, mttrN: 0, ttfrN: 0 };
+      const created = new Date(r.created_at).getTime();
+      const fim = r.finalizado_at ? new Date(r.finalizado_at).getTime()
+        : r.resolvido_at ? new Date(r.resolvido_at).getTime() : null;
+      if (fim != null) {
+        const h = (fim - created) / 3_600_000;
+        if (h >= 0) { a.mttrH += h; a.mttrN += 1; }
+      }
+      if (r.iniciado_at) {
+        const h = (new Date(r.iniciado_at).getTime() - created) / 3_600_000;
+        if (h >= 0) { a.ttfrH += h; a.ttfrN += 1; }
+      }
+      map.set(r.cliente_id, a);
+    }
+    return Array.from(map.values())
+      .filter((a) => a.mttrN > 0 || a.ttfrN > 0)
+      .map((a) => ({
+        nome: a.nome,
+        mttr: a.mttrN > 0 ? a.mttrH / a.mttrN : null,
+        ttfr: a.ttfrN > 0 ? a.ttfrH / a.ttfrN : null,
+      }))
+      .sort((a, b) => (b.mttr ?? 0) - (a.mttr ?? 0))
+      .slice(0, 10);
   }, [rows]);
 
   const porStatus = useMemo(() => {
@@ -267,6 +343,12 @@ function EstatisticasPage() {
       .slice(0, 10);
   }, [rows, range]);
 
+  const topDowntime = useMemo(() => {
+    return [...uptimePorCliente]
+      .sort((a, b) => b.downtimeH - a.downtimeH)
+      .slice(0, 5);
+  }, [uptimePorCliente]);
+
   const uptimeGeral = useMemo(() => {
     const { start, end } = range;
     const hours = Math.max(1 / 60, (end.getTime() - start.getTime()) / 3_600_000);
@@ -358,9 +440,53 @@ function EstatisticasPage() {
           <Kpi icon={Ticket} label="Total chamados" value={stats.total} loading={loading} tone="primary" />
           <Kpi icon={AlertTriangle} label="Em aberto" value={stats.abertos} loading={loading} tone="amber" />
           <Kpi icon={CheckCircle2} label="Resolvidos" value={stats.resolvidos} loading={loading} tone="emerald" />
-          <Kpi icon={Activity} label="Tempo médio" value={`${stats.tempoMedio.toFixed(1)}h`} loading={loading} tone="indigo" />
           <Kpi icon={Users} label="Clientes ativos" value={clientesAtivos} loading={loading} tone="cyan" subtitle={`+${novosClientes} no período`} />
           <Kpi icon={Wifi} label="Uptime do mês" value={fmtUptime(uptimeGeral)} loading={loading} tone="emerald" />
+          <Kpi
+            icon={Ticket}
+            label="Vs período anterior"
+            value={fmtDelta(stats.total, prevStats.total)}
+            loading={loading}
+            tone="indigo"
+            subtitle={`Antes: ${prevStats.total} chamados`}
+          />
+        </div>
+
+        {/* KPIs — MTTR / TTFR / Uptime com comparativo */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <KpiCompare
+            icon={Timer}
+            label="MTTR"
+            hint="Tempo médio até resolução"
+            value={mttrTtfr.mttr}
+            prev={prevMttrTtfr.mttr}
+            format={fmtHours}
+            lowerIsBetter
+            loading={loading}
+            tone="indigo"
+          />
+          <KpiCompare
+            icon={Zap}
+            label="TTFR"
+            hint="Tempo até primeiro atendimento"
+            value={mttrTtfr.ttfr}
+            prev={prevMttrTtfr.ttfr}
+            format={fmtHours}
+            lowerIsBetter
+            loading={loading}
+            tone="amber"
+          />
+          <KpiCompare
+            icon={Wifi}
+            label="Uptime"
+            hint="Vs período anterior"
+            value={uptimeGeral}
+            prev={prevUptimeGeral}
+            format={fmtUptime}
+            lowerIsBetter={false}
+            loading={loading}
+            tone="emerald"
+          />
         </div>
 
         {/* Charts grid */}
@@ -546,9 +672,171 @@ function EstatisticasPage() {
               </div>
             )}
           </ChartCard>
+
+          <ChartCard
+            title="Top 5 clientes com mais downtime"
+            hint="Horas indisponíveis na janela"
+            className="lg:col-span-1"
+            icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
+          >
+            {loading ? <ChartSkeleton h={260} /> : topDowntime.length === 0 ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                Nenhum downtime registrado no período.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {(() => {
+                  const max = Math.max(...topDowntime.map((c) => c.downtimeH), 0.001);
+                  return topDowntime.map((c, i) => (
+                    <div key={c.name} className="flex items-center gap-3 text-sm">
+                      <span className="w-5 text-center font-mono text-xs text-muted-foreground">{i + 1}</span>
+                      <div className="w-32 shrink-0 truncate font-medium" title={c.name}>{c.name}</div>
+                      <div className="flex-1 h-3 rounded-full bg-secondary/60 overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-red-500 to-orange-400" style={{ width: `${(c.downtimeH / max) * 100}%` }} />
+                      </div>
+                      <div className="w-16 text-right font-mono tabular-nums text-foreground">{fmtDowntime(c.downtimeH)}</div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
+          </ChartCard>
+
+          <ChartCard
+            title="MTTR e TTFR por cliente"
+            hint="10 clientes com maior MTTR"
+            className="lg:col-span-2"
+            icon={<Timer className="h-4 w-4 text-indigo-400" />}
+          >
+            {loading ? <ChartSkeleton h={260} /> : mttrTtfrPorCliente.length === 0 ? <Empty /> : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs font-mono uppercase text-muted-foreground border-b border-border/60">
+                      <th className="py-2 px-3">Cliente</th>
+                      <th className="py-2 px-3 text-right">MTTR</th>
+                      <th className="py-2 px-3 text-right">TTFR</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mttrTtfrPorCliente.map((c) => (
+                      <tr key={c.nome} className="border-b border-border/30 last:border-0">
+                        <td className="py-2 px-3 font-medium truncate max-w-[240px]" title={c.nome}>{c.nome}</td>
+                        <td className="py-2 px-3 text-right font-mono tabular-nums">{c.mttr != null ? fmtHours(c.mttr) : "—"}</td>
+                        <td className="py-2 px-3 text-right font-mono tabular-nums text-muted-foreground">{c.ttfr != null ? fmtHours(c.ttfr) : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </ChartCard>
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function computeMttrTtfr(rows: ChamadoRow[]): { mttr: number | null; ttfr: number | null } {
+  let mttrH = 0, mttrN = 0, ttfrH = 0, ttfrN = 0;
+  for (const r of rows) {
+    const created = new Date(r.created_at).getTime();
+    const fim = r.finalizado_at ? new Date(r.finalizado_at).getTime()
+      : r.resolvido_at ? new Date(r.resolvido_at).getTime() : null;
+    if (fim != null) {
+      const h = (fim - created) / 3_600_000;
+      if (h >= 0) { mttrH += h; mttrN += 1; }
+    }
+    if (r.iniciado_at) {
+      const h = (new Date(r.iniciado_at).getTime() - created) / 3_600_000;
+      if (h >= 0) { ttfrH += h; ttfrN += 1; }
+    }
+  }
+  return {
+    mttr: mttrN > 0 ? mttrH / mttrN : null,
+    ttfr: ttfrN > 0 ? ttfrH / ttfrN : null,
+  };
+}
+
+function fmtHours(h: number): string {
+  if (!Number.isFinite(h)) return "—";
+  if (h < 1) return `${Math.round(h * 60)}min`;
+  if (h < 24) return `${h.toFixed(1)}h`;
+  const d = Math.floor(h / 24);
+  const r = Math.round(h - d * 24);
+  return `${d}d ${r}h`;
+}
+
+function fmtDelta(curr: number, prev: number): string {
+  const diff = curr - prev;
+  const sign = diff > 0 ? "+" : diff < 0 ? "−" : "±";
+  const pct = prev === 0 ? (curr === 0 ? 0 : 100) : Math.abs(diff / prev) * 100;
+  return `${sign}${Math.abs(diff)} (${pct.toFixed(0)}%)`;
+}
+
+function KpiCompare({
+  icon: Icon, label, hint, value, prev, format, lowerIsBetter, loading, tone,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  hint?: string;
+  value: number | null;
+  prev: number | null;
+  format: (n: number) => string;
+  lowerIsBetter: boolean;
+  loading?: boolean;
+  tone: "primary" | "emerald" | "amber" | "indigo" | "cyan";
+}) {
+  const tones: Record<string, string> = {
+    primary: "text-primary bg-primary/10 border-primary/20",
+    emerald: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+    amber: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+    indigo: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
+    cyan: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
+  };
+  let delta: { pct: number; up: boolean; flat: boolean; good: boolean } | null = null;
+  if (value != null && prev != null && Number.isFinite(value) && Number.isFinite(prev)) {
+    const diff = value - prev;
+    const flat = Math.abs(diff) < 1e-6 || (prev === 0 && value === 0);
+    const pct = prev === 0 ? (value === 0 ? 0 : 100) : Math.abs(diff / prev) * 100;
+    const up = diff > 0;
+    const good = flat ? true : lowerIsBetter ? !up : up;
+    delta = { pct, up, flat, good };
+  }
+  return (
+    <div className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-sm p-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">{label}</span>
+        <span className={`h-7 w-7 rounded-md border flex items-center justify-center ${tones[tone]}`}>
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+      </div>
+      {loading ? (
+        <Skeleton className="h-7 w-24" />
+      ) : (
+        <div className="flex items-baseline gap-2">
+          <div className="font-display text-2xl font-bold tabular-nums">
+            {value != null ? format(value) : "—"}
+          </div>
+          {delta && (
+            <span
+              className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-mono ${
+                delta.flat
+                  ? "text-muted-foreground bg-secondary/60"
+                  : delta.good
+                    ? "text-emerald-400 bg-emerald-500/10"
+                    : "text-red-400 bg-red-500/10"
+              }`}
+              title={prev != null ? `Antes: ${format(prev)}` : ""}
+            >
+              {delta.flat ? <Minus className="h-3 w-3" /> : delta.up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+              {delta.pct.toFixed(0)}%
+            </span>
+          )}
+        </div>
+      )}
+      {hint && <div className="text-[11px] text-muted-foreground mt-0.5">{hint}{prev != null && value != null ? ` — antes ${format(prev)}` : ""}</div>}
+    </div>
   );
 }
 
