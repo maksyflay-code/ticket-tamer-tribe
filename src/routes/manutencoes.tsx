@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/guard";
 import { Plus, Pencil, Trash2, Wrench, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
+import { notifyManutencaoAgendada } from "@/lib/manutencoes.functions";
 
 export const Route = createFileRoute("/manutencoes")({
   beforeLoad: requireAuth,
@@ -86,6 +87,21 @@ function ManutencoesPage() {
     setLoading(false);
     if (res.error) return toast.error(res.error.message);
     toast.success(editId ? "Manutenção atualizada." : "Manutenção cadastrada.");
+    if (!editId) {
+      try {
+        const r = await notifyManutencaoAgendada({ data: {
+          operadora: payload.operadora,
+          trecho: payload.trecho,
+          data_inicio: payload.data_inicio,
+          data_fim: payload.data_fim,
+          descricao: payload.descricao,
+        }});
+        if (r?.ok) toast.success("Alerta enviado no Telegram.");
+        else if (r?.error) toast.error(`Telegram: ${r.error}`);
+      } catch (e) {
+        toast.error(`Telegram: ${(e as Error).message}`);
+      }
+    }
     setOpen(false); reset(); load();
   };
 
