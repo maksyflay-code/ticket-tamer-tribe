@@ -20,9 +20,15 @@ export function isNonDowntimeTipo(tipo: string | null | undefined): boolean {
   const norm = (tipo ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
     .trim()
     .toUpperCase();
-  return norm === "ATENUACAO" || norm === "VERIFICACAO DE ROTAS";
+  return (
+    norm === "ATENUACAO" ||
+    norm === "VERIFICACAO DE ROTAS" ||
+    norm === "VERIFICACAO ROTAS"
+  );
 }
 
 export function monthWindow(now: Date = new Date()): { start: Date; end: Date; hours: number } {
