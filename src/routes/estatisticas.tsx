@@ -68,6 +68,8 @@ type ChamadoRow = {
   cliente_id: string | null;
   created_at: string;
   resolvido_at: string | null;
+  iniciado_at: string | null;
+  finalizado_at: string | null;
   clientes: { nome: string } | null;
 };
 
@@ -123,7 +125,7 @@ function EstatisticasPage() {
         const [chamadosRes, clientesRes, novosRes] = await Promise.all([
           supabase
             .from("chamados")
-            .select("id,status,prioridade,categoria,tipo_problema,cliente_id,created_at,resolvido_at,clientes(nome)")
+            .select("id,status,prioridade,categoria,tipo_problema,cliente_id,created_at,resolvido_at,iniciado_at,finalizado_at,clientes(nome)")
             .gte("created_at", start.toISOString())
             .lte("created_at", end.toISOString())
             .order("created_at", { ascending: false })
@@ -245,7 +247,13 @@ function EstatisticasPage() {
     const hours = Math.max(1 / 60, (end.getTime() - start.getTime()) / 3_600_000);
     const chamadosUp: ChamadoUptime[] = rows
       .filter((r) => r.cliente_id && !isNonDowntimeTipo(r.tipo_problema))
-      .map((r) => ({ cliente_id: r.cliente_id, created_at: r.created_at, resolvido_at: r.resolvido_at }));
+      .map((r) => ({
+        cliente_id: r.cliente_id,
+        created_at: r.created_at,
+        resolvido_at: r.resolvido_at,
+        iniciado_at: r.iniciado_at,
+        finalizado_at: r.finalizado_at,
+      }));
     const nomeById = new Map<string, string>();
     for (const r of rows) if (r.cliente_id) nomeById.set(r.cliente_id, r.clientes?.nome ?? "—");
     const dt = downtimeByCliente(chamadosUp, start, end);
@@ -264,7 +272,13 @@ function EstatisticasPage() {
     const hours = Math.max(1 / 60, (end.getTime() - start.getTime()) / 3_600_000);
     const chamadosUp: ChamadoUptime[] = rows
       .filter((r) => r.cliente_id && !isNonDowntimeTipo(r.tipo_problema))
-      .map((r) => ({ cliente_id: r.cliente_id, created_at: r.created_at, resolvido_at: r.resolvido_at }));
+      .map((r) => ({
+        cliente_id: r.cliente_id,
+        created_at: r.created_at,
+        resolvido_at: r.resolvido_at,
+        iniciado_at: r.iniciado_at,
+        finalizado_at: r.finalizado_at,
+      }));
     const dt = totalDowntime(chamadosUp, start, end);
     return uptimePct(dt, hours, Math.max(1, clientesAtivos));
   }, [rows, clientesAtivos, range]);
