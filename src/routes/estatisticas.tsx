@@ -223,7 +223,9 @@ function EstatisticasPage() {
   }, [rows]);
 
   const uptimePorCliente = useMemo(() => {
-    const { start, end, hours } = monthWindow();
+    const start = periodStart(period, customFrom);
+    const end = periodEnd(period, customTo);
+    const hours = Math.max(1 / 60, (end.getTime() - start.getTime()) / 3_600_000);
     const chamadosUp: ChamadoUptime[] = rows
       .filter((r) => r.cliente_id && !isNonDowntimeTipo(r.tipo_problema))
       .map((r) => ({ cliente_id: r.cliente_id, created_at: r.created_at, resolvido_at: r.resolvido_at }));
@@ -238,16 +240,18 @@ function EstatisticasPage() {
       }))
       .sort((a, b) => a.uptime - b.uptime)
       .slice(0, 10);
-  }, [rows]);
+  }, [rows, period, customFrom, customTo]);
 
   const uptimeGeral = useMemo(() => {
-    const { start, end, hours } = monthWindow();
+    const start = periodStart(period, customFrom);
+    const end = periodEnd(period, customTo);
+    const hours = Math.max(1 / 60, (end.getTime() - start.getTime()) / 3_600_000);
     const chamadosUp: ChamadoUptime[] = rows
       .filter((r) => r.cliente_id && !isNonDowntimeTipo(r.tipo_problema))
       .map((r) => ({ cliente_id: r.cliente_id, created_at: r.created_at, resolvido_at: r.resolvido_at }));
     const dt = totalDowntime(chamadosUp, start, end);
     return uptimePct(dt, hours, Math.max(1, clientesAtivos));
-  }, [rows, clientesAtivos]);
+  }, [rows, clientesAtivos, period, customFrom, customTo]);
 
   return (
     <AppShell title="Estatísticas">
