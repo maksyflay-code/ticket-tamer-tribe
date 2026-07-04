@@ -20,6 +20,8 @@ export function isNonDowntimeTipo(tipo: string | null | undefined): boolean {
   const norm = (tipo ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
     .trim()
     .toUpperCase();
   return norm === "ATENUACAO" || norm === "VERIFICACAO DE ROTAS";
