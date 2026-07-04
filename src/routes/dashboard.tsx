@@ -146,8 +146,8 @@ function DashboardPage() {
       supabase.from("chamado_historico").select("chamado_id,status_anterior,status_novo,created_at,tipo").eq("tipo","mudanca_status").gte("created_at", start.toISOString()),
       supabase.from("chamados").select("created_at,resolvido_at").gte("created_at", startSpark.toISOString()),
       // Para uptime do mês: pega chamados que se sobrepõem ao mês corrente
-      supabase.from("chamados").select("cliente_id,created_at,resolvido_at,tipo_problema")
-        .or(`resolvido_at.is.null,resolvido_at.gte.${mw.start.toISOString()}`),
+      supabase.from("chamados").select("cliente_id,created_at,resolvido_at,iniciado_at,finalizado_at,tipo_problema")
+        .or(`resolvido_at.is.null,resolvido_at.gte.${mw.start.toISOString()},finalizado_at.gte.${mw.start.toISOString()}`),
       supabase.from("clientes").select("id", { count: "exact", head: true }).eq("status", "ativo"),
       // Métricas de solicitações
       supabase.from("solicitacoes").select("status,tipo"),
