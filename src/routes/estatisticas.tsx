@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area,
 } from "recharts";
 import { Activity, AlertTriangle, CheckCircle2, Users, Ticket, Wifi, TrendingUp, Printer } from "lucide-react";
-import { monthWindow, downtimeByCliente, totalDowntime, uptimePct, fmtUptime, fmtDowntime, isNonDowntimeTipo, type ChamadoUptime } from "@/lib/uptime";
+import { downtimeByCliente, totalDowntime, uptimePct, fmtUptime, fmtDowntime, isNonDowntimeTipo, type ChamadoUptime } from "@/lib/uptime";
 
 export const Route = createFileRoute("/estatisticas")({
   beforeLoad: requireAuth,
