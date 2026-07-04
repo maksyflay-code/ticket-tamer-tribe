@@ -98,6 +98,11 @@ function EstatisticasPage() {
   const [rows, setRows] = useState<ChamadoRow[]>([]);
   const [clientesAtivos, setClientesAtivos] = useState(0);
   const [novosClientes, setNovosClientes] = useState(0);
+  // Janela validada (só atualiza após debounce + validação) — evita travar a UI com datas parciais
+  const [range, setRange] = useState<{ start: Date; end: Date }>(() => ({
+    start: periodStart("mtd"),
+    end: periodEnd("mtd"),
+  }));
 
   useEffect(() => {
     let active = true;
@@ -127,6 +132,7 @@ function EstatisticasPage() {
           supabase.from("clientes").select("id", { count: "exact", head: true }).gte("created_at", start.toISOString()),
         ]);
         if (!active) return;
+        setRange({ start, end });
         setRows((chamadosRes.data ?? []) as ChamadoRow[]);
         setClientesAtivos(clientesRes.count ?? 0);
         setNovosClientes(novosRes.count ?? 0);
@@ -198,9 +204,9 @@ function EstatisticasPage() {
   }, [rows]);
 
   const evolucao = useMemo(() => {
-    const start = periodStart(period, customFrom);
-    const end = periodEnd(period, customTo);
-    const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86_400_000) + 1);
+    const { start, end } = range;
+    // Cap de segurança: nunca gerar mais de 2 anos de pontos no gráfico
+    const days = Math.min(731, Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86_400_000) + 1));
     const buckets: Array<{ date: string; abertos: number; resolvidos: number }> = [];
     const idx = new Map<string, number>();
     for (let i = 0; i < days; i++) {
@@ -220,7 +226,7 @@ function EstatisticasPage() {
       }
     }
     return buckets;
-  }, [rows, period, customFrom, customTo]);
+  }, [rows, range]);
 
   const topClientes = useMemo(() => {
     const map = new Map<string, number>();
@@ -235,8 +241,7 @@ function EstatisticasPage() {
   }, [rows]);
 
   const uptimePorCliente = useMemo(() => {
-    const start = periodStart(period, customFrom);
-    const end = periodEnd(period, customTo);
+    const { start, end } = range;
     const hours = Math.max(1 / 60, (end.getTime() - start.getTime()) / 3_600_000);
     const chamadosUp: ChamadoUptime[] = rows
       .filter((r) => r.cliente_id && !isNonDowntimeTipo(r.tipo_problema))
@@ -252,18 +257,17 @@ function EstatisticasPage() {
       }))
       .sort((a, b) => a.uptime - b.uptime)
       .slice(0, 10);
-  }, [rows, period, customFrom, customTo]);
+  }, [rows, range]);
 
   const uptimeGeral = useMemo(() => {
-    const start = periodStart(period, customFrom);
-    const end = periodEnd(period, customTo);
+    const { start, end } = range;
     const hours = Math.max(1 / 60, (end.getTime() - start.getTime()) / 3_600_000);
     const chamadosUp: ChamadoUptime[] = rows
       .filter((r) => r.cliente_id && !isNonDowntimeTipo(r.tipo_problema))
       .map((r) => ({ cliente_id: r.cliente_id, created_at: r.created_at, resolvido_at: r.resolvido_at }));
     const dt = totalDowntime(chamadosUp, start, end);
     return uptimePct(dt, hours, Math.max(1, clientesAtivos));
-  }, [rows, clientesAtivos, period, customFrom, customTo]);
+  }, [rows, clientesAtivos, range]);
 
   return (
     <AppShell title="Estatísticas">
