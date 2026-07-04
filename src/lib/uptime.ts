@@ -24,7 +24,11 @@ export function isNonDowntimeTipo(tipo: string | null | undefined): boolean {
     .replace(/\s+/g, " ")
     .trim()
     .toUpperCase();
-  return norm === "ATENUACAO" || norm === "VERIFICACAO DE ROTAS";
+  return (
+    norm === "ATENUACAO" ||
+    norm === "VERIFICACAO DE ROTAS" ||
+    norm === "VERIFICACAO ROTAS"
+  );
 }
 
 export function monthWindow(now: Date = new Date()): { start: Date; end: Date; hours: number } {
